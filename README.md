@@ -85,6 +85,10 @@ The proposed framework combines:
 - **Feature Fusion + Classification Head** for final authenticity prediction.
 - **Grad-CAM Explainability Layer** for visual decision interpretation.
 
+## Architecture
+
+![Hybrid CNN-ViT Deepfake Detection Pipeline](Architecture/Hybrid_CNN-ViT_Deepfake_Detection_Pipeline.png)
+
 ---
 
 ## Benchmark Datasets
