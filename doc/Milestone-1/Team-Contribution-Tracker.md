@@ -48,5 +48,5 @@ We certify that all team members have actively contributed to the preparation of
 | --- | --- | --- |
 | Rohit | Project Objectives & Problem Definition Lead | __________ |
 | Raunak | Literature Review & Benchmark Analysis Lead | __________ |
-| Vishakha | Research Findings & Comparative Analysis Lead | __________ |
+| Vishakha | Research Findings & Comparative Analysis Lead | <img src="../../signatures/Sign-Vishakha.jpeg" alt="Vishakha Signature" width="140"> |
 | Aman | Baseline Performance & Evaluation Strategy Lead | __________ |
