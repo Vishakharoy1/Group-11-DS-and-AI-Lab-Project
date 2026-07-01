@@ -87,7 +87,7 @@ The proposed framework combines:
 
 ## Architecture
 
-![Hybrid CNN-ViT Deepfake Detection Pipeline](Architecture/Hybrid_CNN-ViT_Deepfake_Detection_Pipeline.png)
+![Hybrid CNN-ViT Deepfake Detection Pipeline](Architecture/Architecturee.png)
 
 ---
 
