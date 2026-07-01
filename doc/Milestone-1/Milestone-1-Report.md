@@ -349,7 +349,15 @@ The proposed deep learning framework is expected to:
 - Deliver competitive detection performance while maintaining computational efficiency.
 - Provide a scalable framework suitable for real-world human face authenticity detection.
 
-### 5.3 References
+### 5.3 Opportunities for Improvement
+
+- Improve cross-dataset generalization for unseen manipulation techniques.
+- Increase robustness against compressed and low-quality images and videos.
+- Enhance interpretability through Grad-CAM-based visual explanations.
+- Combine local and global feature extraction using a hybrid EfficientNet-B4 and Vision Transformer architecture.
+- Develop a scalable framework suitable for real-world image and video authenticity verification.
+
+### 5.4 References
 
 1. Rossler, A., Cozzolino, D., Verdoliva, L., Riess, C., Thies, J., & Niessner, M. (2019). *FaceForensics++: Learning to Detect Manipulated Facial Images*. Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), 2019. <https://openaccess.thecvf.com/content_ICCV_2019/html/Rossler_FaceForensics_Learning_to_Detect_Manipulated_Facial_Images_ICCV_2019_paper.html>
 2. Shiohara, K., Yamasaki, T., et al. (2023). *DeepfakeBench: A Comprehensive Benchmark of Deepfake Detection*. NeurIPS Datasets and Benchmarks Track, 2023. <https://arxiv.org/abs/2307.01426>
