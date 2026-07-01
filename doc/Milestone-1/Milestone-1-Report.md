@@ -363,3 +363,16 @@ The proposed deep learning framework is expected to:
 2. Shiohara, K., Yamasaki, T., et al. (2023). *DeepfakeBench: A Comprehensive Benchmark of Deepfake Detection*. NeurIPS Datasets and Benchmarks Track, 2023. <https://arxiv.org/abs/2307.01426>
 3. Gong, L. Y., & Li, X. J. (2024). *A Contemporary Survey on Deepfake Detection: Datasets, Algorithms, and Challenges*. Electronics, 13(19), 3863. <https://doi.org/10.3390/electronics13193863>
 4. Zi, B., Chang, M., Chen, J., Ma, X., & Jiang, Y.-G. (2020). *WildDeepfake: A Challenging Real-World Dataset for Deepfake Detection*. Proceedings of the 28th ACM International Conference on Multimedia (ACM MM 2020). <https://arxiv.org/abs/2007.09384>
+
+---
+
+## Team Declaration
+
+We certify that all team members have actively contributed to the preparation of this milestone report. Each member has reviewed the contents of the document, understands the work presented, and agrees with the submitted report.
+
+| Team Member | Role | Signature |
+| --- | --- | --- |
+| Rohit | Project Objectives & Problem Definition Lead | __________ |
+| Raunak | Literature Review & Benchmark Analysis Lead | __________ |
+| Vishakha | Research Findings & Comparative Analysis Lead | __________ |
+| Aman | Baseline Performance & Evaluation Strategy Lead | __________ |
