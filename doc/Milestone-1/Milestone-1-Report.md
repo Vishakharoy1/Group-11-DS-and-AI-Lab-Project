@@ -315,17 +315,26 @@ The findings presented below are based on the research papers *FaceForensics++: 
 - Generates an automated forensic analysis report containing prediction results, confidence scores, explainability visualizations, detected faces, and processing details.
 - Evaluates model generalization using multiple benchmark datasets with both GAN-based and diffusion-based images.
   
-### 4.3.3 Comparison with TruthScan
+### 4.3.3 Comparison with TruthScan (Undetectable.ai)
 
-TruthScan is a commercial AI-powered deepfake detection system developed by Undetectable.ai for identifying AI-generated content. Unlike academic deepfake detection models, TruthScan does not publicly disclose its model architecture, training methodology, or benchmark evaluation results. Therefore, a direct performance comparison is not possible. However, the proposed framework emphasizes transparency, reproducibility, and benchmark-based evaluation.
+TruthScan, powered by Undetectable.ai, is a commercial AI detection platform designed to identify AI-generated content across various media types. While it provides convenient detection services, its underlying architecture, training methodology, and detection mechanisms are proprietary and not publicly disclosed.
 
-| Feature | TruthScan | Proposed Framework |
-|----------|-----------|-------------------|
-| Model Architecture | Proprietary | Vision Transformer (ViT) with RGB & Frequency Feature Fusion |
-| Explainability | Not publicly disclosed | Transformer Attention Visualizations (facial & frequency patterns) |
-| Benchmark Evaluation | Not publicly available | FaceForensics++, Celeb-DF, DFDC |
-| Research Reproducibility | No | Yes |
-| Cross-Dataset Evaluation | Not publicly disclosed | Planned as part of this work |
+The following table compares the publicly available features of TruthScan with the proposed deepfake detection framework.
+
+| Feature | TruthScan (Undetectable.ai) | Proposed System |
+| --- | --- | --- |
+| Primary Purpose | Commercial AI content detection | Explainable deepfake image detection |
+| Target Input | AI-generated content (text and media) | Facial images (Real vs. Deepfake) |
+| Architecture Transparency | Proprietary (not publicly disclosed) | Fully documented research framework |
+| Face Detection | Not publicly specified | RetinaFace / MTCNN |
+| Deep Learning Model | Not publicly disclosed | Vision Transformer (ViT) |
+| Frequency-Domain Analysis | Not publicly specified | FFT/DCT-based feature extraction |
+| RGB–Frequency Feature Fusion | Not publicly specified | Cross-attention RGB–Frequency Fusion |
+| Explainability | Limited public information | Attention Rollout and Frequency Saliency Visualization |
+| Confidence Score | Yes | Yes |
+| Heatmap Visualization | Not publicly specified | Yes |
+| Automated PDF Report | Not publicly specified | Yes |
+| Research Reproducibility | Limited | High (reproducible and customizable) |
 
 ---
 
