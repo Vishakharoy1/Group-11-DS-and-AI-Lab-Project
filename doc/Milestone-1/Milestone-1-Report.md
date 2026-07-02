@@ -22,13 +22,12 @@ Many commercial detection tools lack explainability, providing classification re
 
 ## 2. Project Objectives
 
-- Develop a deep learning-based system to distinguish authentic human faces from AI-generated or manipulated faces in both images and videos.
-- Address challenges posed by AI-generated media, including misinformation, identity theft, digital fraud, and impersonation.
-- Improve detection performance on compressed media, unseen manipulation techniques, and real-world scenarios.
-- Implement a hybrid EfficientNet-B4 and Vision Transformer (ViT) framework with attention-based feature fusion for robust deepfake image detection.
-- Train and evaluate the proposed model using benchmark datasets such as FaceForensics++, Celeb-DF, and DFDC to assess cross-dataset generalization.
-- Generate Grad-CAM confidence heatmaps to improve the interpretability and transparency of detection results.
-- Evaluate the model using standard metrics including Accuracy, Precision, Recall, F1-Score, and ROC-AUC, and compare its performance with existing baseline models.
+- To develop an explainable deepfake image detection system using a Vision Transformer (ViT) integrated with RGB and frequency-domain feature fusion for accurate identification of authentic and AI-generated facial images.
+- To extract complementary spatial and frequency-domain features by combining RGB information with FFT/DCT-based frequency analysis through a cross-attention fusion mechanism to improve robustness against unseen manipulation techniques.
+- To enhance the model's generalization capability by evaluating its performance across multiple benchmark datasets containing GAN-based and diffusion-based deepfake images.
+- To improve the transparency of deepfake detection by incorporating transformer attention visualization and explainability techniques that highlight the facial regions and frequency patterns influencing the model's predictions.
+- To generate an automated forensic analysis report containing prediction results, confidence scores, explainability visualizations, detected faces, and processing details for end users.
+- To evaluate and compare the proposed framework against existing CNN-based deepfake detection models using standard metrics such as Accuracy, Precision, Recall, F1-score, ROC-AUC, inference time, and cross-dataset performance.
 
 ---
 
@@ -224,17 +223,17 @@ Although significant progress has been made in deepfake detection, several chall
 
 Based on the research gaps identified in the existing literature, the proposed framework introduces the following improvements:
 
-- Develops a hybrid **EfficientNet-B4 and Vision Transformer** architecture to jointly learn local texture features and global contextual relationships.
+- Develops an explainable deepfake image detection system using a **Vision Transformer (ViT)** integrated with RGB and frequency-domain feature fusion.
 
-- Incorporates an **Attention-Based Feature Fusion** mechanism to effectively combine complementary features extracted from CNN and Transformer branches.
+- Extracts complementary spatial and frequency-domain features by combining RGB information with **FFT/DCT-based frequency analysis** through a **cross-attention fusion mechanism**.
 
-- Utilizes robust **data augmentation** techniques, including JPEG compression, blur, noise, and camera recapture simulation, to improve performance under real-world conditions.
+- Enhances model generalization by evaluating its performance across multiple benchmark datasets containing both **GAN-based** and **diffusion-based** deepfake images.
 
-- Performs **cross-dataset training and evaluation** using benchmark datasets such as **FaceForensics++**, **Celeb-DF**, and **DFDC** to improve model generalization.
+- Incorporates **transformer attention visualization and explainability techniques** that highlight both the facial regions and frequency patterns influencing predictions.
 
-- Integrates **Grad-CAM** to provide visual explanations of model predictions, improving transparency and interpretability.
+- Generates an **automated forensic analysis report** containing prediction results, confidence scores, explainability visualizations, detected faces, and processing details for end users.
 
-- Evaluates the proposed framework across multiple benchmark datasets using standard performance metrics to validate its robustness and cross-dataset generalization.
+- Evaluates and compares the proposed framework against existing CNN-based deepfake detection models using standard metrics such as Accuracy, Precision, Recall, F1-score, ROC-AUC, inference time, and cross-dataset performance.
 ---
 
 ## 4. Detailed Findings and Comparative Analysis
@@ -305,20 +304,20 @@ The findings presented below are based on the research papers *FaceForensics++: 
 
 | Feature | Existing Solutions | Proposed Approach |
 | --- | --- | --- |
-| Architecture | CNNs or Vision Transformers individually | Hybrid EfficientNet-B4 + Vision Transformer with Feature Fusion |
+| Architecture | CNNs or Vision Transformers individually | Vision Transformer (ViT) with RGB and Frequency-domain Fusion |
 | Input Media | Images or extracted video frames | Images and video frames |
-| Feature Learning | Local or global features | Combined local and global feature extraction |
-| Preprocessing | Limited preprocessing | Face Detection + Face Alignment |
-| Generalization | Limited on unseen datasets | Cross-dataset training and evaluation |
-| Robustness | Sensitive to compression | Data augmentation and compression simulation |
+| Feature Learning | Spatial features only | Cross-attention fusion of spatial (RGB) & frequency-domain (FFT/DCT) features |
+| Preprocessing | Limited preprocessing | RGB Extraction + FFT/DCT Spectral Decomposition |
+| Generalization | Limited on unseen datasets | Evaluated across GAN-based and diffusion-based datasets |
+| Robustness | Sensitive to compression / unseen methods | Cross-attention fusion mechanism for robust artifact detection |
 
 #### 4.3.2 Key Differences
 
-- Integrates EfficientNet-B4 and Vision Transformer to leverage both local texture and global contextual features.
-- Incorporates face detection and face alignment during preprocessing for improved feature extraction.
-- Utilizes data augmentation to improve robustness against image compression and unseen manipulation techniques.
-- Employs Grad-CAM to generate confidence heatmaps, improving model interpretability and user trust.
-- Evaluates performance across multiple benchmark datasets to enhance cross-dataset generalization.
+- Integrates spatial (RGB) and frequency-domain (FFT/DCT) feature fusion inside a Vision Transformer framework.
+- Uses a cross-attention fusion mechanism to combine complementary spatial and spectral features.
+- Incorporates transformer attention visualization and explainability techniques that highlight both facial regions and frequency patterns.
+- Generates an automated forensic analysis report containing prediction results, confidence scores, explainability visualizations, detected faces, and processing details.
+- Evaluates model generalization using multiple benchmark datasets with both GAN-based and diffusion-based images.
   
 ### 4.3.3 Comparison with TruthScan
 
@@ -326,8 +325,8 @@ TruthScan is a commercial AI-powered deepfake detection system developed by Unde
 
 | Feature | TruthScan | Proposed Framework |
 |----------|-----------|-------------------|
-| Model Architecture | Proprietary | Hybrid EfficientNet-B4 + Vision Transformer |
-| Explainability | Not publicly disclosed | Grad-CAM visualizations |
+| Model Architecture | Proprietary | Vision Transformer (ViT) with RGB & Frequency Feature Fusion |
+| Explainability | Not publicly disclosed | Transformer Attention Visualizations (facial & frequency patterns) |
 | Benchmark Evaluation | Not publicly available | FaceForensics++, Celeb-DF, DFDC |
 | Research Reproducibility | No | Yes |
 | Cross-Dataset Evaluation | Not publicly disclosed | Planned as part of this work |
@@ -372,7 +371,7 @@ ROC-AUC measures a model's ability to distinguish between authentic and manipula
 
 Based on the benchmark analysis, the primary limitation of existing deepfake detectors is poor cross-dataset generalization rather than benchmark accuracy alone. Therefore, the proposed framework focuses on improving robustness, explainability, and real-world performance.
 
-The proposed system combines EfficientNet-B4 and Vision Transformer through an Attention-Based Feature Fusion mechanism to jointly learn local texture artifacts and global contextual relationships. Face detection, face alignment, and robust data augmentation are incorporated to improve cross-dataset generalization and robustness against image compression and camera recapture attacks.
+The proposed system uses a Vision Transformer (ViT) integrated with RGB (spatial) and frequency-domain (FFT/DCT-based spectral) features via a cross-attention fusion mechanism to combine complementary information. Spatial features capture pixel-level texture details, while frequency analysis highlights artifacts introduced by generative operations. Evaluating the model across multiple GAN and diffusion datasets ensures robust generalization, supported by detailed attention visualizations and automated forensic reporting.
 
 #### 5.2.1 Model Evaluation Strategy
 
@@ -401,6 +400,7 @@ The proposed model will be evaluated using the following metrics:
 - Recall
 - F1-Score
 - ROC-AUC
+- Inference Time
 - Confusion Matrix
 
 These metrics provide a comprehensive assessment of the model's classification performance, robustness, and ability to generalize across different benchmark datasets.
@@ -409,20 +409,20 @@ These metrics provide a comprehensive assessment of the model's classification p
 
 The proposed deep learning framework is expected to:
 
-- Improve robustness against compressed and low-quality images and videos.
-- Achieve better cross-dataset generalization than existing baseline detectors.
-- Combine EfficientNet-B4 and Vision Transformer to capture both local texture artifacts and global contextual relationships.
-- Generate Grad-CAM confidence heatmaps to improve model interpretability and transparency.
-- Deliver competitive detection performance while maintaining computational efficiency.
-- Provide a scalable framework suitable for real-world human face authenticity detection.
+- Distinguish authentic human faces from synthetic media generated by GAN and diffusion models.
+- Achieve superior cross-dataset generalization compared to existing baseline detectors.
+- Effectively fuse RGB spatial information and FFT/DCT frequency-domain analysis using cross-attention.
+- Incorporate transformer attention visualizations that highlight facial regions and frequency patterns influencing prediction.
+- Generate automated forensic analysis reports detailing prediction results, confidence scores, detected faces, and explainability visuals.
+- Compare favorably against baseline CNN models on standard performance metrics, cross-dataset generalization, and inference speed.
 
 ### 5.3 Opportunities for Improvement
 
 - Improve cross-dataset generalization for unseen manipulation techniques.
 - Increase robustness against compressed and low-quality images and videos.
-- Enhance interpretability through Grad-CAM-based visual explanations.
-- Combine local and global feature extraction using a hybrid EfficientNet-B4 and Vision Transformer architecture.
-- Develop a scalable framework suitable for real-world image and video authenticity verification.
+- Enhance transparency through multi-modal (spatial and frequency) attention visualizations.
+- Optimize cross-attention fusion layers to reduce model latency and improve real-time processing capabilities.
+- Automate forensic report generation to streamline user workflow.
 
 ### 5.4 References
 

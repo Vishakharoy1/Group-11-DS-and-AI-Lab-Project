@@ -67,11 +67,12 @@ python src/infer.py --input path/to/image_or_video
 
 ## Project Scope (Milestone 1)
 
-- Detect fake vs authentic human faces in images and videos.
-- Improve cross-dataset generalization for unseen manipulation techniques.
-- Improve robustness against compression and low-quality media.
-- Provide explainability through Grad-CAM confidence heatmaps.
-- Evaluate using Accuracy, Precision, Recall, F1-Score, ROC-AUC, and confusion matrix.
+- Develop explainable deepfake image detection using a Vision Transformer (ViT) with RGB and frequency-domain feature fusion.
+- Extract spatial and frequency-domain features using FFT/DCT-based frequency analysis and a cross-attention fusion mechanism.
+- Improve model generalization across multiple GAN-based and diffusion-based deepfake datasets.
+- Provide explainability via transformer attention visualizations highlighting facial regions and frequency patterns.
+- Enable automated forensic report generation including predictions, confidence scores, and explainability visuals.
+- Compare the framework against CNN models on Accuracy, Precision, Recall, F1-score, ROC-AUC, inference time, and cross-dataset performance.
 
 ---
 
@@ -79,15 +80,15 @@ python src/infer.py --input path/to/image_or_video
 
 The proposed framework combines:
 
-- **Face Detection + Alignment** for standardized facial region extraction.
-- **EfficientNet-B4** for local texture artifact learning.
-- **Vision Transformer (ViT)** for global contextual feature modeling.
-- **Feature Fusion + Classification Head** for final authenticity prediction.
-- **Grad-CAM Explainability Layer** for visual decision interpretation.
+- **RGB Spatial Feature Extraction** alongside **FFT/DCT-based frequency analysis** for spectral feature extraction.
+- **Vision Transformer (ViT)** backbone for capturing long-range spatial dependencies.
+- **Cross-Attention Fusion Mechanism** to combine spatial and spectral feature branches.
+- **Explainability Visualizations** highlighting relevant facial regions and frequency patterns.
+- **Forensic Report Generation** aggregating predictions, confidence scores, and attention maps.
 
 ## Architecture
 
-![Hybrid CNN-ViT Deepfake Detection Pipeline](Architecture/Architecturee.png)
+![ViT-based Spatial-Frequency Deepfake Detection Pipeline](Architecture/architecture.jpg)
 
 ---
 
@@ -115,6 +116,7 @@ Primary metrics:
 - Recall
 - F1-Score
 - ROC-AUC
+- Inference Time
 - Confusion Matrix
 
 ---
@@ -156,10 +158,11 @@ Detailed responsibilities are documented in `doc/Milestone-1/Team-Contribution-T
 
 ## Opportunities for Improvement
 
-- Better generalization to unseen deepfake generation methods.
-- Higher robustness on heavily compressed/low-quality media.
-- Stronger explainability and user trust via better heatmap consistency.
-- Efficient deployment for real-time video-scale inference.
+- Improve cross-dataset generalization for unseen manipulation techniques.
+- Increase robustness against compressed and low-quality images and videos.
+- Enhance transparency through multi-modal (spatial and frequency) attention visualizations.
+- Optimize cross-attention fusion layers to reduce model latency and improve real-time processing capabilities.
+- Automate forensic report generation to streamline user workflow.
 
 ---
 
