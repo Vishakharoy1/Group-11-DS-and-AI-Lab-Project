@@ -456,3 +456,4 @@ We certify that all team members have actively contributed to the preparation of
 | Raunak | Literature Review & Benchmark Analysis Lead | <img src="../../signatures/raunak.jpeg" alt="Raunak Signature" width="140"> |
 | Vishakha | Research Findings & Comparative Analysis Lead | <img src="../../signatures/Sign-Vishakha.jpeg" alt="Vishakha Signature" width="140"> |
 | Aman | Baseline Performance & Evaluation Strategy Lead | <img src="../../signatures/Aman.jpeg" alt="Aman Signature" width="140"> |
+| Somendu | Data Research & Presentation Lead | <img src="../../signatures/Somendu.jpeg" alt="Somendu Signature" width="140"> |

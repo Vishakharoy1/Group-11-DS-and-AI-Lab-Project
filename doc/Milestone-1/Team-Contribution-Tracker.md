@@ -40,6 +40,13 @@ This document tracks the work completed and responsibilities assigned for Milest
 - Designed the evaluation strategy, including benchmark datasets, performance metrics, and comparison methodology.
 - Defined the proposed model evaluation framework and identified expected performance improvements over existing solutions.
 
+## 5. Somendu - Data Research & Presentation Lead
+
+### Contributions in Milestone 1
+
+- Researched on data required for training and evaluation.
+- Helped in PPT creation.
+
 ## Team Declaration
 
 We certify that all team members have actively contributed to the preparation of this milestone report. Each member has reviewed the contents of the document, understands the work presented, and agrees with the submitted report.
@@ -50,3 +57,4 @@ We certify that all team members have actively contributed to the preparation of
 | Raunak | Literature Review & Benchmark Analysis Lead | <img src="../../signatures/raunak.jpeg" alt="Raunak Signature" width="140"> |
 | Vishakha | Research Findings & Comparative Analysis Lead | <img src="../../signatures/Sign-Vishakha.jpeg" alt="Vishakha Signature" width="140"> |
 | Aman | Baseline Performance & Evaluation Strategy Lead | <img src="../../signatures/Aman.jpeg" alt="Aman Signature" width="140"> |
+| Somendu | Data Research & Presentation Lead | <img src="../../signatures/Somendu.jpeg" alt="Somendu Signature" width="140"> |
