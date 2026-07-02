@@ -300,20 +300,25 @@ The findings presented below are based on the research papers *FaceForensics++: 
 
 | Feature | Existing Solutions | Proposed Approach |
 | --- | --- | --- |
-| Architecture | CNNs or Vision Transformers individually | Vision Transformer (ViT) with RGB and Frequency-domain Fusion |
-| Input Media | Images or extracted video frames | Images and video frames |
-| Feature Learning | Spatial features only | Cross-attention fusion of spatial (RGB) & frequency-domain (FFT/DCT) features |
-| Preprocessing | Limited preprocessing | RGB Extraction + FFT/DCT Spectral Decomposition |
-| Generalization | Limited on unseen datasets | Evaluated across GAN-based and diffusion-based datasets |
-| Robustness | Sensitive to compression / unseen methods | Cross-attention fusion mechanism for robust artifact detection |
+| Architecture | CNNs or Vision Transformers used independently | Explainable Dual-Stream Vision Transformer (ViT) |
+| Input Media | Images or extracted video frames | Facial images (extendable to video frames) |
+| Feature Extraction | RGB or frequency-domain features separately | Dual-stream RGB and Frequency-domain feature extraction |
+| Feature Fusion | Feature concatenation or independent processing | Cross-attention RGB–Frequency Fusion |
+| Frequency Analysis | Limited or absent | FFT/DCT-based frequency feature extraction |
+| Preprocessing | Basic resizing and normalization | Face detection, normalization, augmentation, screenshot & compression simulation |
+| Generalization | Limited performance on unseen datasets | Evaluated on multiple benchmark datasets for improved cross-dataset generalization |
+| Robustness | Sensitive to compression and post-processing | Improved robustness using augmentation and complementary RGB–frequency learning |
+| Explainability | Limited or unavailable | Attention Rollout with Frequency-domain Saliency Visualization |
+| Output | Prediction label and confidence | Prediction, confidence score, heatmaps, and forensic PDF report |
 
 #### 4.3.2 Key Differences
 
-- Integrates spatial (RGB) and frequency-domain (FFT/DCT) feature fusion inside a Vision Transformer framework.
-- Uses a cross-attention fusion mechanism to combine complementary spatial and spectral features.
-- Incorporates transformer attention visualization and explainability techniques that highlight both facial regions and frequency patterns.
-- Generates an automated forensic analysis report containing prediction results, confidence scores, explainability visualizations, detected faces, and processing details.
-- Evaluates model generalization using multiple benchmark datasets with both GAN-based and diffusion-based images.
+- Proposes an Explainable Dual-Stream Vision Transformer instead of relying solely on CNN-based or single-stream transformer architectures.
+- Integrates RGB spatial features with FFT/DCT-based frequency-domain features using a cross-attention fusion mechanism, enabling the model to learn complementary information from both domains.
+- Enhances robustness against compression, screenshot capture, and camera recapture through dedicated data augmentation and complementary feature learning.
+- Incorporates transformer-based explainability using Attention Rollout and frequency-domain saliency visualization to provide transparent and interpretable predictions.
+- Generates a comprehensive forensic PDF report containing prediction results, confidence scores, detected faces, attention visualizations, processing details, and model explanations.
+- Evaluates the proposed framework using multiple benchmark datasets to assess cross-dataset and cross-manipulation generalization.
   
 ### 4.3.3 Comparison with TruthScan (Undetectable.ai)
 
