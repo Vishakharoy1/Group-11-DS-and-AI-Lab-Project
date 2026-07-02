@@ -231,19 +231,15 @@ Although significant progress has been made in deepfake detection, several chall
 
 ### 3.7 Proposed Approach to Address the Research Gaps
 
-Based on the research gaps identified in the existing literature, the proposed framework introduces the following improvements:
+The proposed framework addresses the following research gaps identified in existing deepfake detection methods:
 
-- Develops an explainable deepfake image detection system using a **Vision Transformer (ViT)** integrated with RGB and frequency-domain feature fusion.
+- Existing models often struggle to generalize across unseen datasets and emerging deepfake generation techniques.
+- Many approaches rely only on RGB or frequency-domain features, limiting detection performance.
+- Detection accuracy decreases when images undergo compression, screenshot capture, or camera recapture.
+- Most existing systems provide limited explainability, making their predictions difficult to interpret.
 
-- Extracts complementary spatial and frequency-domain features by combining RGB information with **FFT/DCT-based frequency analysis** through a **cross-attention fusion mechanism**.
+The proposed approach addresses these gaps by integrating Vision Transformer, RGB–Frequency Cross-Attention Fusion, explainable AI, and automated PDF report generation into a unified deepfake detection framework.
 
-- Enhances model generalization by evaluating its performance across multiple benchmark datasets containing both **GAN-based** and **diffusion-based** deepfake images.
-
-- Incorporates **transformer attention visualization and explainability techniques** that highlight both the facial regions and frequency patterns influencing predictions.
-
-- Generates an **automated forensic analysis report** containing prediction results, confidence scores, explainability visualizations, detected faces, and processing details for end users.
-
-- Evaluates and compares the proposed framework against existing CNN-based deepfake detection models using standard metrics such as Accuracy, Precision, Recall, F1-score, ROC-AUC, inference time, and cross-dataset performance.
 ---
 
 ## 4. Detailed Findings and Comparative Analysis
