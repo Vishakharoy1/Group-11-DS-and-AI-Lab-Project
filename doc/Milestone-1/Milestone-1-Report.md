@@ -6,17 +6,16 @@
 
 ## 1. Problem Statement
 
-The rapid advancement of Artificial Intelligence has enabled the creation of highly realistic AI-generated and manipulated human faces in both images and videos. While these technologies offer significant benefits, they are also increasingly exploited for deepfakes, misinformation, identity theft, impersonation, and digital fraud. Existing detection methods often struggle to generalize across different datasets, compressed media, and emerging manipulation techniques, highlighting the need for a more robust and explainable detection system.
+The rapid advancement of Artificial Intelligence has enabled the creation of highly realistic AI-generated and manipulated human faces in both images and videos. While these technologies have numerous beneficial applications, they are increasingly being exploited for deepfakes, misinformation, identity theft, impersonation, and digital fraud. Existing deepfake detection methods often rely primarily on spatial features learned from RGB images, making them less effective when faced with compressed media, unseen manipulation techniques, and newly emerging AI-generated content. Furthermore, many existing approaches function as black-box models, providing predictions without sufficient explanation of the factors influencing their decisions. 
 
 ### Challenges Arising from Advancements in AI Technology
 
-AI-generated images and videos are rapidly spreading across social media, news platforms, and digital communication channels, making it increasingly difficult to distinguish authentic facial content from manipulated media.
-
-Advancements in generative AI models, such as GANs and diffusion models, have significantly improved the realism of synthetic faces, enabling misuse for misinformation, impersonation, identity theft, and digital fraud.
-
-Existing deepfake detection methods often perform well on benchmark datasets but struggle with compressed media, unseen manipulation techniques, and real-world scenarios.
-
-Many commercial detection tools lack explainability, providing classification results without indicating which facial regions influenced the prediction, reducing user trust and transparency.
+- AI-generated images and videos are rapidly spreading across social media, news platforms, and digital communication channels, making it increasingly difficult to distinguish authentic facial content from manipulated media.
+- Recent advances in generative AI models, including GANs and diffusion models, have significantly improved the realism of synthetic faces, enabling misuse for misinformation, impersonation, identity theft, and digital fraud.
+- Existing CNN-based and conventional deepfake detection methods often rely mainly on RGB spatial features and struggle to generalize across compressed media, unseen manipulation techniques, and cross-dataset scenarios.
+- Hidden frequency-domain artifacts introduced during image generation are often overlooked by traditional detection methods, reducing their effectiveness against modern AI-generated images.
+- Many existing detection systems lack explainability and provide only prediction labels without indicating the facial regions or hidden artifacts that influenced the decision, limiting user trust and transparency.
+- There is a need for an explainable deepfake detection framework that combines Vision Transformers, RGB–frequency feature fusion, and attention-based interpretation to improve robustness, generalization, and user confidence.
 
 ---
 
