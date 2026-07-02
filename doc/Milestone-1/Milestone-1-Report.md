@@ -219,17 +219,7 @@ Benchmark datasets provide standardized evaluation for comparing deepfake detect
 | WildDeepfake | 7,314 face sequences containing approximately 1.18 million face images collected from internet videos | Evaluates performance under real-world conditions |
 | DeepFake Detection Challenge (DFDC) | More than 100,000 videos with varying compression levels, lighting conditions, and backgrounds | Measures robustness and cross-domain generalization |
 
-### 3.6 Research Gaps Identified
-
-Although significant progress has been made in deepfake detection, several challenges remain:
-
-- Existing CNN-based detectors often overfit to dataset-specific artifacts and struggle with unseen manipulation techniques.
-- Transformer-based models provide better generalization but require greater computational resources.
-- Frequency-domain and noise-based methods are sensitive to compression and post-processing operations.
-- Most existing systems operate as black-box models and provide limited explainability.
-- There is a need for robust models that combine local texture analysis, global contextual understanding, and explainable AI for reliable real-world deployment.
-
-### 3.7 Proposed Approach to Address the Research Gaps
+### 3.6 Proposed Approach to Address the Research Gaps
 
 The proposed framework addresses the following research gaps identified in existing deepfake detection methods:
 
