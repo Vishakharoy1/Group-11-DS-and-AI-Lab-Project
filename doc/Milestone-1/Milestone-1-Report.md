@@ -174,7 +174,7 @@ The proposed deepfake detection framework is designed to overcome the limitation
 #### Improved Robustness
 
 - Improves detection performance on compressed images and post-processed content.
-- Enhances robustness against camera recapture and screenshot-based attacks.
+- Incorporates camera recapture and screenshot simulation during training to improve robustness against real-world anti-forensic attacks.
 
 #### Explainable AI
 
