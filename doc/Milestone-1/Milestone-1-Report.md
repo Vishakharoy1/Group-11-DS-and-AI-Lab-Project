@@ -144,47 +144,54 @@ Multi-scale architectures process facial images at multiple resolutions to captu
 - Higher computational complexity
 - Increased training time
 
-### 3.2.6 Proposed Detection Framework
+### 3.3 Proposed Approach
 
-The proposed deepfake detection framework is designed to overcome the limitations of existing CNN-based and Transformer-based approaches by combining their complementary strengths. The framework consists of the following key components:
+The proposed system presents an Explainable Dual-Stream Vision Transformer (ViT) framework integrated with RGB Frequency Fusion for deepfake image detection. Unlike conventional CNN-based methods that primarily focus on learning local spatial features, the proposed framework combines spatial information from RGB images with frequency-domain features extracted using the Fast Fourier Transform (FFT) or Discrete Cosine Transform (DCT). By integrating these complementary feature representations, the system is capable of identifying both visible facial inconsistencies and hidden artifacts introduced during AI-generated image synthesis.
 
-#### Hybrid Feature Extraction
+The proposed methodology consists of the following stages:
 
-- Utilizes **EfficientNet-B4** to extract fine-grained local texture artifacts from facial images.
-- Employs a **Vision Transformer (ViT)** to learn global facial structures and contextual relationships.
-- Combines local and global features for more comprehensive facial representation.
+#### Step 1: Image Acquisition and Validation
+The system accepts facial images in commonly used formats such as JPG, JPEG, PNG, and WEBP. Before analysis, each uploaded image undergoes validation to verify its file format, resolution, and integrity. Invalid or corrupted files are rejected to ensure reliable processing.
 
-#### Attention-Based Feature Fusion
+#### Step 2: Face Detection
+After validation, the image is processed using a face detection model such as RetinaFace or MTCNN. If multiple faces are detected within a single image, each face is extracted and cropped individually. This step eliminates unnecessary background information and ensures that the subsequent analysis focuses only on facial regions.
 
-- Integrates features extracted by EfficientNet-B4 and Vision Transformer.
-- Uses an attention-based fusion mechanism to emphasize the most informative features for deepfake detection.
+#### Step 3: Image Preprocessing
+Each cropped face is resized to the input dimensions required by the Vision Transformer (typically 224 × 224 pixels) and normalized to standardize pixel values. During the training phase, data augmentation techniques—including random horizontal flipping, rotation, brightness adjustment, and JPEG compression augmentation—are applied to improve the model's robustness and generalization capability under real-world conditions.
 
-#### Robust Data Augmentation
+#### Step 4: Dual-Stream Feature Extraction
+The preprocessed face image is simultaneously processed through two independent feature extraction streams.
 
-- Applies data augmentation techniques including JPEG compression, Gaussian noise, blur, brightness variation, and contrast adjustment.
-- Improves model robustness against real-world image manipulations and post-processing operations.
+The RGB stream utilizes the original facial image, which is divided into fixed-size patches and converted into embeddings. These embeddings are then processed by the Vision Transformer to learn high-level spatial features such as facial structure, skin texture, illumination consistency, and facial symmetry.
 
-#### Cross-Dataset Generalization
+In parallel, the frequency stream transforms the same image into the frequency domain using FFT or DCT. This representation enables the extraction of hidden frequency-based characteristics, including checkerboard artifacts, interpolation errors, abnormal high-frequency noise, and compression inconsistencies that are commonly associated with AI-generated facial images.
 
-- Trains and evaluates the proposed framework using multiple benchmark datasets.
-- Enhances the model's ability to generalize to unseen deepfake generation techniques.
+#### Step 5: RGB–Frequency Cross-Attention Fusion
+Rather than directly concatenating the extracted features, the proposed framework employs a cross-attention fusion mechanism. This module enables meaningful interaction between the RGB and frequency-domain features by learning the relationship between spatial facial regions and their corresponding frequency characteristics. As a result, the fused representation captures richer and more discriminative information for deepfake detection.
 
-#### Improved Robustness
+#### Step 6: Vision Transformer-Based Classification
+The fused feature representation is passed through additional transformer encoder layers, followed by a classification head that predicts the authenticity of the input face. Depending on the application, the model can perform either binary classification (Real or Deepfake) or multi-class classification (Real, AI-Generated, and Deepfake). Along with the predicted class, the model also provides a confidence score indicating the certainty of its decision.
 
-- Improves detection performance on compressed images and post-processed content.
-- Incorporates camera recapture and screenshot simulation during training to improve robustness against real-world anti-forensic attacks.
+#### Step 7: Explainability Framework
+To enhance transparency and user trust, the proposed framework incorporates transformer-based explainability techniques, including Attention Rollout and Transformer Attribution methods. These approaches generate attention maps that highlight the facial regions contributing most significantly to the model's prediction.
 
-#### Explainable AI
+Additionally, frequency-domain saliency visualization is employed to identify the spectral components that influence the classification process. By combining both spatial and frequency-domain explanations, the framework provides a more comprehensive interpretation of the prediction, allowing users to understand why an image has been classified as authentic or manipulated.
 
-- Utilizes **Grad-CAM** to generate visual explanations of model predictions.
-- Highlights the facial regions that contribute most to the final classification, improving transparency and interpretability.
+#### Step 8: Report Generation
+Finally, the system generates a detailed PDF-based forensic report summarizing the complete analysis. The report includes:
+- Image filename
+- Prediction result
+- Confidence score
+- Detected face details
+- Processing time
+- Model information
+- Spatial attention heatmap
+- Frequency-domain visualization
+- Combined explainability summary
 
-#### Performance Evaluation
+This report serves as an interpretable record of the detection process, making the proposed system suitable for applications in digital forensics, media verification, journalism, cybersecurity, and content authentication.
 
-- Evaluates the proposed framework using **Accuracy, Precision, Recall, F1-Score, and ROC-AUC**.
-- Compares the proposed model with existing state-of-the-art deepfake detection approaches.
-
-### 3.3 Standard Detection Baseline Models
+### 3.4 Standard Detection Baseline Models
 
 Researchers compare newly proposed models against widely accepted baseline architectures.
 
@@ -198,7 +205,7 @@ Researchers compare newly proposed models against widely accepted baseline archi
 | Swin Transformer | Transformer | Hierarchical transformer with improved efficiency |
 | Face X-ray | Artifact Detection | Detects blending boundary inconsistencies during face swapping |
 
-### 3.4 Benchmark Datasets
+### 3.5 Benchmark Datasets
 
 Benchmark datasets provide standardized evaluation for comparing deepfake detection methods.
 
@@ -208,7 +215,7 @@ Benchmark datasets provide standardized evaluation for comparing deepfake detect
 | WildDeepfake | 7,314 face sequences containing approximately 1.18 million face images collected from internet videos | Evaluates performance under real-world conditions |
 | DeepFake Detection Challenge (DFDC) | More than 100,000 videos with varying compression levels, lighting conditions, and backgrounds | Measures robustness and cross-domain generalization |
 
-### 3.5 Research Gaps Identified
+### 3.6 Research Gaps Identified
 
 Although significant progress has been made in deepfake detection, several challenges remain:
 
@@ -218,7 +225,7 @@ Although significant progress has been made in deepfake detection, several chall
 - Most existing systems operate as black-box models and provide limited explainability.
 - There is a need for robust models that combine local texture analysis, global contextual understanding, and explainable AI for reliable real-world deployment.
 
-### 3.6 Proposed Approach to Address the Research Gaps
+### 3.7 Proposed Approach to Address the Research Gaps
 
 Based on the research gaps identified in the existing literature, the proposed framework introduces the following improvements:
 
