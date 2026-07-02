@@ -146,36 +146,40 @@ Multi-scale architectures process facial images at multiple resolutions to captu
 
 ### 3.3 Proposed Approach
 
-The proposed system presents an Explainable Dual-Stream Vision Transformer (ViT) framework integrated with RGB Frequency Fusion for deepfake image detection. Unlike conventional CNN-based methods that primarily focus on learning local spatial features, the proposed framework combines spatial information from RGB images with frequency-domain features extracted using the Fast Fourier Transform (FFT) or Discrete Cosine Transform (DCT). By integrating these complementary feature representations, the system is capable of identifying both visible facial inconsistencies and hidden artifacts introduced during AI-generated image synthesis.
+The proposed system presents an Explainable Dual-Stream Vision Transformer (ViT) framework integrated with RGB–Frequency Fusion for deepfake image detection. Unlike conventional CNN-based methods that primarily learn local spatial features, the proposed framework combines spatial information from RGB images with frequency-domain features extracted using the Fast Fourier Transform (FFT) or Discrete Cosine Transform (DCT). By integrating these complementary feature representations through a cross-attention fusion mechanism, the system can identify both visible facial inconsistencies and hidden artifacts introduced during AI-generated image synthesis.
 
 The proposed methodology consists of the following stages:
 
 #### Step 1: Image Acquisition and Validation
-The system accepts facial images in commonly used formats such as JPG, JPEG, PNG, and WEBP. Before analysis, each uploaded image undergoes validation to verify its file format, resolution, and integrity. Invalid or corrupted files are rejected to ensure reliable processing.
+The system accepts facial images in commonly used formats such as JPG, JPEG, PNG, and WEBP. Before processing, each uploaded image is validated to verify its file format, resolution, and integrity. Invalid or corrupted files are rejected to ensure reliable analysis.
 
 #### Step 2: Face Detection
-After validation, the image is processed using a face detection model such as RetinaFace or MTCNN. If multiple faces are detected within a single image, each face is extracted and cropped individually. This step eliminates unnecessary background information and ensures that the subsequent analysis focuses only on facial regions.
+After validation, the image is processed using a face detection model such as RetinaFace or MTCNN. If multiple faces are detected within a single image, each face is extracted and cropped individually. This step removes unnecessary background information and ensures that only facial regions are analyzed, thereby improving detection accuracy.
 
 #### Step 3: Image Preprocessing
-Each cropped face is resized to the input dimensions required by the Vision Transformer (typically 224 × 224 pixels) and normalized to standardize pixel values. During the training phase, data augmentation techniques—including random horizontal flipping, rotation, brightness adjustment, and JPEG compression augmentation—are applied to improve the model's robustness and generalization capability under real-world conditions.
+Each cropped face is resized to the input dimensions required by the Vision Transformer (typically 224 × 224 pixels) and normalized to standardize pixel values. During training, data augmentation techniques including random horizontal flipping, rotation, brightness adjustment, contrast variation, and JPEG compression augmentation are applied to improve the model's robustness and generalization capability under real-world conditions.
+
+To further enhance robustness against post-processing and anti-forensic techniques, the training dataset will also include augmentations such as image resizing, screenshot simulation, Gaussian blur, and noise addition. These transformations enable the model to learn features that remain informative even when frequency-domain artifacts are partially reduced by screenshot capture, camera recapture, or image recompression, thereby improving its performance on real-world manipulated images.
 
 #### Step 4: Dual-Stream Feature Extraction
 The preprocessed face image is simultaneously processed through two independent feature extraction streams.
 
-The RGB stream utilizes the original facial image, which is divided into fixed-size patches and converted into embeddings. These embeddings are then processed by the Vision Transformer to learn high-level spatial features such as facial structure, skin texture, illumination consistency, and facial symmetry.
+The RGB stream utilizes the original facial image, which is divided into fixed-size patches and converted into embeddings. These embeddings are processed by the Vision Transformer to learn high-level spatial features such as facial structure, skin texture, lighting consistency, facial symmetry, and geometric relationships between different facial regions.
 
-In parallel, the frequency stream transforms the same image into the frequency domain using FFT or DCT. This representation enables the extraction of hidden frequency-based characteristics, including checkerboard artifacts, interpolation errors, abnormal high-frequency noise, and compression inconsistencies that are commonly associated with AI-generated facial images.
+Simultaneously, the frequency stream converts the same image into the frequency domain using FFT or DCT. This branch extracts hidden frequency-based characteristics, including checkerboard artifacts, interpolation errors, abnormal high-frequency noise, and compression inconsistencies that are commonly associated with AI-generated facial images but are difficult to observe in the RGB domain.
 
 #### Step 5: RGB–Frequency Cross-Attention Fusion
-Rather than directly concatenating the extracted features, the proposed framework employs a cross-attention fusion mechanism. This module enables meaningful interaction between the RGB and frequency-domain features by learning the relationship between spatial facial regions and their corresponding frequency characteristics. As a result, the fused representation captures richer and more discriminative information for deepfake detection.
+Rather than directly concatenating the extracted features, the proposed framework employs a cross-attention fusion mechanism. This module enables meaningful interaction between RGB and frequency-domain features by learning the relationship between spatial facial regions and their corresponding frequency characteristics. The resulting fused representation contains richer and more discriminative information, allowing the model to distinguish authentic and manipulated facial images more effectively.
 
 #### Step 6: Vision Transformer-Based Classification
-The fused feature representation is passed through additional transformer encoder layers, followed by a classification head that predicts the authenticity of the input face. Depending on the application, the model can perform either binary classification (Real or Deepfake) or multi-class classification (Real, AI-Generated, and Deepfake). Along with the predicted class, the model also provides a confidence score indicating the certainty of its decision.
+The fused feature representation is passed through additional transformer encoder layers, followed by a classification head that predicts the authenticity of the input face. The proposed system primarily performs binary classification (Real or Deepfake), while the architecture can be extended to support multi-class classification (Real, AI-Generated, and Deepfake) if required.
+
+The classifier also produces a confidence score that indicates the probability associated with each prediction, providing users with an estimate of the model's certainty.
 
 #### Step 7: Explainability Framework
-To enhance transparency and user trust, the proposed framework incorporates transformer-based explainability techniques, including Attention Rollout and Transformer Attribution methods. These approaches generate attention maps that highlight the facial regions contributing most significantly to the model's prediction.
+To improve transparency and user trust, the proposed framework incorporates transformer-based explainability techniques such as Attention Rollout and Transformer Attribution. These methods generate attention maps that highlight the facial regions contributing most significantly to the prediction.
 
-Additionally, frequency-domain saliency visualization is employed to identify the spectral components that influence the classification process. By combining both spatial and frequency-domain explanations, the framework provides a more comprehensive interpretation of the prediction, allowing users to understand why an image has been classified as authentic or manipulated.
+Additionally, frequency-domain saliency visualization is used to identify the spectral components that influence the classification process. By combining both spatial and frequency-domain explanations, the framework provides a comprehensive interpretation of the prediction, enabling users to understand why an image has been classified as authentic or manipulated.
 
 #### Step 8: Report Generation
 Finally, the system generates a detailed PDF-based forensic report summarizing the complete analysis. The report includes:
@@ -189,7 +193,7 @@ Finally, the system generates a detailed PDF-based forensic report summarizing t
 - Frequency-domain visualization
 - Combined explainability summary
 
-This report serves as an interpretable record of the detection process, making the proposed system suitable for applications in digital forensics, media verification, journalism, cybersecurity, and content authentication.
+The generated report provides an interpretable record of the detection process, making the proposed framework suitable for applications in digital forensics, cybersecurity, journalism, media verification, and content authentication.
 
 ### 3.4 Standard Detection Baseline Models
 
