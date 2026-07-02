@@ -105,9 +105,9 @@ The proposed framework combines:
 
 Typical split strategy (as defined in the milestone plan):
 
-- **Training:** FaceForensics++
+- **Training:** FaceForensics++ + GAN-based images
 - **Validation:** Celeb-DF
-- **Testing:** DFDC
+- **Testing:** DFDC + Diffusion-based dataset (if available)
 
 Primary metrics:
 
@@ -116,8 +116,9 @@ Primary metrics:
 - Recall
 - F1-Score
 - ROC-AUC
-- Inference Time
+- Matthews Correlation Coefficient (MCC)
 - Confusion Matrix
+- Inference Time
 
 ---
 
@@ -158,11 +159,12 @@ Detailed responsibilities are documented in `doc/Milestone-1/Team-Contribution-T
 
 ## Opportunities for Improvement
 
-- Improve cross-dataset generalization for unseen manipulation techniques.
-- Increase robustness against compressed and low-quality images and videos.
-- Enhance transparency through multi-modal (spatial and frequency) attention visualizations.
-- Optimize cross-attention fusion layers to reduce model latency and improve real-time processing capabilities.
-- Automate forensic report generation to streamline user workflow.
+- Improve cross-dataset generalization for unseen deepfake generation techniques.
+- Enhance robustness against compression, screenshot capture, camera recapture, and other anti-forensic post-processing operations.
+- Extend the framework to support real-time video-based deepfake detection.
+- Improve explainability through advanced transformer attribution and frequency-domain interpretation techniques.
+- Optimize the cross-attention fusion module to reduce computational complexity and inference latency.
+- Incorporate additional forensic cues such as camera sensor noise (PRNU), image provenance, and metadata analysis to further improve detection reliability.
 
 ---
 
