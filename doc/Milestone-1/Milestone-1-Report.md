@@ -25,7 +25,7 @@ Many commercial detection tools lack explainability, providing classification re
 - Develop a deep learning-based system to distinguish authentic human faces from AI-generated or manipulated faces in both images and videos.
 - Address challenges posed by AI-generated media, including misinformation, identity theft, digital fraud, and impersonation.
 - Improve detection performance on compressed media, unseen manipulation techniques, and real-world scenarios.
-- Implement a hybrid CNN-Vision Transformer (ViT) framework with face detection and alignment for effective feature extraction.
+- Implement a hybrid EfficientNet-B4 and Vision Transformer (ViT) framework with attention-based feature fusion for robust deepfake image detection.
 - Train and evaluate the proposed model using benchmark datasets such as FaceForensics++, Celeb-DF, and DFDC to assess cross-dataset generalization.
 - Generate Grad-CAM confidence heatmaps to improve the interpretability and transparency of detection results.
 - Evaluate the model using standard metrics including Accuracy, Precision, Recall, F1-Score, and ROC-AUC, and compare its performance with existing baseline models.
@@ -319,6 +319,18 @@ The findings presented below are based on the research papers *FaceForensics++: 
 - Utilizes data augmentation to improve robustness against image compression and unseen manipulation techniques.
 - Employs Grad-CAM to generate confidence heatmaps, improving model interpretability and user trust.
 - Evaluates performance across multiple benchmark datasets to enhance cross-dataset generalization.
+  
+### 4.3.3 Comparison with TruthScan
+
+TruthScan is a commercial AI-powered deepfake detection system developed by Undetectable.ai for identifying AI-generated content. Unlike academic deepfake detection models, TruthScan does not publicly disclose its model architecture, training methodology, or benchmark evaluation results. Therefore, a direct performance comparison is not possible. However, the proposed framework emphasizes transparency, reproducibility, and benchmark-based evaluation.
+
+| Feature | TruthScan | Proposed Framework |
+|----------|-----------|-------------------|
+| Model Architecture | Proprietary | Hybrid EfficientNet-B4 + Vision Transformer |
+| Explainability | Not publicly disclosed | Grad-CAM visualizations |
+| Benchmark Evaluation | Not publicly available | FaceForensics++, Celeb-DF, DFDC |
+| Research Reproducibility | No | Yes |
+| Cross-Dataset Evaluation | Not publicly disclosed | Planned as part of this work |
 
 ---
 
@@ -360,7 +372,7 @@ ROC-AUC measures a model's ability to distinguish between authentic and manipula
 
 Based on the benchmark analysis, the primary limitation of existing deepfake detectors is poor cross-dataset generalization rather than benchmark accuracy alone. Therefore, the proposed framework focuses on improving robustness, explainability, and real-world performance.
 
-The proposed system combines EfficientNet-B4 for extracting local facial features with a Vision Transformer (ViT) for learning global contextual relationships. Face detection and face alignment are incorporated as preprocessing steps to improve feature quality, while data augmentation techniques, including image flipping, rotation, brightness adjustment, and compression simulation, enhance robustness against real-world variations.
+The proposed system combines EfficientNet-B4 and Vision Transformer through an Attention-Based Feature Fusion mechanism to jointly learn local texture artifacts and global contextual relationships. Face detection, face alignment, and robust data augmentation are incorporated to improve cross-dataset generalization and robustness against image compression and camera recapture attacks.
 
 #### 5.2.1 Model Evaluation Strategy
 
