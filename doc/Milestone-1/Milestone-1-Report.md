@@ -220,18 +220,21 @@ Although significant progress has been made in deepfake detection, several chall
 - Most existing systems operate as black-box models and provide limited explainability.
 - There is a need for robust models that combine local texture analysis, global contextual understanding, and explainable AI for reliable real-world deployment.
 
-### 3.6 Research Gaps Addressed by the Proposed Framework
+### 3.6 Proposed Approach to Address the Research Gaps
 
-The proposed framework is designed to address several limitations identified in existing deepfake detection methods. The key research gaps and the corresponding solutions proposed in this work are summarized below.
+Based on the research gaps identified in the existing literature, the proposed framework introduces the following improvements:
 
-| Research Gap | Proposed Solution |
-|--------------|-------------------|
-| Poor cross-dataset generalization | Train and evaluate the model on multiple benchmark datasets to improve generalization. |
-| CNNs focus mainly on local texture features | Combine **EfficientNet-B4** with a **Vision Transformer** to learn both local and global facial features. |
-| Sensitivity to image compression and post-processing | Apply robust data augmentation techniques including JPEG compression, blur, and noise simulation during training. |
-| Limited robustness against screenshot and camera recapture attacks | Incorporate compression-aware augmentation to improve robustness under real-world conditions. |
-| Lack of explainability | Generate **Grad-CAM** visualizations to highlight the facial regions influencing the model's predictions. |
-| Existing models rely on a single feature extraction strategy | Use an **Attention-Based Feature Fusion** mechanism to combine complementary CNN and Transformer features. |
+- Develops a hybrid **EfficientNet-B4 and Vision Transformer** architecture to jointly learn local texture features and global contextual relationships.
+
+- Incorporates an **Attention-Based Feature Fusion** mechanism to effectively combine complementary features extracted from CNN and Transformer branches.
+
+- Utilizes robust **data augmentation** techniques, including JPEG compression, blur, noise, and camera recapture simulation, to improve performance under real-world conditions.
+
+- Performs **cross-dataset training and evaluation** using benchmark datasets such as **FaceForensics++**, **Celeb-DF**, and **DFDC** to improve model generalization.
+
+- Integrates **Grad-CAM** to provide visual explanations of model predictions, improving transparency and interpretability.
+
+- Evaluates the proposed framework across multiple benchmark datasets using standard performance metrics to validate its robustness and cross-dataset generalization.
 ---
 
 ## 4. Detailed Findings and Comparative Analysis
