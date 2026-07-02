@@ -146,16 +146,45 @@ Multi-scale architectures process facial images at multiple resolutions to captu
 - Higher computational complexity
 - Increased training time
 
-#### 3.2.6 Proposed Detection Framework
-The proposed deepfake detection framework is designed to overcome the limitations of existing CNN-based and Transformer-based approaches by combining their complementary strengths. The key components of the proposed framework are as follows:
+### 3.2.6 Proposed Detection Framework
 
-Hybrid Feature Extraction: Utilizes EfficientNet-B4 to capture fine-grained local texture artifacts and a Vision Transformer (ViT) to learn global facial structures and contextual relationships.
-Attention-Based Feature Fusion: Integrates features extracted by EfficientNet-B4 and Vision Transformer using an attention-based fusion mechanism to obtain a more informative representation of the input image.
-Robust Data Augmentation: Applies augmentation techniques such as JPEG compression, Gaussian noise, blur, brightness variation, and contrast adjustment to improve robustness against real-world image manipulations.
-Cross-Dataset Generalization: Trains and evaluates the proposed model on multiple benchmark datasets to improve its ability to detect unseen deepfake generation techniques.
-Improved Robustness: Aims to enhance detection performance against compressed images, post-processed content, and camera recapture or screenshot-based attacks.
-Explainable AI: Generates Grad-CAM visualizations to highlight the facial regions that contribute most to the model's prediction, improving transparency and interpretability.
-Performance Evaluation: Evaluates the proposed framework using Accuracy, Precision, Recall, F1-Score, and ROC-AUC, and compares its performance with existing state-of-the-art deepfake detection models.
+The proposed deepfake detection framework is designed to overcome the limitations of existing CNN-based and Transformer-based approaches by combining their complementary strengths. The framework consists of the following key components:
+
+#### Hybrid Feature Extraction
+
+- Utilizes **EfficientNet-B4** to extract fine-grained local texture artifacts from facial images.
+- Employs a **Vision Transformer (ViT)** to learn global facial structures and contextual relationships.
+- Combines local and global features for more comprehensive facial representation.
+
+#### Attention-Based Feature Fusion
+
+- Integrates features extracted by EfficientNet-B4 and Vision Transformer.
+- Uses an attention-based fusion mechanism to emphasize the most informative features for deepfake detection.
+
+#### Robust Data Augmentation
+
+- Applies data augmentation techniques including JPEG compression, Gaussian noise, blur, brightness variation, and contrast adjustment.
+- Improves model robustness against real-world image manipulations and post-processing operations.
+
+#### Cross-Dataset Generalization
+
+- Trains and evaluates the proposed framework using multiple benchmark datasets.
+- Enhances the model's ability to generalize to unseen deepfake generation techniques.
+
+#### Improved Robustness
+
+- Improves detection performance on compressed images and post-processed content.
+- Enhances robustness against camera recapture and screenshot-based attacks.
+
+#### Explainable AI
+
+- Utilizes **Grad-CAM** to generate visual explanations of model predictions.
+- Highlights the facial regions that contribute most to the final classification, improving transparency and interpretability.
+
+#### Performance Evaluation
+
+- Evaluates the proposed framework using **Accuracy, Precision, Recall, F1-Score, and ROC-AUC**.
+- Compares the proposed model with existing state-of-the-art deepfake detection approaches.
 
 ### 3.3 Standard Detection Baseline Models
 
