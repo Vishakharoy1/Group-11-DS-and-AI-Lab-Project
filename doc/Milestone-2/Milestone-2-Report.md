@@ -210,8 +210,8 @@ We certify that all team members have actively contributed to the preparation of
 
 | Team Member | Role | Signature |
 | --- | --- | --- |
-| Rohit | Project Objectives & Problem Definition Lead | <img src="../../signatures/Rohit.jpeg" alt="Rohit Signature" width="140"> |
-| Raunak | Literature Review & Benchmark Analysis Lead | <img src="../../signatures/raunak.jpeg" alt="Raunak Signature" width="140"> |
-| Vishakha | Research Findings & Comparative Analysis Lead | <img src="../../signatures/Sign-Vishakha.jpeg" alt="Vishakha Signature" width="140"> |
-| Aman | Baseline Performance & Evaluation Strategy Lead | <img src="../../signatures/Aman.jpeg" alt="Aman Signature" width="140"> |
-| Somendu | Data Research & Presentation Lead | <img src="../../signatures/Somendu.jpeg" alt="Somendu Signature" width="140"> |
+| Rohit |  | <img src="../../signatures/Rohit.jpeg" alt="Rohit Signature" width="140"> |
+| Raunak |  | <img src="../../signatures/raunak.jpeg" alt="Raunak Signature" width="140"> |
+| Vishakha |  | <img src="../../signatures/Sign-Vishakha.jpeg" alt="Vishakha Signature" width="140"> |
+| Aman |  | <img src="../../signatures/Aman.jpeg" alt="Aman Signature" width="140"> |
+| Somendu |  | <img src="../../signatures/Somendu.jpeg" alt="Somendu Signature" width="140"> |
