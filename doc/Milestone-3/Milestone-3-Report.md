@@ -236,7 +236,7 @@ The modeling pipeline is designed to ingest raw face images, process them, and o
    * **Shuffling**: Merges data paths into a consolidated pandas DataFrame and applies a global shuffle with a seed of $42$ to prevent spatial grouping.
 
 2. **Subset Selection & Stratified Splitting**:
-   * **Sampling Cap**: Limits samples to $\text{IMAGES\_PER\_CLASS} = 15,000$, resulting in a balanced cohort of $24,001$ images ($15,000$ Real and $9,001$ Fake).
+   * **Sampling Cap**: Limits samples to `IMAGES_PER_CLASS = 15,000`, resulting in a balanced cohort of $24,001$ images ($15,000$ Real and $9,001$ Fake).
    * **Partitioning**: Splits the cohort using stratified sampling into:
      * **Train Split (80%)**: $19,200$ images (comprising $12,000$ Real and $7,200$ Fake).
      * **Validation Split (10%)**: $2,400$ images (comprising $1,500$ Real and $900$ Fake).
