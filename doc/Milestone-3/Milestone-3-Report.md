@@ -300,12 +300,12 @@ graph TD
     FD[RetinaFace Face Detection & Cropping]:::preprocess
     TF[tf.data Dataset Builder]:::preprocess
     
-    SubGraphBackbone["EfficientNet-B2 Backbone"]
+    subgraph SubGraphBackbone ["EfficientNet-B2 Backbone"]
         EN[ImageNet Pretrained Backbone]:::backbone
         TC[top_conv Convolution Layer]:::backbone
     end
     
-    SubGraphHead["Classification Head"]
+    subgraph SubGraphHead ["Classification Head"]
         GAP[Global Average Pooling 2D]:::head
         BN[Batch Normalization]:::head
         DO[Dropout 0.30]:::head
