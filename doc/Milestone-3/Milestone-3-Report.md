@@ -125,8 +125,31 @@ The model is evaluated using:
 * **Loss**: Binary Cross-Entropy loss.
 * **Precision**, **Recall**, **F1-score**, and **ROC-AUC** are calculated on the test split.
 
-### 3.3 Documented Baseline Performance (Stage 1 Results)
-The baseline performance corresponds to Stage 1, where the backbone is frozen and only the classifier head is trained.
+### 3.3 Baseline Model Configuration & Parameter Count
+Before training, the model is configured using transfer learning parameters. The baseline configuration is detailed below:
+
+| Configuration Parameter | Baseline Value (Stage 1) | Technical Description |
+| :--- | :--- | :--- |
+| **Backbone Architecture** | MobileNetV3-Large | Pre-trained ImageNet feature extractor backbone. |
+| **Total Model Parameters** | 4,204,594 | Fully populated parameter set. |
+| **Trainable Parameters** | 1,232,642 | Represents the newly attached classifier head. |
+| **Frozen Parameters** | 2,971,952 | Backbone weights locked to prevent feature drift. |
+| **Optimizer Algorithm** | AdamW | Decoupled weight decay optimizer ($\beta_1=0.9, \beta_2=0.999$). |
+| **Optimizer Weight Decay** | $1 \times 10^{-4}$ | Decoupled $L_2$ regularization strength. |
+| **Initial Learning Rate** | $3 \times 10^{-4}$ | Learning rate for the frozen backbone warmup stage. |
+| **Learning Rate Scheduler**| `CosineAnnealingLR` | Cosine annealing schedule ($T_{\text{max}} = 3$, $\eta_{\text{min}} = 0.0$). |
+| **Epoch Budget** | 3 epochs | Head warmup duration before unfreezing backbone. |
+| **Batch Size** | 128 | Chosen to maximize Tesla T4 GPU compute throughput. |
+| **Numerical Precision** | Mixed Precision (AMP) | 16-bit float training (`torch.cuda.amp.autocast`). |
+
+#### Hardware and Computational Runtime Performance Baseline
+* **FLOPs Complexity**: ~219 Million FLOPs (0.22 GFLOPs) for a single $224 \times 224 \times 3$ image forward pass.
+* **Peak VRAM Footprint**: ~1.22 GB allocated on GPU during training at batch size 128.
+* **Training Throughput**: ~112 images/second (approx. 150 seconds/epoch on a Tesla T4 GPU).
+* **Inference Latency**: ~8.2ms per face image.
+
+### 3.4 Documented Baseline Performance (Stage 1 Epoch-by-Epoch Results)
+Evaluating the model across the 3 warmup epochs on the candidate validation split:
 
 | Epoch | Train Loss | Train Acc (%) | Val Loss | Val Acc (%) | Epoch Time (s) |
 | :---: | :---: | :---: | :---: | :---: | :---: |
