@@ -228,15 +228,44 @@ The tuned model misclassifies only **one single image** out of the 2,401 test sa
 The following sections define how data flows through our pipeline, from raw image input to final prediction.
 
 ### 5.1 Pipeline Data Flow
-1. **Data Ingestion**: Raw image directories for Real (FFHQ) and Fake (Stable Diffusion) are scanned, labeled (Real=0, Fake=1), and combined into a shuffled DataFrame.
-2. **Subset & Split**: Capped at 15,000 images per class, yielding a 24,001-image candidate subset. This is partitioned into stratified splits: 80% train, 10% validation, and 10% test.
-3. **Dataloader Preprocessing**:
-   * *Training transform*: `RandomResizedCrop(224, scale 0.9–1.0)`, `RandomHorizontalFlip(p=0.5)`, `ColorJitter` (brightness/contrast/saturation/hue), `ToTensor`, and ImageNet Normalization.
-   * *Validation/Test transform*: `Resize(224×224)`, `ToTensor`, and ImageNet Normalization.
-4. **Model Execution**:
-   * **Stage 1**: Train classification head with the backbone frozen.
-   * **Stage 2**: Reload best Stage 1 checkpoint, unfreeze backbone blocks 12–16, and fine-tune.
-5. **Prediction**: Normalizes input, computes softmax probabilities, and outputs the predicted class with its confidence score (e.g. Real: 95.71%).
+The modeling pipeline is designed to ingest raw face images, process them, and output predictions through the following end-to-end stages:
+
+1. **Data Ingestion & Integrity Auditing**:
+   * **Directory Scanning**: Scans raw image directories for Real (FFHQ) and Fake (Stable Diffusion) classes. Validates file integrity and filters for compatible formats (`.jpg`, `.jpeg`, `.png`, `.bmp`, `.tiff`, `.webp`).
+   * **Labelling**: Assigns binary targets: Real faces mapped to Class $0$, and Fake/AI-Generated faces mapped to Class $1$.
+   * **Shuffling**: Merges data paths into a consolidated pandas DataFrame and applies a global shuffle with a seed of $42$ to prevent spatial grouping.
+
+2. **Subset Selection & Stratified Splitting**:
+   * **Sampling Cap**: Limits samples to $\text{IMAGES\_PER\_CLASS} = 15,000$, resulting in a balanced cohort of $24,001$ images ($15,000$ Real and $9,001$ Fake).
+   * **Partitioning**: Splits the cohort using stratified sampling into:
+     * **Train Split (80%)**: $19,200$ images (comprising $12,000$ Real and $7,200$ Fake).
+     * **Validation Split (10%)**: $2,400$ images (comprising $1,500$ Real and $900$ Fake).
+     * **Test Split (10%)**: $2,401$ images (comprising $1,500$ Real and $901$ Fake).
+
+3. **PyTorch DataLoader Preprocessing & Augmentations**:
+   * **Training Transform Pipeline**:
+     * Input shape is standardized via `RandomResizedCrop(224, scale=(0.9, 1.0))`.
+     * Applies `RandomHorizontalFlip(p=0.5)` to double face variations.
+     * Alters brightness, contrast, saturation, and hue via `ColorJitter` to prevent the model from memorizing camera sensor outputs.
+     * Converts PIL images to PyTorch tensors of shape `[3, 224, 224]` and scales pixel intensities to $[0.0, 1.0]$.
+     * Normalizes tensors using ImageNet parameters ($\mu = [0.485, 0.456, 0.406]$, $\sigma = [0.229, 0.224, 0.225]$).
+   * **Validation & Test Transform Pipeline**: Resizes to `[3, 224, 224]` and applies standard ImageNet normalization without visual augmentations to ensure a stable evaluation signal.
+   * **DataLoader Optimization**: Batches are set to $128$. We configure `num_workers=4`, `pin_memory=True`, and `persistent_workers=True` to pipeline data pre-fetching on the T4 GPU, preventing CPU bottlenecks.
+
+4. **Multi-Stage Model Execution**:
+   * **Input Tensor Shape**: Ingests a batch of shape `[128, 3, 224, 224]`.
+   * **Feature Extraction**: Passes the batch through MobileNetV3-Large, reducing spatial dimensions to `[128, 960, 7, 7]`.
+   * **Global Average Pooling**: Pools features into a vector of shape `[128, 960]`.
+   * **Stage 1 (Head Warmup)**: Locks backbone parameters. The $960$-dim feature vector is projected to $1280$ channels, passed through Hardswish and Dropout ($0.2$), and mapped to $2$ output logits of shape `[128, 2]`. This stage warm-starts the classification head.
+   * **Stage 2 (Fine-Tuning)**: Reloads the best Stage 1 checkpoint. Unfreezes the last 25% of backbone blocks (blocks 12–16 of 17). Re-runs forward and backward passes, adapting high-level convolutional filters to generative artifacts.
+
+5. **Inference Pipeline & Prediction Score Output**:
+   * **Logits to Probabilities**: During inference, the output logits `[1, 2]` are processed through a Softmax function:
+     $$P(y = c | x) = \frac{e^{z_c}}{\sum_{j=1}^{2} e^{z_j}}$$
+     generating probability scores for Real ($P_{\text{real}}$) and Fake ($P_{\text{fake}}$) classes.
+   * **Decision Thresholding**: Classifies the face based on a threshold of $0.5$:
+     $$\text{Predicted Class} = \begin{cases} 1 \text{ (Fake)} & \text{if } P_{\text{fake}} \ge 0.5 \\ 0 \text{ (Real)} & \text{if } P_{\text{fake}} < 0.5 \end{cases}$$
+   * **Confidence Output**: Reports the classification label alongside the corresponding confidence score (e.g. "Fake" with 99.89% confidence).
 
 ---
 
