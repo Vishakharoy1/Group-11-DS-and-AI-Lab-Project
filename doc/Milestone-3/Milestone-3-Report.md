@@ -364,13 +364,13 @@ graph TD
     I[Input Face Image 224x224x3]:::input
     
     %% RGB Stream
-    SubGraphSpatial["RGB Spatial Stream"]
+    subgraph SubGraphSpatial ["RGB Spatial Stream"]
         CN[ConvNeXt-V2 Backbone]:::spatial
         SF[Spatial Features 1x768]:::spatial
     end
     
     %% FFT Stream
-    SubGraphFreq["Frequency Spectral Stream"]
+    subgraph SubGraphFreq ["Frequency Spectral Stream"]
         FFT[2D Fast Fourier Transform]:::freq
         HPF[High-Pass Filter Center Mask 15%]:::freq
         RN[ResNet-18 Backbone]:::freq
@@ -378,7 +378,7 @@ graph TD
     end
 
     %% Fusion and Head
-    SubGraphFusion["Fusion & Head"]
+    subgraph SubGraphFusion ["Fusion & Head"]
         QProj[Query Projection Linear]:::fusion
         KVProj[Key/Value Projection Linear]:::fusion
         XAttn[Cross-Attention Module]:::fusion
