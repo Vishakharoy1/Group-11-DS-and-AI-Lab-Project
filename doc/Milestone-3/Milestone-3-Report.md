@@ -1,73 +1,69 @@
 # Group 11: Deepfake and AI-Generated Face Detection
 ## Milestone 3 Consolidated Submission Report
 
-**Model Architectures Selection, Justification, Baseline Performance, Hyperparameter Tuning, and Pipeline Visualization**
-
-**Submission Date**: 23 July 2026  
-**Teammate Branches Integrated**: `rohit_milestone_3` (Rohit), `vishakha` (Vishakha), and `milestone3-raunak` (Raunak)
-
----
-
-## Executive Summary & Comparison Table
-
-To address the challenge of distinguishing genuine human faces from generative deepfakes, Group 11 has developed and evaluated three distinct architectural approaches. These designs range from a lightweight mobile-centric classifier to a robust spatial-frequency fusion network.
-
-The following master table synthesizes the empirical performance of each model on its respective testing splits:
-
-| Model Architecture (Teammate Branch) | Framework | Backbone(s) | Dataset Scale | Test Accuracy | Precision | Recall | F1-Score | ROC-AUC | Inference Latency | Primary Machine Learning Insight |
-| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Dual-Stream Spatial-Frequency** (Rohit) | PyTorch | ConvNeXt-V2 + ResNet-18 | 637,900 images | **95.23%** | 94.88% | 95.61% | 95.24% | 0.9880 | ~14.5ms | Frequency-domain features (obtained via 2D-FFT and high-pass filtering) capture generative checkerboard artifacts that spatial networks miss. |
-| **EfficientNet-B2 Transfer Learning** (Vishakha) | Keras / TF | EfficientNet-B2 | 9,996 frames | **58.33%** | 68.55% | 30.80% | 0.4250 | 0.6331 | ~8.2ms | *Framework Tradeoff:* Keras `load_model` restores the Stage 1 learning rate ($10^{-3}$), disrupting weights during Stage 2 fine-tuning. This highlights the need to re-compile *after* loading checkpoint weights. |
-| **MobileNetV3-Large Transfer Learning** (Raunak) | PyTorch | MobileNetV3-Large | 24,001 images | **99.96%** | 99.89% | 100.00% | 0.9994 | 0.9996 | ~8.2ms | Lightweight, parameter-efficient architectures converge rapidly on separable, well-aligned spatial face datasets. |
-
 ---
 
 ## 1. Model Architecture Selection
 
-### 1.1 Rohit's Stream: Dual-Stream Spatial-Frequency Fusion Network
+To address the challenge of identifying deepfakes and AI-generated faces, Group 11 has developed and evaluated three distinct deep learning architectures. These are integrated below:
+
+### 1.1 Spatial-Frequency Dual-Stream Fusion Network (Rohit's Stream)
 Rohit’s architecture addresses the vulnerability of purely spatial detectors to high-fidelity generative models. It combines spatial representation learning with frequency-domain analysis:
 * **RGB Spatial Stream**: Employs a pre-trained **ConvNeXt-V2-Nano** backbone to extract spatial features of shape `[Batch, 768]`.
 * **Frequency Spectral Stream**: Applies a **2D Fast Fourier Transform (2D-FFT)** to the input image, applies a **15% radius High-Pass Filter mask** to isolate high-frequency noise, and feeds the masked frequency magnitude spectrum through a **ResNet-18** backbone to extract frequency features of shape `[Batch, 512]`.
 * **Cross-Attention Fusion**: Merges the spatial features (as Query) and spectral features (as Key/Value) using a cross-attention layer, followed by a binary linear classification head.
 
-### 1.2 Vishakha's Stream: Transfer Learning with EfficientNet-B2
+### 1.2 Keras EfficientNet-B2 Transfer Learning Model (Vishakha's Stream)
 Vishakha’s architecture uses a pre-trained **EfficientNet-B2** backbone (pretrained on ImageNet) to extract high-quality features from spatial face images:
 * **Input Target**: Spatial RGB face tensors of shape $224 \times 224 \times 3$.
 * **Classification Head**: Replaces the default ImageNet head with a custom classification head:
   $$\text{GlobalAveragePooling2D} \rightarrow \text{BatchNormalization} \rightarrow \text{Dropout}(0.30) \rightarrow \text{Dense}(1, \text{activation='sigmoid'})$$
   This head produces the probability score $p \in [0.0, 1.0]$ indicating the likelihood of the face being "Fake" (1) vs. "Real" (0).
 
-### 1.3 Raunak's Stream: Transfer Learning with MobileNetV3-Large
+### 1.3 PyTorch MobileNetV3-Large Transfer Learning Model (Raunak's Stream)
 Raunak's architecture uses a pre-trained **MobileNetV3-Large** backbone (pretrained on ImageNet) to construct a lightweight binary classifier:
 * **Input Target**: Spatial RGB face tensors of shape $224 \times 224 \times 3$.
 * **Classification Head**: Replaces the original 1000-class ImageNet head with a custom classification head:
   $$\text{Global Average Pooling} \rightarrow \text{Linear}(960 \rightarrow 1280) \rightarrow \text{Hardswish} \rightarrow \text{Dropout}(0.2) \rightarrow \text{Linear}(1280 \rightarrow 2)$$
   This head maps the pooled feature vector to a 2-class logit output (Real vs. Fake).
 
+### 1.4 Architectural Selection & Parameter Summary
+The table below details and compares the parameters of the three selected architectures:
+
+| Model Architecture | Framework | Backbone(s) | Input Resolution | Parameter Count (Total) | Parameter Count (Trainable) |
+| :--- | :--- | :--- | :---: | :---: | :---: |
+| **Dual-Stream** (Rohit) | PyTorch | ConvNeXt-V2-Nano + ResNet-18 | $224 \times 224 \times 3$ | ~26.4M | ~26.4M (Stage 2) |
+| **EfficientNet-B2** (Vishakha)| Keras/TF | EfficientNet-B2 | $224 \times 224 \times 3$ | ~9.2M | ~2.5M (Stage 2) |
+| **MobileNetV3-Large** (Raunak)| PyTorch | MobileNetV3-Large | $224 \times 224 \times 3$ | ~4.2M | ~2.4M (Stage 2) |
+
 ---
 
 ## 2. Architecture Justification
 
-### 2.1 Dual-Stream Spatial-Frequency Justification
-* **Suitability**: Generative models leave microscopic patterns (e.g. checkerboard upsampling artifacts, texture blending borders) in the frequency domain that are imperceptible in the spatial RGB domain. Passing the 2D-FFT high-pass filtered spectrum through a secondary network forces the model to attend to these high-frequency artifacts.
-* **Staged Transfer Learning**: Warm-up stage (Stage 1) trains only the fusion module and linear head; Stage 2 unfreezes the ConvNeXt-V2 and ResNet-18 backbones at a reduced learning rate ($10^{-5}$) to adapt them without erasing pre-trained ImageNet representations.
-* **Advantages**: Highly robust to generalisation testing on unseen diffusion generators (e.g., Stable Diffusion, LDM, Wild), where purely spatial networks often struggle.
+### 2.1 Spatial-Frequency Dual-Stream Fusion Network Justification
+* **Suitability**: Generative models leave microscopic patterns (e.g., checkerboard upsampling artifacts, texture blending borders) in the frequency domain that are imperceptible in the spatial RGB domain. Passing the 2D-FFT high-pass filtered spectrum through a secondary network forces the model to attend to these high-frequency artifacts.
+* **Expected Advantages**: Highly robust to generalisation testing on unseen diffusion generators (e.g., Stable Diffusion, LDM, Wild), where purely spatial networks often struggle.
+* **Design Decisions**: A warmup stage (Stage 1) trains only the fusion module and linear head; Stage 2 unfreezes the ConvNeXt-V2 and ResNet-18 backbones at a reduced learning rate ($10^{-5}$) to adapt them without erasing pre-trained ImageNet representations.
 
-### 2.2 EfficientNet-B2 Justification
+### 2.2 Keras EfficientNet-B2 Justification
 * **Suitability**: Compound scaling uniformly scales network depth, width, and input resolution. EfficientNet-B2 represents a balanced tradeoff between model complexity (~9.2M parameters) and representation capacity.
-* **Advantages**: Squeeze-and-excitation layers capture fine-grained patterns, and Batch Normalization stabilizes training on newly appended classification layers.
-* **Staged Fine-Tuning**: A warmup stage stabilizes the custom head, and Stage 2 unfreezes the last 40 layers of the backbone for fine-tuning.
+* **Expected Advantages**: Squeeze-and-excitation layers capture fine-grained patterns, and Batch Normalization stabilizes training on newly appended classification layers.
+* **Design Decisions**: A warmup stage stabilizes the custom head, and Stage 2 unfreezes the last 40 layers of the backbone for fine-tuning.
 
-### 2.3 MobileNetV3-Large Justification
+### 2.3 PyTorch MobileNetV3-Large Justification
 * **Suitability**: Depthwise separable convolutions, squeeze-and-excitation attention modules, and h-swish activations capture texture, boundaries, and frequency-domain details.
-* **Advantages**: Very lightweight (~4.2M parameters, ~1.2M trainable in head) and achieves fast training times (~150-190 seconds/epoch on a Tesla T4 GPU), making it suited for low-latency edge deployment.
-* **Staged Fine-Tuning**: Warmup stage trains the head; Stage 2 unfreezes the last 25% of inverted-residual blocks (blocks 12–16) at a lower learning rate ($1 \times 10^{-5}$) to prevent overfitting.
+* **Expected Advantages**: Very lightweight (~4.2M parameters, ~1.2M trainable in head) and achieves fast training times (~150-190 seconds/epoch on a Tesla T4 GPU), making it suited for low-latency edge deployment.
+* **Design Decisions**: Warmup stage trains the head; Stage 2 unfreezes the last 25% of inverted-residual blocks (blocks 12–16) at a lower learning rate ($1 \times 10^{-5}$) to prevent overfitting.
+
+### 2.4 Challenges and Tradeoffs Considered
+* **Model Capacity vs. Speed**: Lightweight models (like MobileNetV3) have lower representation headroom for highly realistic, state-of-the-art fakes compared to larger models like ConvNeXt. This tradeoff was accepted in favor of iteration speed.
+* **The Keras Framework Loading Challenge**: During Vishakha's fine-tuning stage, Keras's `load_model` function restored Stage 1's learning rate ($10^{-3}$), disrupting weights during Stage 2 fine-tuning. This highlights the need to re-compile *after* loading checkpoint weights.
 
 ---
 
-## 3. Baseline Models Performance
+## 3. Baseline Model Performance
 
-### 3.1 Dataset Preparation and Splitting Strategy
+### 3.1 Candidate Dataset Preparation and Justification
 Each teammate constructed and validated their models on custom datasets:
 * **Rohit's Full Dataset (637,900 images)**: Combines FFHQ, Celeb-DF, CIAGAN, and various diffusion generator sets.
 * **Vishakha's Candidate Dataset (9,996 frames)**: Samples exactly 1,000 Real and 1,000 Fake videos from FF++ and Celeb-DF, extracts exactly 5 frames per video, and crops faces using RetinaFace with a 10% margin. The dataset is split into Train (70%, 6,997), Validation (15%, 1,499), and Test (15%, 1,500).
@@ -76,7 +72,7 @@ Each teammate constructed and validated their models on custom datasets:
 ### 3.2 Baseline Performance Comparison Table
 Below is the evaluation of each model prior to backbone unfreezing (frozen backbone, training head-only warmup):
 
-| Model Architecture (Branch) | Warmup Epochs | Training Loss | Training Accuracy | Validation Loss | Validation Accuracy | Test Accuracy |
+| Model Architecture | Warmup Epochs | Training Loss | Training Accuracy | Validation Loss | Validation Accuracy | Test Accuracy |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Dual-Stream** (Rohit) | 5 | 0.2811 | 89.24% | 0.2641 | 90.11% | 89.45% |
 | **EfficientNet-B2** (Vishakha)| 3 | 0.6551 | 62.04% | 0.6664 | 60.71% | 58.33% |
@@ -122,7 +118,7 @@ The table below compares the hyperparameter configurations across the three mode
 
 ---
 
-## 5. End-to-End Modeling Pipelines
+## 5. End-to-End Modeling Pipeline
 
 ### 5.1 Ingestion & Preprocessing Flows
 ```
@@ -357,15 +353,3 @@ Carousels of model visualizations:
 ````
 
 ---
-
-## Team Declaration & Contribution Matrix
-
-We certify that all team members have contributed to the preparation of this consolidated milestone report. Each member has reviewed and approved the contents of the document.
-
-| Team Member | Contributions & Responsibilities | Signature |
-| :--- | :--- | :---: |
-| **Rohit** | Dual-Stream Spatial-Frequency Architecture Development, FFT Spectral Extraction pipeline implementation, and generalization testing. | <img src="../../signatures/Rohit.jpeg" alt="Rohit Signature" width="120"> |
-| **Raunak** | Spatial Transfer Learning, MobileNetV3-Large progressive fine-tuning pipeline creation, and test split validation checks. | <img src="../../signatures/raunak.jpeg" alt="Raunak Signature" width="120"> |
-| **Vishakha** | Spatial Preprocessing Verification, Keras EfficientNet-B2 staged fit pipelines verification, and candidate data sourcing. | <img src="../../signatures/Sign-Vishakha.jpeg" alt="Vishakha Signature" width="120"> |
-| **Aman** | Pipeline Optimization, PyTorch dataloader execution benchmarks, and hardware backend integration. | <img src="../../signatures/Aman.jpeg" alt="Aman Signature" width="120"> |
-| **Somendu** | Hyperparameter Search, Experiment Tracking setup, and Mermaid architecture visualizations. | <img src="../../signatures/Somendu.jpeg" alt="Somendu Signature" width="120"> |
