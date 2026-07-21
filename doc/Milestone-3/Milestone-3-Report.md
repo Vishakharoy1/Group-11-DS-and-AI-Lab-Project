@@ -542,7 +542,7 @@ Rather than repeating a separate flowchart for each model, this section presents
 ### 6.1 Unified Pipeline & Model Selection Flowchart
 
 <div align="center">
-  <img src="../../Architecture/architecture.jpg" alt="Unified Deepfake Detection Pipeline" width="900">
+  <img src="../../images/Picture1.png" alt="Unified Deepfake Detection Pipeline and Model Selection Flowchart" width="900">
   <br>
   <em>Figure 6.1 — Single consolidated flowchart: shared preprocessing, the selected primary model (MobileNetV3-Large), the two secondary/tertiary models invoked only on demand, and the final explainability outputs.</em>
 </div>
