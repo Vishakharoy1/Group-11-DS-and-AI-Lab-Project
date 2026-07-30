@@ -676,3 +676,130 @@ Based on the experimental study, the optimal hyperparameter configuration was se
 
 This configuration provided the best balance between convergence speed, classification accuracy, and generalization performance, achieving test accuracy above 95.5% with a ROC-AUC greater than 0.992.
 
+
+# 5. Techniques for Improving Generalization and Training Stability
+
+## 5.1 Overview
+Deep learning models trained on image datasets are susceptible to overfitting, where the model learns dataset-specific patterns instead of generalizable features. In deepfake detection, this challenge is even more significant because AI-generated images can vary considerably depending on the generation model, image quality, and post-processing techniques. To improve the robustness of the proposed MobileNetV3-Large model, several techniques were incorporated during training to enhance generalization and maintain stable optimization.
+
+The adopted techniques include data augmentation, transfer learning, weight decay, dropout, the AdamW optimizer, cosine annealing learning rate scheduling, mixed-precision training, and gradient clipping. Together, these strategies improved the model's ability to generalize to unseen images while ensuring stable convergence during training.
+
+---
+
+## 5.2 Data Augmentation
+Data augmentation was employed to artificially increase the diversity of the training dataset by generating different variations of the original images. During preprocessing, transformations such as random resized cropping, horizontal flipping, color jitter, JPEG compression simulation, Gaussian blur, and Gaussian noise were applied.
+
+These augmentations exposed the model to realistic image distortions commonly encountered in real-world scenarios, reducing overfitting and improving robustness against variations in illumination, compression artifacts, and image quality.
+
+**Impact on Model Performance:**
+* Reduced overfitting on the training dataset.
+* Improved robustness to compressed and noisy images.
+* Enhanced generalization to unseen AI-generated facial images.
+
+---
+
+## 5.3 Transfer Learning
+Instead of training the network from scratch, MobileNetV3-Large pretrained on the ImageNet dataset was used as the backbone model. A two-stage transfer learning strategy was adopted:
+
+1. **Stage 1:** The backbone was frozen while only the classifier head was trained.
+2. **Stage 2:** The final 25% of the backbone layers were unfrozen and fine-tuned using a lower learning rate.
+
+This strategy allowed the model to retain general visual features learned from ImageNet while adapting higher-level representations to the deepfake detection task.
+
+**Impact on Model Performance:**
+* Faster model convergence.
+* Reduced training time.
+* Improved feature extraction.
+* Better classification accuracy on unseen data.
+
+---
+
+## 5.4 Weight Decay
+Weight decay was used as a regularization technique to prevent excessive growth of model parameters during optimization. Different values (0.0, 0.01, 0.05, and 0.10) were evaluated during the hyperparameter optimization experiments.
+
+The experimental results showed that higher weight decay values (0.05–0.10) produced slightly better test performance than lower values, indicating improved generalization through effective regularization.
+
+**Impact on Model Performance:**
+* Reduced overfitting.
+* Improved model generalization.
+* Better validation and test accuracy.
+
+---
+
+## 5.5 Dropout Regularization
+Dropout was investigated as an additional regularization technique by evaluating dropout rates of 0.0, 0.2, 0.3, and 0.5.
+
+The experiments demonstrated that lower dropout values achieved superior performance, while excessive dropout reduced the model's learning capacity. A dropout rate of 0.0 achieved the highest test accuracy (95.73%), suggesting that MobileNetV3-Large already incorporates effective architectural regularization.
+
+**Impact on Model Performance:**
+* Prevented unnecessary loss of feature information.
+* Maintained stable classification performance.
+* Avoided underfitting caused by excessive dropout.
+
+---
+
+## 5.6 AdamW Optimizer
+The AdamW optimizer was selected instead of the conventional Adam optimizer because it applies weight decay independently of the gradient update process. This decoupled regularization improves optimization stability and enhances model generalization.
+
+Experimental comparisons showed that AdamW achieved substantially better performance than Adam, with a test accuracy of 95.41% compared to 86.51% for Adam.
+
+**Impact on Model Performance:**
+* Stable optimization.
+* Faster convergence.
+* Better generalization.
+* Higher classification accuracy.
+
+---
+
+## 5.7 Cosine Annealing Learning Rate Scheduler
+A `CosineAnnealingLR` scheduler was used to gradually reduce the learning rate throughout training. Compared with `ReduceLROnPlateau`, `CosineAnnealingLR` produced smoother optimization and better classification performance, achieving higher test accuracy during the hyperparameter study.
+
+**Impact on Model Performance:**
+* Smooth convergence.
+* Reduced optimization oscillations.
+* Improved validation and test performance.
+
+---
+
+## 5.8 Mixed-Precision Training
+Automatic Mixed Precision (AMP) was enabled during model training to improve computational efficiency. By combining 16-bit and 32-bit floating-point computations, mixed-precision training reduced GPU memory consumption and accelerated training while maintaining numerical stability.
+
+**Impact on Model Performance:**
+* Faster training.
+* Lower memory usage.
+* Improved computational efficiency.
+* Stable optimization.
+
+---
+
+## 5.9 Gradient Clipping
+Gradient clipping was employed during training to prevent excessively large gradient updates that can destabilize optimization. The maximum gradient norm was limited to 1.0, ensuring controlled parameter updates throughout the training process.
+
+**Impact on Model Performance:**
+* Prevented exploding gradients.
+* Improved optimization stability.
+* Produced smoother convergence during training.
+
+---
+
+## 5.10 Overall Impact on Model Performance
+The combined application of these techniques significantly improved the robustness and stability of the MobileNetV3-Large model. Data augmentation and transfer learning enhanced the model's ability to generalize to unseen images, while regularization techniques such as weight decay and dropout reduced overfitting. The AdamW optimizer and `CosineAnnealingLR` scheduler ensured stable optimization, and mixed-precision training with gradient clipping improved computational efficiency without compromising performance.
+
+As a result, the optimized model achieved test accuracy greater than 95.5% and a ROC-AUC above 0.992, demonstrating strong generalization capability for real versus AI-generated face classification.
+
+---
+
+### Summary of Techniques
+
+**Table 5.1: Summary of Generalization and Training Stability Techniques**
+
+| Technique | Purpose | Impact on Performance |
+| :--- | :--- | :--- |
+| **Data Augmentation** | Increase dataset diversity | Reduced overfitting and improved robustness |
+| **Transfer Learning** | Reuse pretrained ImageNet features | Faster convergence and improved feature extraction |
+| **Weight Decay** | Regularize model parameters | Improved generalization and validation performance |
+| **Dropout** | Reduce overfitting | Low dropout maintained the best accuracy |
+| **AdamW Optimizer** | Stable optimization | Higher accuracy than Adam |
+| **CosineAnnealingLR** | Adaptive learning rate scheduling | Smooth convergence and better final performance |
+| **Mixed-Precision Training** | Improve computational efficiency | Faster training with reduced memory usage |
+| **Gradient Clipping** | Stabilize optimization | Prevented exploding gradients and improved convergence |
