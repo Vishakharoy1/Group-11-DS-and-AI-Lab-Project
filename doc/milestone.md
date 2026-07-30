@@ -315,7 +315,7 @@ A two-stage transfer learning strategy was adopted to adapt the pretrained Mobil
 
 | Component | Description |
 | :--- | :--- |
-| **Input Image Size** | $224 X 224 X3$ |
+| **Input Image Size** | $224 × 224 × 3$ |
 | **Preprocessing** | Resize and ImageNet Normalization |
 | **Backbone Network** | MobileNetV3-Large |
 | **Pretrained Weights** | ImageNet |
