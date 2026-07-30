@@ -246,118 +246,91 @@ The preprocessing pipeline ensured that all facial images were standardized befo
 # 2. Model Architecture
 
 ## 2.1 Overview
+The proposed deepfake detection system is based on the MobileNetV3-Large convolutional neural network available in the PyTorch `torchvision` library. Instead of developing a convolutional neural network from scratch, the project employs transfer learning by loading a MobileNetV3-Large model initialized with ImageNet pretrained weights. This enables the model to utilize rich visual features learned from millions of natural images and adapt them to the task of binary deepfake face classification. 
 
-The proposed deepfake detection system is based on **MobileNetV3-Large**, a lightweight convolutional neural network (CNN) pre-trained on the ImageNet dataset. The model was selected because it offers an excellent balance between classification accuracy, computational efficiency, and inference speed. Compared to larger CNN architectures such as ResNet-50 and EfficientNet-B4, MobileNetV3-Large requires significantly fewer parameters and computational resources while maintaining competitive performance. These characteristics make it suitable for both research applications and deployment on resource-constrained devices.
+MobileNetV3-Large was selected because it provides an excellent balance between classification accuracy, computational efficiency, and inference speed. Its lightweight architecture makes it suitable for both research applications and deployment on devices with limited computational resources.
 
-Instead of training the network from scratch, transfer learning was employed by initializing the model with ImageNet pre-trained weights. The original classification layer, designed for 1,000 ImageNet classes, was replaced with a custom fully connected layer consisting of two output neurons corresponding to the binary classes:
-
+To adapt the pretrained model for deepfake detection, the original classification layer was replaced with a new fully connected layer containing two output neurons, representing the two target classes:
 * **Class 0:** Real Face
 * **Class 1:** AI-generated Face
 
-The overall architecture used in this project is illustrated in **Figure 2.1**.
+All remaining layers of the pretrained MobileNetV3-Large architecture were retained without modification. 
+
+The overall architecture of the implemented model is shown in Figure 2.1:
 
 ```text
-       Input Image (224 × 224 × 3)
+             Input Image
+          (224 × 224 × 3)
                    │
                    ▼
-       Initial Convolution Layer
+        Image Preprocessing
+ (Resize + ImageNet Normalization)
                    │
                    ▼
-       MobileNetV3-Large Backbone
-          (Feature Extraction)
+ Pretrained MobileNetV3-Large
+   (ImageNet Weights Loaded)
                    │
                    ▼
-         Global Average Pooling
+ Modified Classification Layer
+      (Binary Classification)
                    │
                    ▼
-         Fully Connected Layer
-           (2 Output Neurons)
-                   │
-                   ▼
-                Softmax
-                   │
-                   ▼
-              Prediction
-         (Real / AI-generated)
+      Prediction
+ (Real / AI-generated)
 ```
-
-> **Figure 2.1:** Architecture of the proposed MobileNetV3-Large based deepfake detection model.
+*Figure 2.1: Implemented MobileNetV3-Large architecture used for deepfake face detection.*
 
 ---
 
 ## 2.2 Architecture Components
 
-The MobileNetV3-Large architecture consists of several interconnected layers that progressively extract discriminative facial features from the input image. The major components are described below.
-
 ### 2.2.1 Input Layer
-The network accepts an RGB facial image of size **224 × 224 × 3**. All input images are preprocessed through face detection, alignment, resizing, normalization, and data augmentation before being passed to the network.
+The model accepts RGB facial images of size $224 	imes 224 	imes 3$. During preprocessing, images are resized to $224 	imes 224$ pixels, converted into tensors, and normalized using the ImageNet mean and standard deviation before being supplied to the network. 
 
-### 2.2.2 Initial Convolution Layer
-The first layer of the network is a standard convolutional layer that extracts low-level visual features such as edges, corners, textures, and color gradients. These low-level features form the foundation for learning increasingly complex facial representations in the subsequent layers.
+### 2.2.2 Pretrained MobileNetV3-Large
+The backbone of the proposed model is the pretrained MobileNetV3-Large network provided by the PyTorch `torchvision` library. The model is initialized using the default ImageNet pretrained weights, allowing it to reuse feature representations learned from a large-scale image classification dataset. 
 
-### 2.2.3 MobileNetV3-Large Backbone
-The backbone is responsible for extracting hierarchical features from the input image. MobileNetV3-Large employs a series of **Mobile Inverted Bottleneck Convolution (MBConv)** blocks that efficiently learn spatial and semantic information while minimizing computational complexity.
+Rather than modifying the internal architecture of MobileNetV3-Large, the complete pretrained backbone is retained as the feature extractor. This enables the network to learn discriminative facial representations while benefiting from pretrained visual knowledge.
 
-The backbone combines several efficient design elements:
-* **Depthwise Separable Convolutions:** Reduce the number of computations by separating spatial filtering from channel-wise feature combination.
-* **Inverted Residual Bottleneck Blocks:** Improve feature extraction while maintaining a lightweight architecture.
-* **Squeeze-and-Excitation (SE) Modules:** Apply channel-wise attention by emphasizing informative features and suppressing less relevant ones.
-* **Hardswish Activation Function:** Improves nonlinear feature representation while remaining computationally efficient.
+### 2.2.3 Modified Classification Layer
+The original MobileNetV3-Large classifier is designed for ImageNet classification. To perform binary deepfake detection, only the final classification layer is replaced with a new fully connected layer containing two output neurons corresponding to the Real and AI-generated classes. All remaining classifier layers and feature extraction layers remain unchanged. 
 
-These components enable the model to learn subtle facial textures and structural inconsistencies that distinguish AI-generated faces from authentic images.
-
-### 2.2.4 Global Average Pooling Layer
-After feature extraction, a **Global Average Pooling (GAP)** layer is applied to reduce the spatial dimensions of the feature maps. Instead of flattening the entire feature map, GAP computes the average activation of each feature channel, producing a compact feature vector.
-
-**This approach offers several advantages:**
-* Reduces the number of trainable parameters.
-* Minimizes the risk of overfitting.
-* Improves computational efficiency.
-* Preserves high-level semantic information.
-
-### 2.2.5 Classification Layer
-The original MobileNetV3-Large classifier was designed for 1,000-class ImageNet classification. For this project, the classifier was replaced with a custom fully connected layer containing two output neurons corresponding to the binary classes.
-
-The final output is passed through a **Softmax** function to obtain class probabilities, and the class with the highest probability is selected as the prediction.
+### 2.2.4 Prediction
+During training, the model outputs raw logits, which are optimized using the `CrossEntropyLoss` function. During inference, the logits are converted into class probabilities using the Softmax function, and the class with the highest probability is selected as the final prediction.  
 
 ---
 
 ## 2.3 Transfer Learning Strategy
+A two-stage transfer learning strategy was adopted to adapt the pretrained MobileNetV3-Large model to the deepfake detection task.
 
-To efficiently adapt the pretrained model to the deepfake detection task, a two-stage transfer learning strategy was adopted:
+* **Stage 1: Feature Extraction**  
+  Initially, all parameters of the MobileNetV3-Large feature extraction backbone were frozen, and only the modified classification layer was trained using the training dataset. This allowed the classifier to learn the binary classification task while preserving the pretrained ImageNet feature representations. 
 
-1. **Stage 1: Feature Extraction**  
-   During the first stage, all layers of the MobileNetV3-Large backbone were frozen, and only the newly added classification layer was trained. This allowed the model to adapt the classifier to the new binary classification task while retaining the generic visual features learned from the ImageNet dataset.
-
-2. **Stage 2: Fine-Tuning**  
-   After the classifier had converged, the final 25% of the backbone layers were unfrozen and fine-tuned using a lower learning rate. Fine-tuning enabled the higher-level feature representations to adapt specifically to facial characteristics associated with AI-generated images while preserving previously learned low-level features.
-
-This two-stage training strategy improved convergence stability and enhanced the model's ability to discriminate between real and synthetic facial images.
+* **Stage 2: Fine-Tuning**  
+  After completing the first stage, the best-performing model was loaded and the last 25% of the MobileNetV3-Large feature blocks (blocks 12–16 out of 17 feature blocks) were unfrozen for fine-tuning using a smaller learning rate. The remaining layers stayed frozen throughout training. This strategy improved adaptation to the deepfake detection task while minimizing overfitting. 
 
 ---
 
 ## 2.4 Model Summary
 
-**Table 2.1: Summary of the proposed MobileNetV3-Large architecture.**
-
 | Component | Description |
 | :--- | :--- |
-| **Input Image Size** | 224 × 224 × 3 |
+| **Input Image Size** | $224 	imes 224 	imes 3$ |
+| **Preprocessing** | Resize and ImageNet Normalization |
 | **Backbone Network** | MobileNetV3-Large |
-| **Pre-trained Weights** | ImageNet |
-| **Feature Extraction** | Mobile Inverted Bottleneck (MBConv) Blocks |
-| **Convolution Type** | Depthwise Separable Convolution |
-| **Attention Mechanism** | Squeeze-and-Excitation (SE) |
-| **Activation Function** | Hardswish |
-| **Pooling Layer** | Global Average Pooling |
-| **Classification Layer** | Fully Connected (2 Neurons) |
-| **Output Classes** | Real, AI-generated |
+| **Pretrained Weights** | ImageNet |
+| **Transfer Learning** | Yes |
+| **Modified Layer** | Final Fully Connected Layer |
+| **Output Neurons** | 2 |
+| **Training Strategy** | Two-stage Transfer Learning |
+| **Stage 1** | Backbone Frozen |
+| **Stage 2** | Last 25% Feature Blocks Fine-tuned |
+| **Loss Function** | `CrossEntropyLoss` |
 
 ---
 
 ## 2.5 Architecture Rationale
-
-MobileNetV3-Large was selected because it provides an effective balance between accuracy and computational efficiency. Its lightweight design enables faster training and inference while maintaining strong feature extraction capabilities. The integration of transfer learning, attention mechanisms, and a two-stage fine-tuning strategy allowed the model to achieve high classification performance on AI-generated face detection without the computational overhead associated with larger CNN architectures.
+The MobileNetV3-Large architecture was selected because it combines high classification performance with computational efficiency. By leveraging ImageNet pretrained weights, the model benefits from rich feature representations without requiring training from scratch. Only the final classification layer is modified to perform binary deepfake classification, while the remainder of the pretrained network is preserved. The two-stage transfer learning strategy further improves convergence and enables the model to learn task-specific facial characteristics while retaining the general visual features acquired during ImageNet pretraining.
 # 3. Training Configuration
 
 ## 3.1 Overview
