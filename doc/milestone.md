@@ -525,3 +525,154 @@ Using multiple evaluation metrics ensured that the model was evaluated comprehen
 | **Training Platform** | Kaggle Notebooks |
 | **Framework** | PyTorch |
 
+# 4. Hyperparameter Optimization
+
+## 4.1 Overview
+The performance of a deep learning model is significantly influenced by the selection of hyperparameters. Appropriate hyperparameter values improve convergence speed, enhance generalization capability, and reduce the risk of overfitting. Therefore, a systematic hyperparameter optimization study was conducted to identify the optimal training configuration for the MobileNetV3-Large model used in the deepfake image detection task.
+
+A total of 24 ablation experiments were performed, where one hyperparameter was varied while keeping the remaining training configuration unchanged. The experiments evaluated the influence of learning rate, batch size, weight decay, dropout rate, optimizer, learning rate scheduler, and label smoothing on the model's performance. Each experiment was evaluated using validation accuracy, validation loss, validation AUC, test accuracy, precision, recall, F1-score, ROC-AUC, and training time.
+
+---
+
+## 4.2 Hyperparameters Evaluated
+The hyperparameters investigated during the optimization process are summarized in **Table 4.1**.
+
+**Table 4.1: Hyperparameters Evaluated**
+
+| Hyperparameter | Tested Values |
+| :--- | :--- |
+| **Learning Rate** | 1×10⁻⁴, 5×10⁻⁴, 1×10⁻³, 5×10⁻³ |
+| **Batch Size** | 32, 64, 128 |
+| **Weight Decay** | 0.0, 0.01, 0.05, 0.10 |
+| **Dropout Rate** | 0.0, 0.2, 0.3, 0.5 |
+| **Optimizer** | Adam, AdamW |
+| **Learning Rate Scheduler** | CosineAnnealingLR, ReduceLROnPlateau |
+| **Label Smoothing** | 0.0, 0.05, 0.10 |
+
+These experiments enabled a systematic comparison of different training configurations to determine the combination that achieved the best balance between model accuracy and generalization.
+
+---
+
+## 4.3 Learning Rate Experiments
+The learning rate controls the magnitude of parameter updates during optimization. Four learning rates were evaluated to study their effect on convergence and classification performance.
+
+**Table 4.2: Learning Rate Comparison**
+
+| Learning Rate | Test Accuracy (%) | Test F1-score | ROC-AUC |
+| :--- | :--- | :--- | :--- |
+| **1×10⁻⁴** | 92.71 | 0.9281 | 0.9801 |
+| **5×10⁻⁴** | 95.43 | 0.9552 | 0.9921 |
+| **1×10⁻³** | 95.41 | 0.9550 | 0.9925 |
+| **5×10⁻³** | 90.10 | 0.8941 | 0.9791 |
+
+The results indicate that learning rates of 5×10⁻⁴ and 1×10⁻³ achieved the best overall performance. A lower learning rate (1×10⁻⁴) resulted in slower convergence and slight underfitting, whereas a higher learning rate (5×10⁻³) caused unstable optimization and reduced classification accuracy.
+
+---
+
+## 4.4 Batch Size Experiments
+Batch size influences the stability of gradient estimation and computational efficiency. Three batch sizes were evaluated.
+
+**Table 4.3: Batch Size Comparison**
+
+| Batch Size | Test Accuracy (%) | Test F1-score |
+| :--- | :--- | :--- |
+| **32** | 95.57 | 0.9558 |
+| **64** | 95.41 | 0.9550 |
+| **128** | 95.51 | 0.9553 |
+
+Batch size 32 achieved the highest test accuracy, while larger batch sizes (64 and 128) offered comparable performance with improved computational efficiency. Considering both accuracy and training speed, batch sizes of 64–128 were considered practical for the final training configuration.
+
+---
+
+## 4.5 Weight Decay Experiments
+Weight decay was investigated to determine its effect on model regularization and generalization.
+
+**Table 4.4: Weight Decay Comparison**
+
+| Weight Decay | Test Accuracy (%) | Test F1-score |
+| :--- | :--- | :--- |
+| **0.00** | 95.28 | 0.9530 |
+| **0.01** | 95.41 | 0.9550 |
+| **0.05** | 95.54 | 0.9558 |
+| **0.10** | 95.57 | 0.9564 |
+
+The experimental results demonstrate that higher weight decay values (0.05–0.10) slightly improved the model's generalization performance. A value of 0.10 produced the highest test accuracy and F1-score, indicating that appropriate regularization helped reduce overfitting.
+
+---
+
+## 4.6 Dropout Rate Experiments
+Dropout was evaluated to determine the appropriate level of regularization for the MobileNetV3-Large classifier.
+
+**Table 4.5: Dropout Comparison**
+
+| Dropout Rate | Test Accuracy (%) | Test F1-score |
+| :--- | :--- | :--- |
+| **0.0** | 95.73 | 0.9575 |
+| **0.2** | 95.41 | 0.9550 |
+| **0.3** | 95.16 | 0.9518 |
+| **0.5** | 94.56 | 0.9447 |
+
+The experiments showed that no additional dropout (0.0) achieved the highest performance. Increasing the dropout rate beyond 0.2 gradually reduced classification accuracy, suggesting that the MobileNetV3-Large architecture already contains sufficient built-in regularization mechanisms.
+
+---
+
+## 4.7 Optimizer Comparison
+Two widely used optimization algorithms, Adam and AdamW, were compared.
+
+**Table 4.6: Optimizer Comparison**
+
+| Optimizer | Test Accuracy (%) | Test F1-score | ROC-AUC |
+| :--- | :--- | :--- | :--- |
+| **Adam** | 86.51 | 0.8531 | 0.9557 |
+| **AdamW** | 95.41 | 0.9550 | 0.9925 |
+
+AdamW significantly outperformed the standard Adam optimizer across all evaluation metrics. The decoupled weight decay mechanism in AdamW provided better regularization and improved generalization, making it the preferred optimizer for the final model.
+
+---
+
+## 4.8 Learning Rate Scheduler Comparison
+The influence of the learning rate scheduler was also investigated.
+
+**Table 4.7: Scheduler Comparison**
+
+| Scheduler | Test Accuracy (%) | Test F1-score |
+| :--- | :--- | :--- |
+| **CosineAnnealingLR** | 95.41 | 0.9550 |
+| **ReduceLROnPlateau** | 93.23 | 0.9302 |
+
+The CosineAnnealingLR scheduler consistently produced better classification performance by reducing the learning rate smoothly during training. In contrast, ReduceLROnPlateau exhibited slower adaptation due to delayed learning rate adjustments.
+
+---
+
+## 4.9 Label Smoothing Experiments
+The effect of label smoothing was evaluated to determine whether it improved model calibration.
+
+**Table 4.8: Label Smoothing Comparison**
+
+| Label Smoothing | Test Accuracy (%) | Test F1-score |
+| :--- | :--- | :--- |
+| **0.00** | 95.41 | 0.9550 |
+| **0.05** | 93.10 | 0.9293 |
+| **0.10** | 94.30 | 0.9426 |
+
+The experiments showed that label smoothing did not improve classification performance for this dataset. The best results were achieved without label smoothing, indicating that the dataset quality and class balance were already sufficient for effective learning.
+
+---
+
+## 4.10 Final Hyperparameter Selection
+Based on the experimental study, the optimal hyperparameter configuration was selected for the final MobileNetV3-Large model.
+
+**Table 4.9: Final Hyperparameter Configuration**
+
+| Hyperparameter | Selected Value |
+| :--- | :--- |
+| **Optimizer** | AdamW |
+| **Learning Rate** | 5×10⁻⁴ or 1×10⁻³ |
+| **Batch Size** | 64 or 128 |
+| **Weight Decay** | 0.05–0.10 |
+| **Dropout Rate** | 0.0–0.2 |
+| **Learning Rate Scheduler** | CosineAnnealingLR |
+| **Label Smoothing** | 0.0 |
+
+This configuration provided the best balance between convergence speed, classification accuracy, and generalization performance, achieving test accuracy above 95.5% with a ROC-AUC greater than 0.992.
+
