@@ -970,3 +970,46 @@ Several visual outputs were generated during the training and evaluation process
 
 ## 8.7 Importance of the Generated Artifacts
 The generated artifacts provide a complete record of the model development process. The Kaggle Notebook contains the full implementation of data preprocessing, model training, hyperparameter tuning, and evaluation, ensuring reproducibility of the experiments. The saved checkpoint `mobilenetv3_best.pth` preserves the best-performing model and can be directly used for inference, further fine-tuning, or deployment in deepfake detection applications. Together with the training logs, evaluation reports, and visualization outputs, these artifacts enable systematic performance analysis and facilitate future improvements to the model.
+
+
+# 9. Discussion: Key Findings, Challenges, and Future Improvements
+
+## 9.1 Overview
+The training of the MobileNetV3-Large model for deepfake image detection demonstrated that a lightweight convolutional neural network can achieve excellent classification performance when combined with effective preprocessing, data augmentation, transfer learning, and systematic hyperparameter tuning. The final model achieved a test accuracy of 99.06% with strong precision and recall for both real and AI-generated facial images. During the training process, several important observations were made regarding the effectiveness of different techniques, practical limitations, and opportunities for further improvement.
+
+## 9.2 What Worked Well
+
+* **Transfer Learning:** Using an ImageNet-pretrained MobileNetV3-Large significantly accelerated convergence and enabled the model to learn meaningful facial representations with relatively few training epochs. The two-stage transfer learning strategy reduced training time while improving overall classification performance.
+* **Data Preprocessing and Augmentation:** Face detection, alignment, resizing, normalization, and robust augmentation techniques improved the diversity and quality of the training data. Augmentations such as JPEG compression, Gaussian noise, blur, and color jitter increased the model's robustness to real-world image variations.
+* **Hyperparameter Optimization:** The systematic evaluation of learning rate, batch size, optimizer, weight decay, dropout, and learning rate scheduler helped identify an effective training configuration. In particular, the AdamW optimizer combined with `CosineAnnealingLR` provided stable convergence and strong generalization across the validation and test datasets.
+* **Model Performance:** The final model achieved high validation and test accuracy while maintaining balanced precision and recall for both classes, indicating that the proposed approach generalized well to unseen facial images.
+
+## 9.3 What Did Not Perform as Expected
+Although the overall results were highly satisfactory, some experimental configurations produced lower performance than expected:
+
+* Very high learning rates ($5 	imes 10^{-3}$) caused unstable optimization and reduced classification accuracy.
+* The standard Adam optimizer performed considerably worse than AdamW, indicating that decoupled weight decay was more suitable for this task.
+* Higher dropout rates ($0.5$) reduced model capacity and slightly decreased classification performance.
+* Label smoothing did not improve accuracy, suggesting that the balanced dataset already provided sufficient supervision without additional label regularization.
+
+## 9.4 Training Bottlenecks
+Several practical challenges were encountered during model development and training.
+
+* **Computational Resource Constraints:** Most experiments were conducted using Kaggle Notebooks, where GPU sessions have limited runtime and memory resources. Long training sessions occasionally required restarting the notebook and reloading the saved checkpoint to continue experimentation.
+* **Hyperparameter Search Time:** Evaluating multiple combinations of hyperparameters required repeated training runs, making the optimization process computationally intensive despite the efficiency of MobileNetV3-Large.
+* **Dataset Preparation:** Preparing a balanced dataset from multiple sources required preprocessing, face extraction, and quality verification before training. This increased the overall project development time.
+
+## 9.5 Future Improvements
+Although the proposed model achieved excellent performance, several enhancements can be explored in future work:
+
+1. Evaluate the model on additional publicly available deepfake datasets to assess cross-dataset generalization.
+2. Incorporate Vision Transformer (ViT) or hybrid CNN–Transformer architectures to capture both local and global image features.
+3. Extend the system to detect deepfake videos by integrating temporal information across consecutive frames.
+4. Apply model compression techniques such as pruning or quantization for faster deployment on edge devices.
+5. Investigate explainable AI techniques beyond Grad-CAM to provide more detailed visual interpretations of model predictions.
+6. Develop a real-time inference application that can classify uploaded images through a web or mobile interface.
+
+---
+
+## 9.6 Overall Conclusion
+The training process demonstrated that the combination of MobileNetV3-Large, transfer learning, robust preprocessing, data augmentation, and carefully optimized hyperparameters provides an effective solution for deepfake face detection. The model achieved high classification accuracy while maintaining computational efficiency, making it suitable for practical deployment. Although computational limitations and extensive hyperparameter tuning presented challenges during development, the resulting model exhibited strong generalization performance and provides a solid foundation for future research and real-world applications.
