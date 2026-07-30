@@ -1,12 +1,81 @@
-# Milestone 4 (M4) – Work Contribution Log
+# Team Contribution Tracker - Milestone 4
 
-| Priority | Task | Assigned To | Work Contribution |
-|----------|-------------|-------------|-------------------|
-| **P1** | Improve MobileNetV3 Training Pipeline | **Vishakha** | Implemented a stronger training pipeline by integrating advanced data augmentation techniques, including **ColorJitter** (brightness, contrast, saturation, hue), **Gaussian Blur**, **Gaussian Noise**, and **JPEG compression augmentation**. Compared model performance before and after augmentation. Integrated **RetinaFace/YOLO-Face** for face detection, performed face alignment, cropped detected faces, resized them to **224×224**, and retrained the MobileNetV3 model using the improved preprocessing pipeline. |
-| **P2** | Hyperparameter Optimization | **Rohit** | Conducted systematic hyperparameter tuning by evaluating different **learning rates**, **batch sizes**, **weight decay values**, **dropout rates**, **optimizers (Adam vs AdamW)**, **learning rate schedulers (Cosine Annealing vs ReduceLROnPlateau)**, and **label smoothing** values. Recorded performance metrics for each experiment and prepared a comprehensive comparison table to identify the optimal configuration. |
-| **P3** | Robustness Testing Against Image Manipulations | **Aman** | Generated manipulated versions of test images using **green tint**, **blue tint**, **brightness adjustment**, **contrast variation**, **Gaussian blur**, **motion blur**, **JPEG compression**, **image resizing**, **cropping**, and **noise addition**. Evaluated model robustness before and after applying the enhanced augmentation pipeline and analyzed performance degradation across different image distortions. |
-| **P4** | Cross-Domain Testing | **Raunak** | Evaluated the trained MobileNetV3 model on images outside the training distribution, including **AI-generated animals**, **AI-generated landscapes**, **AI-generated objects**, **real animals**, and **real landscapes**. Assessed the model's ability to generalize beyond facial images and documented its operational boundaries, strengths, and limitations under cross-domain scenarios. |
-| **P5** | Explainability (Grad-CAM) | **Somendu** | Integrated **Grad-CAM** into the final MobileNetV3 model to visualize model attention. Generated **heatmaps** for correctly classified and misclassified samples, along with feature visualizations, using images from the project dataset to improve interpretability and validate model decision-making. |
-| **P6** | End-to-End Inference Pipeline | **Vishakha** | Developed and documented the complete inference workflow, illustrating the end-to-end pipeline from **image input**, **face detection and preprocessing**, **MobileNetV3 inference**, **probability estimation**, and **final prediction output**. Prepared a clear process flow suitable for demonstration and deployment. |
-| **P7** | Documentation – Report | **Aman** | Compiled the final project report by documenting the methodology, preprocessing pipeline, model architecture, experimental setup, hyperparameter optimization, robustness evaluation, cross-domain testing, Grad-CAM analysis, results, and conclusions in a structured technical format. |
-| **P7** | Documentation – Presentation (PPT) | **Vishakha** | Designed and prepared the final presentation summarizing the project objectives, methodology, preprocessing workflow, model architecture, experimental results, robustness analysis, Grad-CAM visualizations, inference pipeline, and key findings for project review and demonstration. |
+**Project:** Deep Learning-Based Human Face Authenticity Detection
+
+This document tracks the work completed and responsibilities assigned for Milestone 4.
+
+## 1. Vishakha - MobileNetV3 Training Pipeline, Inference Pipeline & Presentation Lead
+
+### Contributions in Milestone 4
+
+- Enhanced the MobileNetV3 training pipeline by implementing robust data augmentation techniques including ColorJitter, random brightness, contrast, saturation and hue variations.
+- Integrated Gaussian Blur, Gaussian Noise, and JPEG compression augmentation to improve model robustness against image degradations.
+- Evaluated and compared model performance before and after applying the enhanced augmentation pipeline.
+- Implemented face detection and alignment using RetinaFace/YOLO-Face prior to preprocessing.
+- Developed the preprocessing pipeline for face detection, face cropping, resizing detected faces to **224 × 224**, and retraining the MobileNetV3 model using the improved pipeline.
+- Designed the complete end-to-end inference workflow illustrating image input, preprocessing, model inference, and prediction generation.
+- Prepared the final project presentation (PPT) summarizing methodology, experiments, results, and conclusions.
+
+---
+
+## 2. Rohit - Hyperparameter Optimization Lead
+
+### Contributions in Milestone 4
+
+- Conducted systematic hyperparameter optimization for the MobileNetV3-Large model.
+- Evaluated multiple learning rates to determine optimal convergence behaviour.
+- Performed experiments using different batch sizes, weight decay values, and dropout rates.
+- Compared Adam and AdamW optimizers for training stability and generalization.
+- Evaluated CosineAnnealingLR and ReduceLROnPlateau learning rate schedulers.
+- Investigated the impact of label smoothing on classification performance.
+- Compiled comprehensive comparison tables summarizing all hyperparameter experiments and selected the optimal configuration.
+
+---
+
+## 3. Aman - Robustness Testing & Documentation Lead
+
+### Contributions in Milestone 4
+
+- Generated manipulated versions of test images to evaluate model robustness under realistic image distortions.
+- Created image variants using green tint, blue tint, brightness adjustment, contrast modification, Gaussian blur, motion blur, JPEG compression, resizing, cropping, and additive noise.
+- Evaluated model performance before and after the enhanced augmentation pipeline to assess robustness improvements.
+- Documented the robustness evaluation methodology, experimental observations, and results in the final technical report.
+- Compiled and organized the complete project report covering methodology, experiments, results, discussion, and conclusions.
+
+---
+
+## 4. Raunak - Cross-Domain Evaluation & Operational Boundary Analysis Lead
+
+### Contributions in Milestone 4
+
+- Conducted cross-domain evaluation of the MobileNetV3-Large model using images outside the training distribution.
+- Evaluated model performance on AI-generated animals, AI-generated landscapes, AI-generated objects, real animals, and real landscapes.
+- Analyzed the model's generalization capability beyond facial image classification.
+- Identified scenarios where the model performed reliably and documented cases where performance degraded.
+- Clearly defined the operational boundaries, strengths, limitations, and expected deployment scope of the proposed deepfake detection system.
+
+---
+
+## 5. Somendu - Explainability & Grad-CAM Visualization Lead
+
+### Contributions in Milestone 4
+
+- Integrated Grad-CAM explainability into the final MobileNetV3-Large model.
+- Generated Grad-CAM heatmaps for correctly classified and incorrectly classified samples.
+- Produced feature visualization outputs highlighting important facial regions influencing model predictions.
+- Used only project dataset images for explainability analysis to maintain consistency across experiments.
+- Assisted in preparing visual evidence supporting model interpretability for the final report.
+
+---
+
+## Team Declaration
+
+We certify that all team members have actively contributed to the preparation of Milestone 4. Each member has reviewed the contents of the document, understands the work presented throughout the MobileNetV3 enhancement, evaluation, explainability, and documentation phases, and agrees with the submitted report.
+
+| Team Member | Role | Signature |
+| --- | --- | --- |
+| Vishakha | MobileNetV3 Training Pipeline, Inference Pipeline & Presentation Lead | Vishakha |
+| Rohit | Hyperparameter Optimization Lead | Rohit |
+| Aman | Robustness Testing & Documentation Lead | Aman |
+| Raunak | Cross-Domain Evaluation & Operational Boundary Analysis Lead | Raunak |
+| Somendu | Explainability & Grad-CAM Visualization Lead | Somendu |
