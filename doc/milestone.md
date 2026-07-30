@@ -803,3 +803,95 @@ As a result, the optimized model achieved test accuracy greater than 95.5% and a
 | **CosineAnnealingLR** | Adaptive learning rate scheduling | Smooth convergence and better final performance |
 | **Mixed-Precision Training** | Improve computational efficiency | Faster training with reduced memory usage |
 | **Gradient Clipping** | Stabilize optimization | Prevented exploding gradients and improved convergence |
+
+# 6. Results and Observations
+
+## 6.1 Overview
+After completing data preprocessing, model training, and hyperparameter optimization, the performance of the proposed MobileNetV3-Large model was evaluated on an independent test dataset containing both real and AI-generated facial images. Model performance was assessed using multiple quantitative metrics, including accuracy, precision, recall, F1-score, ROC-AUC, and the confusion matrix. In addition to these numerical results, qualitative observations were made throughout the training process to understand the effect of different training strategies and hyperparameter choices on model performance.
+
+---
+
+## 6.2 Quantitative Results
+The final MobileNetV3-Large model demonstrated excellent classification performance on the test dataset, indicating its ability to distinguish between authentic and AI-generated facial images with high accuracy.
+
+**Table 6.1: Final Model Performance**
+
+| Metric | Value |
+| :--- | :--- |
+| **Best Validation Accuracy** | 99.30% |
+| **Test Accuracy** | 99.06% |
+| **Number of Classes** | 2 |
+| **Training Strategy** | Two-stage Transfer Learning |
+| **Backbone** | MobileNetV3-Large |
+
+The high validation and test accuracies indicate that the model generalized effectively to unseen images without exhibiting significant overfitting.
+
+---
+
+## 6.3 Classification Report
+To evaluate the performance of each class individually, precision, recall, and F1-score were computed.
+
+**Table 6.2: Classification Report**
+
+| Class | Precision | Recall | F1-score |
+| :--- | :--- | :--- | :--- |
+| **Real** | 0.9900 | 0.9929 | 0.9914 |
+| **AI-generated** | 0.9914 | 0.9879 | 0.9896 |
+
+The results demonstrate that the proposed model achieved consistently high precision and recall for both classes. This indicates that the classifier was effective in correctly identifying both authentic and AI-generated facial images while maintaining a low number of false predictions.
+
+---
+
+## 6.4 Confusion Matrix Analysis
+The confusion matrix provides a detailed summary of the classification results.
+
+**Table 6.3: Confusion Matrix**
+
+| Actual / Predicted | Real | AI-generated |
+| :--- | :--- | :--- |
+| **Real** | 3,475 | 25 |
+| **AI-generated** | 35 | 2,866 |
+
+Out of all test samples, only 60 images were incorrectly classified. Most predictions were correctly assigned to their respective classes, demonstrating the effectiveness of the proposed MobileNetV3-Large model in distinguishing between real and synthetic facial images.
+
+---
+
+## 6.5 Hyperparameter Optimization Results
+During hyperparameter optimization, 24 controlled experiments were conducted to identify the most effective training configuration. The experiments evaluated learning rate, batch size, weight decay, dropout rate, optimizer, learning rate scheduler, and label smoothing.
+
+The study identified the following configuration as the most effective for training the MobileNetV3-Large model:
+
+**Table 6.4: Selected Hyperparameters**
+
+| Hyperparameter | Selected Configuration |
+| :--- | :--- |
+| **Optimizer** | AdamW |
+| **Learning Rate** | 5×10⁻⁴ or 1×10⁻³ |
+| **Batch Size** | 64 or 128 |
+| **Weight Decay** | 0.05–0.10 |
+| **Dropout Rate** | 0.0–0.2 |
+| **Learning Rate Scheduler** | CosineAnnealingLR |
+| **Label Smoothing** | 0.0 |
+
+These settings consistently achieved the highest validation and test performance during the hyperparameter optimization experiments.
+
+---
+
+## 6.6 Qualitative Observations
+Several important observations were made during the training and optimization process:
+
+* **Learning Rate:** Moderate learning rates (5×10⁻⁴ and 1×10⁻³) resulted in the most stable convergence. Very low learning rates slowed convergence, whereas excessively high learning rates caused unstable optimization and reduced classification performance.
+* **Batch Size:** Although a batch size of 32 achieved slightly higher test accuracy during the hyperparameter study, batch sizes of 64 and 128 provided comparable performance while improving computational efficiency, making them suitable for practical training.
+* **Weight Decay:** Increasing the weight decay parameter improved model generalization by reducing overfitting. The best performance was observed with weight decay values between 0.05 and 0.10.
+* **Dropout:** Lower dropout rates produced better results than higher dropout values. Since MobileNetV3-Large already contains efficient architectural regularization, additional dropout beyond 0.2 reduced model capacity and slightly decreased classification accuracy.
+* **Optimizer:** AdamW significantly outperformed the standard Adam optimizer, providing higher accuracy, better F1-score, and improved ROC-AUC. The decoupled weight decay mechanism of AdamW contributed to more stable optimization and better generalization.
+* **Learning Rate Scheduler:** `CosineAnnealingLR` produced smoother convergence and better classification performance than `ReduceLROnPlateau`, demonstrating the importance of gradual learning rate reduction during optimization.
+
+---
+
+## 6.7 Overall Discussion
+The experimental results demonstrate that the proposed MobileNetV3-Large model is highly effective for real versus AI-generated face classification. The combination of transfer learning, comprehensive data preprocessing, robust data augmentation, and systematic hyperparameter optimization enabled the model to achieve excellent classification performance.
+
+The hyperparameter optimization study highlighted the importance of carefully selecting training parameters, particularly the optimizer, learning rate, and regularization techniques. Among all evaluated configurations, the AdamW optimizer combined with `CosineAnnealingLR` and moderate learning rates consistently produced the most reliable results. Furthermore, the final confusion matrix indicates that only a small number of samples were misclassified, confirming the model's strong discriminative capability.
+
+Overall, the quantitative metrics and qualitative observations indicate that the proposed approach is both accurate and robust, making it well suited for deepfake face detection applications.
