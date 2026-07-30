@@ -895,3 +895,78 @@ The experimental results demonstrate that the proposed MobileNetV3-Large model i
 The hyperparameter optimization study highlighted the importance of carefully selecting training parameters, particularly the optimizer, learning rate, and regularization techniques. Among all evaluated configurations, the AdamW optimizer combined with `CosineAnnealingLR` and moderate learning rates consistently produced the most reliable results. Furthermore, the final confusion matrix indicates that only a small number of samples were misclassified, confirming the model's strong discriminative capability.
 
 Overall, the quantitative metrics and qualitative observations indicate that the proposed approach is both accurate and robust, making it well suited for deepfake face detection applications.
+
+# 8. Training Artifacts
+
+## 8.1 Overview
+The training and evaluation of the proposed MobileNetV3-Large deepfake detection model were primarily carried out using Kaggle Notebooks. Throughout the training process, several artifacts were generated to support model reproducibility, evaluation, and future deployment. These artifacts include the trained model checkpoint, Kaggle notebooks containing the implementation, training logs, and performance visualizations.
+
+## 8.2 Model Checkpoint
+The most important artifact generated during training is the saved model checkpoint, which stores the learned parameters of the MobileNetV3-Large network.
+
+**Table 8.1 Model Checkpoint**
+
+| Artifact | Description |
+| :--- | :--- |
+| `mobilenetv3_best.pth` | Best-performing MobileNetV3-Large model saved during training based on validation accuracy. Stores the learned network weights for inference, evaluation, and future fine-tuning. |
+
+The saved checkpoint can be directly loaded into the MobileNetV3-Large architecture to perform prediction on new images without retraining the model.
+
+## 8.3 Kaggle Notebook
+The complete implementation was developed and executed using Kaggle Notebooks, which provided the GPU environment required for model training.
+
+**Table 8.2 Kaggle Notebook Components**
+
+| Component | Purpose |
+| :--- | :--- |
+| Dataset Loading | Loading the training, validation, and test datasets |
+| Data Preprocessing | Face detection, resizing, normalization, and augmentation |
+| Model Definition | MobileNetV3-Large architecture with transfer learning |
+| Training Pipeline | Model training and validation |
+| Evaluation | Accuracy, Precision, Recall, F1-score, Confusion Matrix |
+| Inference | Prediction on unseen test images |
+
+## 8.4 Training Logs and Outputs
+During training, the following outputs were generated and monitored in the Kaggle notebook.
+
+**Table 8.3 Training Outputs**
+
+| Artifact | Description |
+| :--- | :--- |
+| Training Accuracy | Accuracy recorded after each epoch |
+| Validation Accuracy | Validation performance used for model selection |
+| Training Loss | Loss values used to monitor learning progress |
+| Validation Loss | Used to detect convergence and overfitting |
+| Confusion Matrix | Performance analysis on the test dataset |
+| Classification Report | Precision, Recall, and F1-score for each class |
+
+## 8.5 Performance Visualizations
+Several visual outputs were generated during the training and evaluation process to analyze model behavior.
+
+**Table 8.4 Generated Visualizations**
+
+| Visualization | Purpose |
+| :--- | :--- |
+| Training Accuracy Curve | Monitor learning progress |
+| Validation Accuracy Curve | Evaluate model generalization |
+| Training Loss Curve | Observe convergence |
+| Validation Loss Curve | Detect overfitting |
+| Confusion Matrix | Analyze prediction errors |
+| Grad-CAM Visualizations | Interpret model attention on facial regions |
+
+## 8.6 Summary of Generated Artifacts
+
+**Table 8.5 Summary of Training Artifacts**
+
+| Category | Artifact | Purpose |
+| :--- | :--- | :--- |
+| Model | `mobilenetv3_best.pth` | Best trained MobileNetV3-Large model checkpoint |
+| Development Environment | Kaggle Notebook | End-to-end implementation and experimentation |
+| Training | Training & Validation Logs | Monitor model convergence |
+| Evaluation | Classification Report | Evaluate precision, recall, and F1-score |
+| Evaluation | Confusion Matrix | Analyze prediction performance |
+| Visualization | Accuracy/Loss Curves | Assess training behavior |
+| Explainability | Grad-CAM Results | Visualize important image regions |
+
+## 8.7 Importance of the Generated Artifacts
+The generated artifacts provide a complete record of the model development process. The Kaggle Notebook contains the full implementation of data preprocessing, model training, hyperparameter tuning, and evaluation, ensuring reproducibility of the experiments. The saved checkpoint `mobilenetv3_best.pth` preserves the best-performing model and can be directly used for inference, further fine-tuning, or deployment in deepfake detection applications. Together with the training logs, evaluation reports, and visualization outputs, these artifacts enable systematic performance analysis and facilitate future improvements to the model.
