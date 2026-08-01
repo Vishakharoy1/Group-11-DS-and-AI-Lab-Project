@@ -120,28 +120,37 @@ function badgeHtml(label, realPct, fakePct) {
   `;
 }
 
-// ---------- 1. Prediction + Grad-CAM ----------
-setupUploadWidget("predict", async (file, previewSrc) => {
-  setBody("predict-body", `<span class="spinner">Running prediction + Grad-CAM…</span>`);
+// ---------- Shared: run /predict against a given model + render badge/Grad-CAM ----------
+async function runPredictAndRender(bodyId, modelKey, file, previewSrc) {
+  setBody(bodyId, `<span class="spinner">Running prediction + Grad-CAM (${modelKey})…</span>`);
 
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch("/predict", { method: "POST", body: formData });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const res = await fetch(`/predict?model=${modelKey}`, { method: "POST", body: formData });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail || `HTTP ${res.status}`);
+  }
   const data = await res.json();
   const p = data.prediction;
 
   setBody(
-    "predict-body",
+    bodyId,
     badgeHtml(p.label, p.real_pct, p.fake_pct) +
-      `<div class="placeholder" style="margin:8px 0;">Face alignment used: ${data.face_alignment_used}</div>
+      `<div class="placeholder" style="margin:8px 0;">Model: ${modelKey} · Face alignment used: ${data.face_alignment_used}</div>
       <div class="gradcam-grid">
         <figure><img src="${previewSrc}" /><figcaption>Input</figcaption></figure>
         <figure><img src="data:image/png;base64,${data.gradcam_heatmap}" /><figcaption>Heatmap (${p.label})</figcaption></figure>
         <figure><img src="data:image/png;base64,${data.gradcam_overlay}" /><figcaption>Overlay</figcaption></figure>
       </div>`
   );
-});
+}
+
+// ---------- 1. Prediction + Grad-CAM (main model, best1) ----------
+setupUploadWidget("predict", (file, previewSrc) => runPredictAndRender("predict-body", "best", file, previewSrc));
+
+// ---------- 2. No-Augmentation Model (independent upload, highest accuracy) ----------
+setupUploadWidget("noaug", (file, previewSrc) => runPredictAndRender("noaug-body", "noaug", file, previewSrc));
 
 // ---------- 2. Cross-Domain Testing ----------
 setupUploadWidget("crossdomain", async (file, previewSrc) => {

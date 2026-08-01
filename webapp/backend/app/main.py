@@ -91,12 +91,15 @@ def health():
 
 
 @app.post("/predict", response_model=PredictResponse)
-async def predict(file: UploadFile = File(...)):
-    model = _require_model("best")
+async def predict(model: str = "best", file: UploadFile = File(...)):
+    """model: which loaded checkpoint to run - "best" (main), "noaug"
+    (no-augmentation comparison model), or "tuned" (swept-hparams model),
+    whichever are actually loaded. Defaults to "best"."""
+    model_obj = _require_model(model)
     image = await _load_upload_image(file)
 
     cropped, method = preprocessing.crop_and_align_face(image)
-    result = gradcam.gradcam_overlay(model, cropped, preprocessing.val_transform, registry.device)
+    result = gradcam.gradcam_overlay(model_obj, cropped, preprocessing.val_transform, registry.device)
 
     return PredictResponse(
         prediction=PredictionResult(**result["prediction"]),
