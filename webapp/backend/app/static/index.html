@@ -32,9 +32,27 @@
     <div id="predict-body" class="placeholder" style="margin-top:14px;">Upload and analyze an image to see the result.</div>
   </section>
 
-  <!-- ===================== 2. Cross-Domain Testing ===================== -->
+  <!-- ===================== 2. No-Augmentation Model ===================== -->
+  <section id="noaug-card" class="card">
+    <h2>2. No-Augmentation Model <span class="badge real" style="font-size:0.7rem;">Highest Test Accuracy</span></h2>
+    <p class="placeholder"><code>mobilenetv3_noaug.pth</code> — trained without the augmentation pipeline. Per Section 6's Augmentation Ablation table, this model scores 97.56% test accuracy vs. 66.21% for the main augmented model. Separate upload, independent of Section 1.</p>
+
+    <div class="drop-zone" id="drop-zone-noaug">
+      <p>Drag &amp; drop an image here, or click to choose a file</p>
+      <input type="file" id="file-input-noaug" accept="image/*" hidden />
+    </div>
+    <div class="preview-wrap hidden" id="preview-wrap-noaug">
+      <img class="preview-img" id="preview-img-noaug" alt="Preview" />
+      <button class="analyze-btn" id="analyze-btn-noaug" disabled>Analyze</button>
+    </div>
+    <p class="error hidden" id="error-noaug"></p>
+
+    <div id="noaug-body" class="placeholder" style="margin-top:14px;">Upload and analyze an image to see the result.</div>
+  </section>
+
+  <!-- ===================== 3. Cross-Domain Testing ===================== -->
   <section id="cross-domain-card" class="card">
-    <h2>2. Cross-Domain Testing</h2>
+    <h2>3. Cross-Domain Testing</h2>
     <p class="placeholder">Same main model (<code>best1</code>) — upload an image OUTSIDE the face domain (animal, landscape, object) to see how it generalizes.</p>
 
     <div class="drop-zone" id="drop-zone-crossdomain">
@@ -50,9 +68,9 @@
     <div id="crossdomain-body" class="placeholder" style="margin-top:14px;">Upload and analyze an image to see the result.</div>
   </section>
 
-  <!-- ===================== 3. Manipulation Robustness ===================== -->
+  <!-- ===================== 4. Manipulation Robustness ===================== -->
   <section id="manipulation-card" class="card">
-    <h2>3. Manipulation Robustness Testing</h2>
+    <h2>4. Manipulation Robustness Testing</h2>
     <p class="placeholder">Same main model (<code>best1</code>) — the upload is run through 11 manipulations (tint, brightness, blur, jpeg, noise, etc.) and re-predicted for each.</p>
 
     <div class="drop-zone" id="drop-zone-manipulation">
@@ -68,9 +86,9 @@
     <div id="manipulation-body" class="placeholder" style="margin-top:14px;">Upload and analyze an image to see the table.</div>
   </section>
 
-  <!-- ===================== 4. Model Comparison ===================== -->
+  <!-- ===================== 5. Model Comparison ===================== -->
   <section id="compare-card" class="card">
-    <h2>4. Model Comparison</h2>
+    <h2>5. Model Comparison</h2>
     <p class="placeholder">Upload once, compared across whichever checkpoints are loaded.</p>
 
     <div class="drop-zone" id="drop-zone-compare">
@@ -93,9 +111,9 @@
     </div>
   </section>
 
-  <!-- ===================== 5. Training & Evaluation Results ===================== -->
+  <!-- ===================== 6. Training & Evaluation Results ===================== -->
   <section id="training-results-card" class="card full-width">
-    <h2>5. Training &amp; Evaluation Results</h2>
+    <h2>6. Training &amp; Evaluation Results</h2>
     <p class="placeholder">Pre-computed results from the actual training run on the full test set (not live inference) — from <code>Deepfake/output/</code>.</p>
     <div id="training-results-body">
       <span class="spinner">Loading training results…</span>
