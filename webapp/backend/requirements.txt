@@ -1,0 +1,18 @@
+fastapi>=0.139
+uvicorn[standard]>=0.50
+pillow>=12.0
+numpy
+matplotlib
+pydantic>=2.0
+python-multipart
+
+# Installed separately with the CPU-only index:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+
+# Optional - real face alignment instead of center-crop fallback.
+# Needs internet + a working TensorFlow install; skip if you're fine with
+# the center-crop fallback for local testing.
+# retina-face
+# opencv-python
