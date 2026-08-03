@@ -178,6 +178,9 @@ setupUploadWidget("crossdomain", async (file, previewSrc) => {
 });
 
 // ---------- 3. Manipulation Robustness ----------
+// User wants a plain verdict + which manipulations support it, not a raw
+// metrics table. Verdict = majority vote across all 11 manipulation
+// predictions; "based on" = the manipulations that agree with it.
 setupUploadWidget("manipulation", async (file) => {
   setBody("manipulation-body", `<span class="spinner">Running 11 manipulations…</span>`);
 
@@ -186,32 +189,64 @@ setupUploadWidget("manipulation", async (file) => {
   const res = await fetch("/robustness", { method: "POST", body: formData });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
+  const rows = data.rows;
 
-  const originalRow = data.rows.find((r) => r.manipulation === "original");
-  const baseline = originalRow ? originalRow.label : null;
+  const fakeRows = rows.filter((r) => r.label === "Fake");
+  const realRows = rows.filter((r) => r.label === "Real");
+  const verdict = fakeRows.length >= realRows.length ? "Fake" : "Real";
+  const supporting = verdict === "Fake" ? fakeRows : realRows;
+  const conflicting = verdict === "Fake" ? realRows : fakeRows;
+  const avgConfidence =
+    supporting.reduce((sum, r) => sum + (verdict === "Fake" ? r.fake_pct : r.real_pct), 0) / supporting.length;
 
-  const rowsHtml = data.rows
-    .map((r) => {
-      const flipped = baseline && r.label !== baseline;
-      return `
-        <tr class="${flipped ? "flipped" : ""}">
+  const verdictLabel = verdict === "Fake" ? "AI Generated" : "Real";
+  const chips = supporting
+    .map((r) => `<span class="chip ${verdict === "Fake" ? "fake" : "real"}">${r.manipulation}</span>`)
+    .join("");
+  const conflictNote = conflicting.length
+    ? `<p class="placeholder" style="margin-top:10px;">Inconsistent under: ${conflicting
+        .map((r) => `${r.manipulation} (predicted ${r.label})`)
+        .join(", ")}</p>`
+    : "";
+
+  const rowsHtml = rows
+    .map(
+      (r) => `
+        <tr>
           <td><img class="thumb" src="data:image/png;base64,${r.thumbnail}" /></td>
           <td>${r.manipulation}</td>
           <td><span class="badge ${r.label === "Real" ? "real" : "fake"}">${r.label}</span></td>
           <td>${r.real_pct.toFixed(1)}%</td>
           <td>${r.fake_pct.toFixed(1)}%</td>
-        </tr>`;
-    })
+        </tr>`
+    )
     .join("");
 
   setBody(
     "manipulation-body",
-    `<table>
-      <thead><tr><th></th><th>Manipulation</th><th>Prediction</th><th>Real%</th><th>Fake%</th></tr></thead>
-      <tbody>${rowsHtml}</tbody>
-    </table>
-    <p class="placeholder" style="margin-top:8px;">Rows highlighted red flipped away from the original prediction.</p>`
+    `<span class="badge ${verdict === "Fake" ? "fake" : "real"}" style="font-size:1.05rem; padding:6px 16px;">${verdictLabel}</span>
+    <div class="placeholder" style="margin-top:8px;">
+      ${supporting.length}/${rows.length} manipulations agree · avg confidence ${avgConfidence.toFixed(1)}%
+    </div>
+    <div style="margin-top:14px;">
+      <div class="placeholder" style="margin-bottom:6px;">Based on:</div>
+      <div class="chip-list">${chips}</div>
+    </div>
+    ${conflictNote}
+    <button type="button" class="link-btn" id="manip-details-toggle">Show detailed breakdown</button>
+    <div id="manip-details" class="hidden" style="margin-top:12px;">
+      <table>
+        <thead><tr><th></th><th>Manipulation</th><th>Prediction</th><th>Real%</th><th>Fake%</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>`
   );
+
+  document.getElementById("manip-details-toggle").addEventListener("click", (e) => {
+    const details = document.getElementById("manip-details");
+    const isHidden = details.classList.toggle("hidden");
+    e.target.textContent = isHidden ? "Show detailed breakdown" : "Hide detailed breakdown";
+  });
 });
 
 // ---------- 4. Model Comparison ----------
