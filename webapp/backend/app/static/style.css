@@ -107,6 +107,34 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .badge.real { background: var(--real); }
 .badge.fake { background: var(--fake); }
 
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+.chip.fake { color: var(--fake); border-color: var(--fake); }
+.chip.real { color: var(--real); border-color: var(--real); }
+
+.link-btn {
+  margin-top: 14px;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .confidence-bar {
   height: 8px;
   border-radius: 4px;
