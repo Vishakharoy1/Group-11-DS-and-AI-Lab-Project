@@ -111,7 +111,9 @@ async def predict(model: str = "best", file: UploadFile = File(...)):
 
 @app.post("/robustness", response_model=RobustnessResponse)
 async def robustness(file: UploadFile = File(...)):
-    model = _require_model("best")
+    # Uses the "manipulations" checkpoint - trained specifically to stay
+    # robust under these 11 corruptions - instead of "best".
+    model = _require_model("manipulations")
     image = await _load_upload_image(file)
     cropped, _method = preprocessing.crop_and_align_face(image)
 
