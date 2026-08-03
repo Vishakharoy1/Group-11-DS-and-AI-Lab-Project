@@ -17,11 +17,15 @@ RESULTS_DIR = Path(os.environ.get("RESULTS_DIR", PROJECT_DIR / "output"))
 
 CHECKPOINTS = {
     # "best" is the internal role name used throughout the app (main model
-    # for Prediction/Grad-CAM/Robustness + comparison baseline) - the actual
+    # for Prediction/Grad-CAM/comparison baseline) - the actual
     # file on disk is named mobilenetv3_best1.pth.
     "best": CHECKPOINT_DIR / "mobilenetv3_best1.pth",
     "tuned": CHECKPOINT_DIR / "mobilenetv3_tuned.pth",
     "noaug": CHECKPOINT_DIR / "mobilenetv3_noaug.pth",
+    # Trained specifically to stay robust under the 11 manipulations
+    # (tint/brightness/blur/jpeg/noise/etc.) - used for the Manipulation
+    # Robustness Testing section instead of "best".
+    "manipulations": CHECKPOINT_DIR / "mobilenetv3_manipulations.pth",
 }
 
 # Pre-computed result CSVs/images produced by the training notebook, all
