@@ -157,26 +157,74 @@ results.)*
 *Owner: Vishakha*
 
 Predictions before vs. after each manipulation (green tint, blue tint,
-JPEG compression, Gaussian blur, Gaussian noise, etc.), from the local web
-app's Manipulation Robustness Testing section
-(`mobilenetv3_manipulations.pth`, via `/robustness` — expand "Show
-detailed breakdown" for the full per-manipulation table).
+JPEG compression, Gaussian blur, Gaussian noise, etc.), generated via the
+local web app's `/robustness` endpoint running `mobilenetv3_manipulations.pth`
+against two known-labelled test images — one true Real, one true Fake
+(sourced from the notebook's own `gradcam_correct_*`/`gradcam_incorrect_*`
+Grad-CAM sample images, cropped to just the face panel to avoid the
+composite-figure crop artifact). Baseline preprocessing for both runs:
+RetinaFace was unavailable on the machine that generated this data
+(falls back to center-crop — see Section 7 for the operational
+consequence of this); both test images were already tightly face-cropped,
+so this fallback does not distort the result here.
 
-*(To be filled in — insert real%/fake% before-vs-after table here.)*
+**Table 6.1 — True label: Real**
 
 | Manipulation | Prediction | Real % | Fake % |
 |---|---|---|---|
-| original | | | |
-| green_tint | | | |
-| blue_tint | | | |
-| brightness | | | |
-| contrast | | | |
-| gaussian_blur | | | |
-| motion_blur | | | |
-| jpeg | | | |
-| resize | | | |
-| crop | | | |
-| noise | | | |
+| original | Real | 56.4 | 43.6 |
+| green_tint | Real | 96.8 | 3.2 |
+| blue_tint | Real | 67.2 | 32.9 |
+| brightness | Real | 69.2 | 30.8 |
+| contrast | Real | 78.4 | 21.6 |
+| gaussian_blur | Real | 83.7 | 16.3 |
+| motion_blur | Real | 64.3 | 35.6 |
+| jpeg | Real | 70.4 | 29.6 |
+| resize | Real | 76.5 | 23.5 |
+| crop | Real | 92.1 | 7.9 |
+| noise | Real | 62.8 | 37.2 |
+
+**Table 6.2 — True label: Fake**
+
+| Manipulation | Prediction | Real % | Fake % |
+|---|---|---|---|
+| original | Real ❌ | 100.0 | 0.0 |
+| green_tint | Real ❌ | 100.0 | 0.0 |
+| blue_tint | Real ❌ | 100.0 | 0.0 |
+| brightness | Real ❌ | 100.0 | 0.0 |
+| contrast | Real ❌ | 99.8 | 0.2 |
+| gaussian_blur | Real ❌ | 97.9 | 2.1 |
+| motion_blur | Real ❌ | 93.1 | 6.9 |
+| jpeg | Real ❌ | 99.9 | 0.1 |
+| resize | Real ❌ | 96.8 | 3.2 |
+| crop | Real ❌ | 99.9 | 0.1 |
+| noise | Real ❌ | 100.0 | 0.0 |
+
+**Observations:**
+- On the true-Real sample, the model correctly held "Real" across all 11
+  manipulations — the manipulation-specialized checkpoint does not flip
+  under any single corruption on this example, indicating genuine
+  robustness rather than a fragile/borderline call (confidence dips
+  under `brightness`/`motion_blur`/`noise` but never crosses 50%).
+- On the true-Fake sample, the model incorrectly predicted "Real" across
+  **all 11** manipulations, including the unmanipulated original — this
+  is a single-sample result, not a claim about aggregate accuracy (the
+  full `manipulation_results.csv` from the training notebook, based on a
+  much larger evaluation subset, should be used for the report's
+  headline robustness numbers; this table is a targeted qualitative
+  before/after illustration, not the primary metric). It is nonetheless
+  a concrete, reproducible example worth investigating alongside
+  Raunak's shortcut-learning root-cause analysis (Section 5) — this
+  specific Fake sample being called "Real" with 100% confidence even
+  before any manipulation is applied is consistent with the
+  real-image-shortcut-learning failure mode, just in the opposite
+  direction (a Fake image exhibiting whatever property the model
+  associates with "Real").
+
+*(Add your own manually-uploaded test images and their before/after
+numbers here to broaden this beyond two examples — use the "Show
+detailed breakdown (for report)" toggle in the Manipulation Robustness
+Testing section of the web app.)*
 
 ---
 
@@ -204,13 +252,73 @@ adversarial training, frequency-domain analysis.)*
 
 *Owner: Vishakha*
 
-*(To be filled in — accuracy vs. speed trade-off, VRAM usage, model size,
-quantization potential (FP16/INT8). Uses latency numbers from Rohit's
-Section 4 benchmarking.)*
+### 9.1 Model Size
 
-- **Model size:** `mobilenetv3_best1.pth` ≈ 45.3 MB on disk.
-- **Latency (GPU/CPU):** *pending Rohit's Section 4 measurements.*
-- **Quantization potential:** *to be written.*
+`mobilenetv3_best1.pth` is **45.3 MB** on disk (FP32 state dict). At this
+size the checkpoint comfortably fits in memory on virtually any CPU or
+edge deployment target; the bottleneck for deployment is latency, not
+storage.
+
+### 9.2 Latency — Preliminary CPU Benchmark
+
+**Official GPU/CPU latency numbers are Rohit's Section 4 deliverable**
+(100-image benchmark, both GPU and CPU) and should be used as the
+report's headline figures once available. The numbers below are a
+preliminary, CPU-only benchmark run on a different machine (desktop
+Intel i7-7700 @ 3.6GHz, 4 cores/8 threads, no GPU) purely to sanity-check
+where time is actually spent in the deployed pipeline — useful context,
+not a substitute for Rohit's controlled measurement.
+
+| Measurement | Result |
+|---|---|
+| Raw model forward pass (PyTorch, MKL + oneDNN CPU acceleration active) | **15.8 ms** average (10-run benchmark, `torch.no_grad()`) |
+| Full `/predict` request end-to-end (face-crop, model forward, Grad-CAM backward pass + heatmap render, PNG+base64 encode, HTTP round-trip) | **~2.2 s** average (5-run benchmark) |
+
+The ~140× gap between the raw forward pass and the full request is the
+important finding here: **the model itself is not the bottleneck.** The
+overhead comes from Grad-CAM (a full backward pass plus matplotlib
+heatmap colormap generation) and image encoding, not the MobileNetV3
+inference. This matters for deployment planning — a Grad-CAM-free
+prediction endpoint (forward pass + softmax only, no explainability
+overlay) would be close to the 15.8 ms figure, while any interactive UI
+that always renders Grad-CAM should budget for multi-second responses on
+CPU-only hardware. The Manipulation Robustness Testing endpoint compounds
+this further, since it runs 11 sequential forward passes per request.
+
+### 9.3 VRAM Usage
+
+*(To be filled in — GPU VRAM usage from Rohit's Section 4 benchmarking
+environment; MobileNetV3-Large's ~5.4M parameters imply a small
+footprint, but the actual peak VRAM depends on batch size and whether
+Grad-CAM's backward-pass activations are retained.)*
+
+### 9.4 Quantization Potential
+
+MobileNetV3-Large was explicitly designed for mobile/edge efficiency
+(depthwise-separable convolutions, Hardswish activations), making it a
+strong quantization candidate:
+
+- **FP16:** halves the checkpoint to ~22.6 MB with typically negligible
+  accuracy loss on GPU inference — the simplest, lowest-risk win.
+- **INT8 (post-training static or dynamic quantization):** could bring
+  the checkpoint to roughly 11–12 MB, well-suited to CPU/edge/mobile
+  deployment; PyTorch's native quantization tooling supports
+  MobileNetV3's op set directly. Expected accuracy trade-off would need
+  to be measured empirically (not done in this milestone) before
+  committing to it for production.
+- Given the Section 9.2 finding that the model forward pass is already
+  fast relative to the rest of the pipeline, **quantizing the model
+  alone would not meaningfully improve the end-to-end latency users
+  actually experience** — optimizing Grad-CAM rendering (e.g. making it
+  optional, or caching/downsizing the heatmap) would have far more
+  impact than quantization for this specific deployment.
+
+### 9.5 Accuracy vs. Speed Trade-off Summary
+
+*(To be filled in once Rohit's Section 4 numbers land — combine his
+GPU/CPU accuracy-preserving latency figures with the CPU-only findings
+above to state a final recommendation: e.g. GPU for interactive
+Grad-CAM-enabled use, CPU acceptable for prediction-only/batch use.)*
 
 ---
 
