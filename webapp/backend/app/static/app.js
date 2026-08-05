@@ -198,12 +198,38 @@ setupUploadWidget("manipulation", async (file) => {
   const avgConfidence =
     supporting.reduce((sum, r) => sum + (verdict === "Fake" ? r.fake_pct : r.real_pct), 0) / supporting.length;
 
+  const rowsHtml = rows
+    .map(
+      (r) => `
+        <tr>
+          <td><img class="thumb" src="data:image/png;base64,${r.thumbnail}" /></td>
+          <td>${r.manipulation}</td>
+          <td><span class="badge ${r.label === "Real" ? "real" : "fake"}">${r.label}</span></td>
+          <td>${r.real_pct.toFixed(1)}%</td>
+          <td>${r.fake_pct.toFixed(1)}%</td>
+        </tr>`
+    )
+    .join("");
+
   setBody(
     "manipulation-body",
     `<span class="badge ${verdict === "Fake" ? "fake" : "real"}" style="font-size:1.05rem; padding:6px 16px;">${verdict}</span>
     <div style="margin-top:8px;">Confidence: ${avgConfidence.toFixed(1)}%</div>
-    <div class="confidence-bar"><div style="width:${avgConfidence.toFixed(1)}%"></div></div>`
+    <div class="confidence-bar"><div style="width:${avgConfidence.toFixed(1)}%"></div></div>
+    <button type="button" class="link-btn" id="manip-details-toggle">Show detailed breakdown (for report)</button>
+    <div id="manip-details" class="hidden" style="margin-top:12px;">
+      <table>
+        <thead><tr><th></th><th>Manipulation</th><th>Prediction</th><th>Real%</th><th>Fake%</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>`
   );
+
+  document.getElementById("manip-details-toggle").addEventListener("click", (e) => {
+    const details = document.getElementById("manip-details");
+    const isHidden = details.classList.toggle("hidden");
+    e.target.textContent = isHidden ? "Show detailed breakdown (for report)" : "Hide detailed breakdown";
+  });
 });
 
 // ---------- 4. Model Comparison ----------
