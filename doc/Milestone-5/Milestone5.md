@@ -16,59 +16,61 @@ viva.
 
 *Owner: Vishakha*
 
-### 1.1 Background — The Milestone 4 Checkpoint
+### Introduction
 
-Milestone 4 delivered a binary Real-vs-AI-Generated face classifier built
-on a **MobileNetV3-Large** backbone, trained with a two-stage transfer
-learning strategy (Stage 1: frozen backbone, classifier head only; Stage
-2: fine-tuning) on a combined dataset of FFHQ real faces, Stable
-Diffusion-generated faces, and the Nano Banana 2.0 cross-domain dataset
-(~24,000 primary training images, plus ~32,000 additional images merged
-in from Nano Banana 2.0's own train/val/test splits).
+This project began in **Milestone 1** as a proposal for an explainable
+deepfake detection framework combining a Vision Transformer with RGB and
+frequency-domain (FFT/DCT) feature fusion, motivated by the observation
+that modern diffusion-based generators produce facial forgeries realistic
+enough to defeat both human judgement and conventional spatial-only CNN
+detectors. **Milestone 2** grounded this proposal in real data,
+formalising the *Real vs AI Generated Faces Dataset* (FFHQ authentic
+portraits vs. StyleGAN/StyleGAN2-generated faces, 120,000+ images) and
+building the preprocessing/EDA foundation the rest of the project sits
+on.
 
-The resulting checkpoint, `mobilenetv3_best.pth`, was selected via a
-24-experiment hyperparameter sweep and reported the following headline
-numbers in the M4 report:
+**Milestone 3** then ran a head-to-head architecture bake-off across
+three independently developed candidates — MobileNetV3-Large, a
+Dual-Stream Spatial-Frequency Fusion network, and EfficientNet-B2 — and
+selected **MobileNetV3-Large** as the production architecture. The
+deciding factor was not in-domain accuracy alone (all three scored well
+there); it was that MobileNetV3-Large was the only candidate demonstrated
+to generalise to out-of-distribution images from consumer generators
+(ChatGPT, Gemini) it had never trained on, while also being the smallest
+and fastest of the three:
 
-| Metric | Reported Value |
-|---|---|
-| Best Validation Accuracy | 99.30% |
-| Test Accuracy | 99.06% |
-| Precision / Recall / F1 (Real) | 0.9900 / 0.9929 / 0.9914 |
-| Precision / Recall / F1 (AI-generated) | 0.9914 / 0.9879 / 0.9896 |
-| Selected Optimizer | AdamW |
-| Selected LR / Batch Size | 5×10⁻⁴–1×10⁻³ / 64–128 |
-| Selected Weight Decay / Dropout | 0.05–0.10 / 0.0–0.2 |
-| Selected Scheduler / Label Smoothing | CosineAnnealingLR / 0.0 |
+| Model | Params | In-domain Test Acc. | OOD Acc. (ChatGPT/Gemini) | Latency |
+|---|---|---|---|---|
+| **MobileNetV3-Large (selected)** | **4.2M** | **99.96%** | **80%** | **~8.2 ms/image (Colab T4 GPU)** |
+| Dual-Stream Fusion | 40.7M | strong (own benchmark) | not directly comparable | materially slower |
+| EfficientNet-B2 | 7.8M | — | — | tuned run affected by a documented optimizer bug |
 
-On paper, this checkpoint appeared close to solved. Notably, M4's own
-"Future Improvements" list (Section 9.5, item 6) explicitly called for
-*"a real-time inference application that can classify uploaded images
-through a web or mobile interface"* — the deployment work undertaken as
-part of this milestone.
+**Milestone 4** delivered the trained checkpoint from that selection —
+`mobilenetv3_best.pth`, a two-stage transfer-learned MobileNetV3-Large
+(Stage 1: frozen backbone; Stage 2: fine-tuning) on a combined FFHQ +
+Stable Diffusion + Nano Banana 2.0 cross-domain corpus — and reported
+99.06% test accuracy with 0.99+ precision/recall/F1 on both classes,
+selected via a 24-experiment hyperparameter sweep (AdamW, LR 5×10⁻⁴–10⁻³,
+weight decay 0.05–0.10, CosineAnnealingLR). M4's own "Future Improvements"
+list (Section 9.5, item 6) explicitly called for *"a real-time inference
+application that can classify uploaded images through a web or mobile
+interface"* — work undertaken as part of this milestone.
 
-### 1.2 Motivation for Milestone 5
+Despite these strong headline numbers across M3 and M4, the M4 faculty
+review Q&A session identified two critical, unresolved issues that are
+**not** reflected in either report's own metrics (raised verbally during
+the review, not previously documented in writing): (1) **real images
+being misclassified as fake due to shortcut learning** — the model
+appears to key on incidental properties such as high resolution or
+vibrant colour rather than genuine forgery artifacts; and (2) **a
+preprocessing mismatch between the training notebook and the deployed UI
+backend** — the face-crop/alignment and channel-order handling at
+inference time were not verified to be identical to what the model was
+trained and evaluated on. This gap between near-perfect held-out scores
+across three milestones and demonstrably fragile real-world behaviour is
+the central problem Milestone 5 exists to diagnose and document.
 
-Despite the strong headline metrics above, the M4 faculty review Q&A
-session identified two critical, unresolved issues that are **not**
-reflected in the M4 report's own numbers (both raised verbally during the
-review, not previously documented in writing):
-
-1. **Real images being misclassified as fake due to shortcut learning** —
-   the model appears to key on incidental image properties (e.g. high
-   resolution, vibrant colour, outdoor/HD scenes) rather than genuine
-   forgery artifacts, meaning the 99%+ test accuracy does not necessarily
-   reflect real-world robustness.
-2. **A preprocessing mismatch between the training notebook and the
-   deployed UI backend** — the face-crop/alignment step and channel-order
-   handling used at inference time were not verified to be identical to
-   what the model was trained and evaluated on.
-
-This gap between a near-perfect held-out test score and demonstrably
-fragile real-world behaviour is the central problem Milestone 5 exists to
-diagnose and document.
-
-### 1.3 Objectives of Milestone 5
+### Objectives of Milestone 5
 
 1. Conduct a final evaluation on a strictly held-out test set, reporting
    Accuracy, Precision, Recall, F1, and ROC-AUC (Section 4).
@@ -77,30 +79,15 @@ diagnose and document.
 3. Verify and document whether the deployed inference pipeline's
    preprocessing (face detection/alignment, resize, normalization)
    actually matches the training notebook's — the Priority 1 task for
-   this milestone (Section 1 recap here; findings documented alongside
-   the robustness work).
+   this milestone.
 4. Quantify robustness under real-world image manipulations — colour
    tints, JPEG compression, blur, and noise (Section 6).
 5. Verify explainability via Grad-CAM, confirming the model attends to
    facial regions rather than background/shortcut cues (Section 6).
 6. Assess deployment readiness — latency, model size, and quantization
-   potential (Section 9).
+   potential, building on M3's own reported efficiency numbers (Section
+   9).
 7. Compile all findings into a viva-ready report and presentation.
-
-### 1.4 Scope
-
-**In scope:** rigorous evaluation of the existing M4 checkpoint(s) on
-held-out data, root-cause analysis of the two flagged critical issues,
-robustness/explainability/error analysis, and targeted fixes to the
-inference pipeline where the evaluation surfaces a genuine bug (e.g. the
-preprocessing parity check). A local web application was also built
-during this milestone to support interactive testing of the checkpoint(s)
-outside the notebook environment, directly addressing M4's own suggested
-future work.
-
-**Out of scope:** retraining the model from scratch or changing its
-architecture, unless doing so is required to correct a critical issue
-identified during evaluation.
 
 ---
 
@@ -168,6 +155,10 @@ RetinaFace was unavailable on the machine that generated this data
 consequence of this); both test images were already tightly face-cropped,
 so this fallback does not distort the result here.
 
+<table>
+<tr>
+<td valign="top" width="50%">
+
 **Table 6.1 — True label: Real**
 
 | Manipulation | Prediction | Real % | Fake % |
@@ -184,6 +175,9 @@ so this fallback does not distort the result here.
 | crop | Real | 92.1 | 7.9 |
 | noise | Real | 62.8 | 37.2 |
 
+</td>
+<td valign="top" width="50%">
+
 **Table 6.2 — True label: Fake**
 
 | Manipulation | Prediction | Real % | Fake % |
@@ -199,6 +193,10 @@ so this fallback does not distort the result here.
 | resize | Real ❌ | 96.8 | 3.2 |
 | crop | Real ❌ | 99.9 | 0.1 |
 | noise | Real ❌ | 100.0 | 0.0 |
+
+</td>
+</tr>
+</table>
 
 **Observations:**
 - On the true-Real sample, the model correctly held "Real" across all 11
@@ -285,12 +283,27 @@ that always renders Grad-CAM should budget for multi-second responses on
 CPU-only hardware. The Manipulation Robustness Testing endpoint compounds
 this further, since it runs 11 sequential forward passes per request.
 
+**Cross-milestone comparison:** M3's own architecture-selection benchmark
+reported MobileNetV3-Large at **~8.2 ms/image on a Colab T4 GPU** — this
+milestone's CPU-only raw forward pass (15.8 ms) is roughly 2× that,
+which is a plausible and expected GPU-vs-CPU gap for a 4.2M-parameter
+model, and cross-validates that our local benchmark environment isn't
+producing anomalous numbers. It also reinforces the Section 9.1 framing:
+MobileNetV3-Large was selected in M3 partly *because* of this efficiency
+margin over the alternative architectures (40.7M-parameter Dual-Stream
+Fusion, 7.8M-parameter EfficientNet-B2) — the model's own inference cost
+has never been the concern at any stage of this project; the concern
+this milestone identifies is entirely in the explainability/serving layer
+built around it.
+
 ### 9.3 VRAM Usage
 
 *(To be filled in — GPU VRAM usage from Rohit's Section 4 benchmarking
-environment; MobileNetV3-Large's ~5.4M parameters imply a small
-footprint, but the actual peak VRAM depends on batch size and whether
-Grad-CAM's backward-pass activations are retained.)*
+environment. Per M3's reported figure, MobileNetV3-Large as configured
+for this task has **4.2M parameters** — small enough that VRAM at
+inference should be modest for any reasonable batch size, but the actual
+peak VRAM depends on batch size and whether Grad-CAM's backward-pass
+activations are retained.)*
 
 ### 9.4 Quantization Potential
 
