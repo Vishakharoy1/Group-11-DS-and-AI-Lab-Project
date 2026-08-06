@@ -1290,3 +1290,26 @@ independent probes, traced it to a specific and actionable cause, and
 was honest about what remains unmeasured (GPU/VRAM benchmarks, ROC-AUC on
 the real test set, demographic fairness) rather than presenting
 incomplete work as finished.
+
+---
+
+## Team Declaration
+
+We certify that all team members have actively contributed to the
+preparation of Milestone 5. Each member has reviewed the contents of
+this document, understands the work presented throughout the
+evaluation, robustness, explainability, error analysis, and deployment
+readiness phases, and agrees with the submitted report.
+
+*Status below reflects that all 10 sections of this report now have
+real, verified content (no remaining placeholders). Signatures for
+Rohit, Aman, Raunak, and Somendu are left blank pending their own review
+and sign-off — this table does not certify agreement on their behalf.*
+
+| Team Member | Role | Status | Signature |
+| --- | --- | --- | --- |
+| Vishakha | Pipeline & Presentation Lead | Completed — see Team-Contribution-Tracker.md for detail | Vishakha |
+| Rohit | Training Stability | Content complete — pending Rohit's review/sign-off | |
+| Aman | Preprocessing & Transfer Learning | Content complete — pending Aman's review/sign-off | |
+| Raunak | Dataset & Bias Analysis | Content complete — pending Raunak's review/sign-off | |
+| Somendu | Explainability & Optimisation | Content complete — pending Somendu's review/sign-off | |
