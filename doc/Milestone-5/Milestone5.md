@@ -95,10 +95,73 @@ the central problem Milestone 5 exists to diagnose and document.
 
 *Owner: Aman*
 
-*(To be filled in — describe the test set: total images, real vs. fake
-ratio, sources (FFHQ, Stable Diffusion, Nano Banana / cross-domain),
-confirm zero data leakage, describe the Kaggle GPU environment used for
-evaluation.)*
+
+## 2.1 Test Dataset
+The model was evaluated using a dedicated test split generated from a combination of real and AI-generated face datasets. The dataset construction process involved collecting real face images from the FFHQ (Flickr-Faces-HQ) dataset and AI-generated face images from the Stable Diffusion Face Dataset. Additionally, the pipeline supports the inclusion of the Nano Banana 2.0 dataset, whose predefined training, validation, and testing partitions are merged into the corresponding splits when available.  
+
+Initially, the primary datasets were sampled to include 15,000 real images and 9,001 AI-generated images, after which the images were randomly shuffled before dataset splitting.  
+
+The dataset was divided using a stratified 80:10:10 split, resulting in the following dataset sizes:
+
+| Dataset Split | Number of Images |
+| :--- | :--- |
+| **Training Set** | 51,199 |
+| **Validation Set** | 6,400 |
+| **Test Set** | 6,401 |
+
+These values include the additional Nano Banana 2.0 samples whenever the optional dataset is available and enabled in the configuration. 
+
+---
+
+## 2.2 Real vs. Fake Distribution
+The notebook reports the class distribution of the primary sampled dataset before the optional Nano Banana dataset is merged:
+
+| Class | Number of Images |
+| :--- | :--- |
+| **Real** | 15,000 |
+| **Fake** | 9,001 |
+
+However, after merging the Nano Banana dataset, the notebook reports only the total number of images in each dataset split and does not provide the final class-wise distribution for the test set. Therefore, the exact real-to-fake ratio of the final test set cannot be determined directly from the notebook output. 
+
+---
+
+## 2.3 Dataset Sources
+The evaluation dataset was constructed using multiple data sources to improve diversity and assess model generalization across different image domains.
+
+* **FFHQ (Flickr-Faces-HQ):** Used as the primary source of authentic human face images.
+* **Stable Diffusion Face Dataset:** Used as the primary source of AI-generated face images.
+* **Nano Banana 2.0 Dataset:** An optional cross-domain dataset containing additional real and AI-generated images. When enabled, its predefined train, validation, and test partitions are merged into the corresponding dataset splits.  
+
+The inclusion of multiple datasets increases the diversity of both real and synthetic images, allowing the model to be evaluated under more varied image distributions.
+
+---
+
+## 2.4 Zero Data Leakage
+To ensure unbiased evaluation, the dataset was partitioned using a stratified train-validation-test split (80:10:10) with a fixed random seed (`SEED = 42`). The splitting process was performed before model training, ensuring that training, validation, and test images remained separate throughout the experiment.  
+
+When the optional Nano Banana 2.0 dataset was included, its predefined train, validation, and test partitions were merged only with their corresponding splits, preserving the separation between training and testing data. 
+
+This experimental design minimizes the possibility of data leakage and ensures that model performance is measured on previously unseen images.
+
+---
+
+## 2.5 Kaggle Evaluation Environment
+All training and evaluation experiments were conducted using the Kaggle Notebook environment with GPU acceleration.
+
+The evaluation configuration is summarized below:
+
+| Parameter | Configuration |
+| :--- | :--- |
+| **Platform** | Kaggle Notebook |
+| **GPU** | NVIDIA Tesla T4 |
+| **Framework** | PyTorch |
+| **Computing Device** | CUDA |
+| **Image Resolution** | 224 × 224 pixels |
+| **Batch Size** | 64 |
+| **Number of DataLoader Workers** | 4 |
+| **Mixed Precision** | Automatic Mixed Precision (AMP) |
+
+The notebook automatically detects the available GPU and uses an NVIDIA Tesla T4 accelerator for model training and evaluation. Automatic Mixed Precision (AMP) is enabled when CUDA is available to reduce GPU memory usage and improve computational efficiency.
 
 ---
 
