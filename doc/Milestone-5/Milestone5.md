@@ -266,9 +266,102 @@ classification report; Stage 1 vs. Stage 1+2 vs. Stage 1+2+3 comparison.)*
 
 *Owner: Raunak*
 
-*(To be filled in — root cause analysis of real-images-predicted-as-fake
-(shortcut learning), dataset distribution audit, out-of-distribution
-testing, categorized false positive / false negative error analysis.)*
+## 5.1 Overview
+
+To evaluate the robustness of the proposed MobileNetV3 model beyond the validation dataset, additional cross-domain experiments were conducted on two groups of **real facial images**:
+
+- **Real-Old:** Images from the FFHQ distribution (similar to the training data).
+- **Real-Latest:** Recent real photographs captured using modern smartphones (2025–2026), representing real-world deployment conditions.
+
+The objective was to determine whether the model had learned generalized facial authenticity features or dataset-specific characteristics.
+
+The results revealed a significant performance gap between the two domains.
+
+| Dataset | Images | Predicted Real | Predicted Fake | Accuracy |
+|----------|-------:|---------------:|---------------:|---------:|
+| **Real-Old (FFHQ-like)** | 73 | 73 | 0 | **100.0%** |
+| **Real-Latest** | 70 | 6 | 64 | **8.6%** |
+
+The model classified every FFHQ-like image correctly but misclassified the majority of recent real photographs as AI-generated.
+
+---
+
+## 5.2 False Positive Analysis
+
+The dominant error observed during evaluation was the **false positive**, where genuine human photographs were incorrectly classified as fake.
+
+The confidence scores indicate that these errors were not uncertain predictions but highly confident misclassifications.
+
+| Dataset | Mean P(Real) | Median P(Real) |
+|----------|-------------:|---------------:|
+| **Real-Old** | 0.9870 | 0.99997 |
+| **Real-Latest** | 0.0892 | 0.00060 |
+
+For the **Real-Latest** dataset, the median probability assigned to the **Real** class was only **0.00060**, indicating that the model was almost completely confident that these genuine photographs belonged to the **Fake** class.
+
+Qualitative inspection of the misclassified images showed several recurring characteristics:
+
+- High-resolution device photographs
+- HDR (High Dynamic Range) image processing
+- Computational photography enhancements
+- Vibrant colour reproduction
+- Strong image sharpening
+- Outdoor lighting conditions
+- Modern camera post-processing
+
+These characteristics were consistently present among the false positives despite the images depicting authentic human faces.
+
+Representative failure cases are presented in **Figure X**, showing the input image, ground-truth label, predicted label, and prediction confidence.
+
+---
+
+## 5.3 False Negative Analysis
+
+False negatives (AI-generated images classified as **Real**) occurred considerably less frequently during cross-domain evaluation.
+
+Most synthetic images retained visual artifacts learned during training, enabling the model to correctly identify them as AI-generated.
+
+Consequently, the principal limitation of the current model is not detecting fake images but distinguishing modern real photographs from AI-generated content.
+
+---
+
+## 5.4 Root Cause Analysis
+
+The experimental results indicate that the primary cause of the observed errors is **domain shift**, resulting in **shortcut learning**.
+
+During training, the **Real** class was primarily represented by the FFHQ dataset, while the **Fake** class consisted of AI-generated images from Stable Diffusion and related sources. Although the classes were balanced numerically, the visual distributions differed substantially.
+
+As a result, the model appears to have learned dataset-specific characteristics rather than intrinsic facial authenticity cues.
+
+Instead of focusing exclusively on facial synthesis artifacts, the classifier likely relied on correlations such as:
+
+| Learned Shortcut Feature | Effect on Prediction |
+|--------------------------|----------------------|
+| FFHQ-style colour distribution | Classified as Real |
+| Modern HDR processing | Classified as Fake |
+| Strong sharpening and computational photography | Increased false positives |
+| High colour saturation | Increased false positives |
+| Modern device image statistics | Misclassified as AI-generated |
+
+This explains why the model achieved **100% accuracy** on FFHQ-like images while dropping to **8.6% accuracy** on recent real photographs, even though both datasets contained genuine human faces.
+
+The evidence therefore suggests that the model learned to distinguish the **training data distributions** rather than learning robust, domain-independent facial authenticity features.
+
+---
+
+## 5.5 Discussion and Future Improvements
+
+The current experiments demonstrate that high validation accuracy alone does not guarantee good real-world performance. Although the model achieved **99.54% validation accuracy**, its performance degraded substantially when evaluated on real photographs outside the training distribution.
+
+To improve generalization in future work, the following enhancements are recommended:
+
+- Expand the **Real** class using multiple datasets rather than relying primarily on FFHQ.
+- Include recent devices photographs from diverse cameras, lighting conditions, and environments.
+- Use hard negative mining by incorporating misclassified real images into subsequent fine-tuning.
+- Evaluate the model on multiple unseen domains throughout training instead of validating only on FFHQ-like images.
+- Apply stronger augmentation (colour jitter, JPEG compression, blur, sharpening, and noise) to reduce reliance on dataset-specific image statistics. (Tried, It decreases validation accuracy from ~90% to ~70%)
+
+These improvements are expected to reduce shortcut learning and enable the classifier to learn genuine facial authenticity features that generalize better to real-world deployment.
 
 ---
 
