@@ -237,9 +237,7 @@ setupUploadWidget("manipulation", async (file) => {
 // ---------- 4b. Test All 3 Models on One Image ----------
 const THREE_MODELS = ["best", "noaug", "manipulations"];
 
-setupUploadWidget("compare3", async (file, previewSrc) => {
-  setBody("compare3-body", `<span class="spinner">Running all 3 models…</span>`);
-
+async function runThreeModels(file) {
   const runOne = async (modelKey) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -255,9 +253,10 @@ setupUploadWidget("compare3", async (file, previewSrc) => {
       return { modelKey, error: String(e) };
     }
   };
+  return Promise.all(THREE_MODELS.map(runOne));
+}
 
-  const outcomes = await Promise.all(THREE_MODELS.map(runOne));
-
+function threeModelsTableHtml(outcomes) {
   const rowsHtml = outcomes
     .map((o) => {
       if (o.error) {
@@ -275,20 +274,54 @@ setupUploadWidget("compare3", async (file, previewSrc) => {
         </tr>`;
     })
     .join("");
+  return `<div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Model</th><th>Prediction</th><th>Real%</th><th>Fake%</th><th>Confidence</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+  </div>`;
+}
 
+setupUploadWidget("compare3", async (file, previewSrc) => {
+  setBody("compare3-body", `<span class="spinner">Running all 3 models…</span>`);
+  const outcomes = await runThreeModels(file);
   setBody(
     "compare3-body",
     `<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-bottom:12px;">
       <img src="${previewSrc}" style="width:140px; border-radius:8px; border:1px solid var(--border);" />
     </div>
-    <div style="overflow-x:auto;">
-      <table>
-        <thead><tr><th>Model</th><th>Prediction</th><th>Real%</th><th>Fake%</th><th>Confidence</th></tr></thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
-    </div>`
+    ${threeModelsTableHtml(outcomes)}`
   );
 });
+
+// ---------- 4a. Pre-loaded example: one real + one fake, all 3 models ----------
+async function runSampleCompare() {
+  const samples = [
+    { url: "sample_real.jpg", label: "Real (ground truth)" },
+    { url: "sample_fake.png", label: "Fake (ground truth)" },
+  ];
+
+  try {
+    const blocks = await Promise.all(
+      samples.map(async (s) => {
+        const res = await fetch(s.url);
+        const blob = await res.blob();
+        const file = new File([blob], s.url, { type: blob.type });
+        const outcomes = await runThreeModels(file);
+        return `<div style="flex:1; min-width:260px;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+            <img src="${s.url}" style="width:100px; border-radius:8px; border:1px solid var(--border);" />
+            <strong>${s.label}</strong>
+          </div>
+          ${threeModelsTableHtml(outcomes)}
+        </div>`;
+      })
+    );
+    setBody("sample-compare-body", `<div style="display:flex; gap:24px; flex-wrap:wrap;">${blocks.join("")}</div>`);
+  } catch (e) {
+    setBody("sample-compare-body", `<span class="error">Failed to run sample comparison: ${e}</span>`);
+  }
+}
 
 // ---------- 4c. Pairwise Model Comparison ----------
 setupUploadWidget("compare", async (file) => {
@@ -411,3 +444,4 @@ async function loadTrainingResults() {
 
 checkHealth();
 loadTrainingResults();
+runSampleCompare();
