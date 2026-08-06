@@ -1,0 +1,5 @@
+Stage,Accuracy,Precision,Recall,F1,ROC-AUC
+Stage 1 (AdamW),95.78,94.91,97.51,96.2,0.9926
+Stage 1+2 (AdamW),97.55,97.26,98.29,97.77,0.9973
+Stage 1 (Adam),93.64,93.26,95.26,94.25,0.9827
+Stage 1+2 (Adam),96.53,95.83,97.91,96.86,0.9944
