@@ -56,6 +56,16 @@ The inclusion of this dataset enhanced the model's ability to generalize across 
 * Reduces dependence on a single image generator.
 * Provides additional validation and testing samples for more reliable performance evaluation.
 
+### 1.2.4 CelebA-HD Dataset
+Following initial evaluation, real images resembling modern, high-resolution smartphone photographs (HDR processing, computational photography enhancement, strong sharpening, vibrant colour reproduction) were found to be frequently misclassified as AI-generated, since the primary Real class (FFHQ) does not represent this style of photography. To address this, the **CelebA dataset** (Kaggle: `jessicali9530/celeba-dataset`) was incorporated as a supplementary source of modern real face photographs.
+
+CelebA images were capped at **8,000** to preserve class balance against the primary 15,000 Real / 9,001 Fake split, and were used specifically in an added third fine-tuning stage (Section 2.3) rather than merged into the Stage 1/2 training set — the goal was to explicitly teach the already-trained model that high-resolution real photographs are still genuinely real, not to change the core Real/Fake distribution it was originally trained on.
+
+**Reasons for selecting the dataset include:**
+* Directly targets the modern-photo false-positive failure mode observed during evaluation.
+* Provides additional real-image diversity in resolution, post-processing style, and capture device characteristics not present in FFHQ.
+* Small, targeted addition (8,000 images) rather than a full retrain, keeping the fix isolated and auditable.
+
 ## 1.3 Dataset Construction
 The dataset construction process involved combining images from multiple sources into a unified binary classification dataset. Initially, image paths from the Real vs AI Generated Faces Dataset and the Stable Diffusion Dataset were collected and randomly shuffled using a fixed random seed to ensure reproducibility. Each image was assigned a binary class label, where:
 
@@ -301,13 +311,16 @@ During training, the model outputs raw logits, which are optimized using the `Cr
 ---
 
 ## 2.3 Transfer Learning Strategy
-A two-stage transfer learning strategy was adopted to adapt the pretrained MobileNetV3-Large model to the deepfake detection task.
+A transfer learning strategy was adopted to adapt the pretrained MobileNetV3-Large model to the deepfake detection task. Originally two-stage, this was later extended to a **third stage** (see below) to address a real-world generalization gap found during evaluation.
 
 * **Stage 1: Feature Extraction**  
   Initially, all parameters of the MobileNetV3-Large feature extraction backbone were frozen, and only the modified classification layer was trained using the training dataset. This allowed the classifier to learn the binary classification task while preserving the pretrained ImageNet feature representations. 
 
 * **Stage 2: Fine-Tuning**  
   After completing the first stage, the best-performing model was loaded and the last 25% of the MobileNetV3-Large feature blocks (blocks 12–16 out of 17 feature blocks) were unfrozen for fine-tuning using a smaller learning rate. The remaining layers stayed frozen throughout training. This strategy improved adaptation to the deepfake detection task while minimizing overfitting. 
+
+* **Stage 3: HD Fine-Tuning (added, Milestone 5)**  
+  After Stage 2, all backbone layers were unfrozen and the entire model was fine-tuned at a very low learning rate (5×10⁻⁶) on the Stage 1/2 training data enriched with the CelebA-HD dataset (Section 1.2.4). This stage does not change the classification task or dataset split — its sole purpose is to teach the already-converged model that high-resolution, heavily post-processed real photographs are still genuinely real, correcting a false-positive pattern identified during evaluation.
 
 ---
 
@@ -322,9 +335,10 @@ A two-stage transfer learning strategy was adopted to adapt the pretrained Mobil
 | **Transfer Learning** | Yes |
 | **Modified Layer** | Final Fully Connected Layer |
 | **Output Neurons** | 2 |
-| **Training Strategy** | Two-stage Transfer Learning |
+| **Training Strategy** | Three-stage Transfer Learning (Stage 3 added Milestone 5) |
 | **Stage 1** | Backbone Frozen |
 | **Stage 2** | Last 25% Feature Blocks Fine-tuned |
+| **Stage 3** | Full Backbone Fine-tuned on CelebA-HD-enriched data (LR 5×10⁻⁶) |
 | **Loss Function** | `CrossEntropyLoss` |
 
 ---
@@ -421,7 +435,7 @@ Using a cosine annealing schedule helped stabilize training and contributed to i
 ---
 
 ## 3.7 Training Strategy
-A two-stage transfer learning strategy was adopted to efficiently adapt the pretrained MobileNetV3-Large model to the AI-generated face detection task.
+A transfer learning strategy was adopted to efficiently adapt the pretrained MobileNetV3-Large model to the AI-generated face detection task, originally two-stage and later extended to three stages (Milestone 5).
 
 ### Stage 1: Feature Extraction
 During the first stage, the entire MobileNetV3-Large backbone was frozen, and only the newly added classification layer was trained. The objective of this stage was to adapt the classifier to the binary classification task while preserving the generic visual representations learned from the ImageNet dataset.
@@ -430,6 +444,7 @@ During the first stage, the entire MobileNetV3-Large backbone was frozen, and on
 * **Trainable Layers:** Classification Head
 * **Epochs:** 3
 * **Learning Rate:** 3 × 10⁻⁴
+* **Result:** Best validation accuracy 98.75%
 
 ### Stage 2: Fine-Tuning
 After the classifier converged, the final 25% of the backbone layers were unfrozen and fine-tuned. Instead of updating the entire network, only the higher-level feature extraction layers were allowed to learn task-specific facial representations. This approach improved model adaptation while minimizing the risk of catastrophic forgetting.
@@ -438,8 +453,18 @@ After the classifier converged, the final 25% of the backbone layers were unfroz
 * **Fine-tuned Layers:** Last 25% of Backbone
 * **Epochs:** 7
 * **Learning Rate:** 1 × 10⁻⁵
+* **Result:** Best validation accuracy 99.71%
 
-The combined two-stage strategy allowed the model to leverage pretrained ImageNet features while learning the subtle differences between authentic and AI-generated facial images.
+### Stage 3: HD Fine-Tuning (added, Milestone 5)
+Evaluation after Stage 2 revealed that modern, high-resolution real photographs (HDR processing, strong sharpening, vibrant colour) were frequently misclassified as AI-generated, since the training data's Real class (FFHQ) did not represent this photography style. To correct this without disturbing the core Real/Fake decision boundary, the entire backbone was unfrozen and fine-tuned at a very low learning rate on the Stage 1/2 data enriched with 8,000 CelebA-HD images (Section 1.2.4).
+
+* **Frozen Backbone:** No (fully unfrozen)
+* **Fine-tuned Layers:** All layers
+* **Epochs:** 3
+* **Learning Rate:** 5 × 10⁻⁶
+* **Result:** Best validation accuracy held at 99.71% (no regression), with the intended effect being corrected behaviour on modern real photographs specifically, not a headline validation-accuracy gain
+
+The three-stage strategy allowed the model to leverage pretrained ImageNet features, learn the subtle differences between authentic and AI-generated facial images, and finally correct a distribution gap between its training data and real-world deployment photography.
 
 ---
 
@@ -489,10 +514,12 @@ Using multiple evaluation metrics ensured that the model was evaluated comprehen
 | **Optimizer** | AdamW |
 | **Learning Rate (Stage 1)** | 3 × 10⁻⁴ |
 | **Learning Rate (Stage 2)** | 1 × 10⁻⁵ |
+| **Learning Rate (Stage 3, added M5)** | 5 × 10⁻⁶ |
 | **Weight Decay** | 1 × 10⁻⁴ |
 | **Learning Rate Scheduler** | CosineAnnealingLR |
 | **Stage 1 Training** | Frozen Backbone (3 Epochs) |
 | **Stage 2 Training** | Fine-tuning Last 25% Backbone (7 Epochs) |
+| **Stage 3 Training (added M5)** | Full Backbone Fine-tuning on CelebA-HD-enriched data (3 Epochs) |
 | **Mixed Precision** | Enabled (AMP) |
 | **Evaluation Metrics** | Accuracy, Precision, Recall, F1-score, Confusion Matrix |
 | **Training Platform** | Kaggle Notebooks |

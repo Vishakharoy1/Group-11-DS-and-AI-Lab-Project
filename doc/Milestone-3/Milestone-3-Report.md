@@ -144,6 +144,8 @@ Of the three candidate architectures documented above, **MobileNetV3-Large** is 
 
 No equivalent modern-generator evaluation exists yet for the other two models: Model 2's published generalization number (88.7% average) comes from a different benchmark (unseen GAN/diffusion families, not ChatGPT/Gemini specifically), and Model 3's tuning run was compromised by the optimizer-reload bug (Section 2.4.4) before any generalization test could be run.
 
+**Post-selection update (Milestone 5):** the selected MobileNetV3-Large architecture was later extended from the 2-stage transfer learning strategy described here to a 3-stage strategy, adding a full-unfreeze fine-tuning stage on CelebA-HD-enriched data to correct a real-world generalization gap (modern smartphone photos misclassified as AI-generated) found during evaluation. The architecture itself — MobileNetV3-Large, 4.2M parameters — is unchanged; only the training recipe was extended. See Milestone 4 Section 2.3 and Milestone 5 for details.
+
 #### 1.5.2 Technical Reasons MobileNetV3-Large Is Selected Over the Alternatives
 
 - **Demonstrated real-world generalization:** 80% accuracy on unseen ChatGPT/Gemini-generated images is direct evidence the model has learned transferable local-artifact signatures rather than overfitting to Stable Diffusion's specific generative fingerprint.

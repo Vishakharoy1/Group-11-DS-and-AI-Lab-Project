@@ -45,6 +45,9 @@ By combining FFHQ and StyleGAN sources, this dataset effectively bridges the gap
 ### 2.3 License and Usage Permissions
 The dataset is hosted on Kaggle and provided for academic, research, and non-commercial educational purposes. The underlying authentic images from the FFHQ dataset are governed by the Creative Commons BY-NC-SA 4.0 license, which allows for non-commercial research use. The synthetic images, generated via StyleGAN, are similarly designated for research usage. As our project focuses on developing an academic forensic framework for deepfake detection, our usage fully complies with these open-source and research-oriented licensing agreements.
 
+### 2.4 Supplementary Real-Image Dataset: CelebA-HD
+In a later stage of the project (Milestone 5), a supplementary real-image dataset — **CelebA-HD** (Kaggle: `jessicali9530/celeba-dataset`) — was added to the training pipeline alongside FFHQ. This was a targeted fix: evaluation revealed the model was misclassifying modern, high-resolution smartphone photographs of real people as AI-generated, because the FFHQ-only Real class did not adequately represent the HDR processing, computational photography enhancement, and colour/sharpening characteristics of contemporary consumer photography. CelebA-HD images were capped at 8,000 (to preserve class balance against the ~15,000 Real/9,001 Fake primary split) and used specifically in a third fine-tuning stage (Section 2.3 update in Milestone 4) added to teach the model that high-resolution real photographs are still genuinely real, not just FFHQ-style portraits.
+
 ---
 
 ## 3. Exploratory Data Analysis (EDA)
