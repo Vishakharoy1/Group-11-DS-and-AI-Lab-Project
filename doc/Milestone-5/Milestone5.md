@@ -169,8 +169,86 @@ The notebook automatically detects the available GPU and uses an NVIDIA Tesla T4
 
 *Owner: Aman / Raunak*
 
-*(To be filled in — justify each metric chosen: Accuracy, Precision,
-Recall, F1, ROC-AUC.)*
+# 3. Evaluation Metrics
+
+Evaluating a deepfake detection model requires more than measuring overall accuracy. Since the objective is to reliably distinguish between authentic and AI-generated face images, multiple evaluation metrics were selected to assess different aspects of model performance. The chosen metrics include Accuracy, Precision, Recall, F1-score, and Receiver Operating Characteristic – Area Under the Curve (ROC-AUC). Together, these metrics provide a comprehensive assessment of classification performance and robustness.
+
+## 3.1 Accuracy
+Accuracy measures the proportion of correctly classified images among all test samples. It provides an overall indication of the model's classification performance.
+
+$$\text{Accuracy} = \frac{\text{TP} + \text{TN}}{\text{TP} + \text{TN} + \text{FP} + \text{FN}}$$
+
+where:
+* **TP** = True Positives (Fake images correctly classified as Fake)
+* **TN** = True Negatives (Real images correctly classified as Real)
+* **FP** = False Positives (Real images incorrectly classified as Fake)
+* **FN** = False Negatives (Fake images incorrectly classified as Real)
+
+### Justification
+Accuracy provides an intuitive measure of the model's overall correctness and is widely used for comparing different deep learning models. Since the training and evaluation datasets are relatively balanced, accuracy serves as a useful baseline metric. However, it does not distinguish between different types of classification errors and is therefore complemented by additional evaluation metrics.
+
+---
+
+## 3.2 Precision
+Precision measures the proportion of images predicted as fake that are actually fake.
+
+$$\text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}$$
+
+### Justification
+High precision indicates that the model produces relatively few false alarms. In deepfake detection, this means that genuine images are less likely to be incorrectly classified as fake, reducing unnecessary false accusations and improving the reliability of the system.
+
+---
+
+## 3.3 Recall
+Recall measures the proportion of actual fake images that are correctly detected by the model.
+
+$$\text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}$$
+
+### Justification
+Recall is particularly important in deepfake detection because missing a manipulated image can have serious consequences. A high recall ensures that most AI-generated images are successfully identified, minimizing false negatives.
+
+---
+
+## 3.4 F1-Score
+The F1-score is the harmonic mean of Precision and Recall.
+
+$$\text{F1-score} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$
+
+### Justification
+Precision and Recall often exhibit a trade-off. The F1-score balances both metrics into a single value, making it particularly useful when evaluating models that must simultaneously minimize false positives and false negatives. For deepfake detection, the F1-score provides a more representative measure of performance than accuracy alone.
+
+---
+
+## 3.5 ROC-AUC
+The Receiver Operating Characteristic (ROC) curve illustrates the relationship between the True Positive Rate (Recall) and the False Positive Rate at different classification thresholds. The Area Under the ROC Curve (ROC-AUC) summarizes the model's ability to distinguish between real and fake images across all possible thresholds.
+
+$$\text{TPR} = \frac{\text{TP}}{\text{TP} + \text{FN}}$$
+
+$$\text{FPR} = \frac{\text{FP}}{\text{FP} + \text{TN}}$$
+
+The ROC-AUC value ranges from 0 to 1, where:
+* **1.0** indicates perfect classification.
+* **0.5** represents random guessing.
+
+Values closer to 1 indicate better discriminative capability.
+
+### Justification
+Unlike Accuracy, Precision, or Recall, ROC-AUC evaluates the model independently of a fixed classification threshold. This makes it particularly valuable for comparing different deepfake detection models and assessing their ability to separate authentic and synthetic images under varying decision thresholds.
+
+---
+
+## 3.6 Overall Justification
+No single metric can fully characterize the performance of a deepfake detection system. Therefore, multiple complementary metrics were employed:
+
+| Metric | Purpose | Reason for Selection |
+| :--- | :--- | :--- |
+| **Accuracy** | Measures overall classification correctness | Provides a general measure of model performance. |
+| **Precision** | Measures the correctness of fake predictions | Reduces false identification of genuine images as fake. |
+| **Recall** | Measures the ability to detect fake images | Minimizes missed detections of AI-generated images. |
+| **F1-score** | Balances Precision and Recall | Provides a comprehensive performance measure when both error types are important. |
+| **ROC-AUC** | Measures discrimination across all thresholds | Evaluates the model's overall ability to distinguish between real and fake images irrespective of the decision threshold. |
+
+Using these five complementary metrics ensures a comprehensive evaluation of the proposed MobileNetV3-Large deepfake detection model in terms of overall accuracy, reliability, robustness, and discriminative capability.
 
 ---
 
