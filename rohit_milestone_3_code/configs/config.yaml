@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────
+# Phase 1 — ConvNeXt V2 Baseline Config
+# ─────────────────────────────────────────────
+
+# Paths
+data_dir: "dataset"          # relative to rohit/
+checkpoint_dir: "checkpoints"
+log_dir: "logs"
+output_dir: "outputs"
+
+# Data
+image_size: 224
+num_workers: 8           # 14 CPU cores on M4 Pro — use 8
+pin_memory: false        # not needed on unified memory (Apple Silicon)
+
+# Model
+model_name: "convnext_base.fb_in22k_ft_in1k"   # timm model ID
+num_classes: 2
+dropout: 0.3
+pretrained: true
+
+# Fine-tuning stages
+#   Stage 1 → head only (backbone frozen)
+#   Stage 2 → head + last backbone stage
+#   Stage 3 → full model
+stages:
+  - name: "stage1_head_only"
+    epochs: 5
+    freeze: "all"              # freeze entire backbone
+    lr_head: 1.0e-4
+    lr_backbone: 0.0
+
+  - name: "stage2_last_stage"
+    epochs: 10
+    freeze: "partial"          # unfreeze only last backbone stage
+    lr_head: 1.0e-5
+    lr_backbone: 1.0e-5
+
+  - name: "stage3_full"
+    epochs: 15
+    freeze: "none"             # unfreeze everything
+    lr_head: 1.0e-5
+    lr_backbone: 5.0e-6
+
+# Optimizer
+optimizer: "adamw"
+weight_decay: 0.05
+
+# Scheduler
+scheduler: "cosine"            # cosine annealing per stage
+
+# Loss
+label_smoothing: 0.1           # small smoothing avoids overconfidence
+
+# Training
+batch_size: 64           # 48GB unified memory — can use large batches
+seed: 42
+mixed_precision: false   # MPS (Apple Silicon) does not support GradScaler/AMP
+
+# Augmentation
+augmentation:
+  horizontal_flip: true
+  brightness: 0.2
+  contrast: 0.2
+  jpeg_quality_min: 75
+  jpeg_quality_max: 100
+  normalize_mean: [0.485, 0.456, 0.406]
+  normalize_std:  [0.229, 0.224, 0.225]
