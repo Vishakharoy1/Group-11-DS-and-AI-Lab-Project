@@ -10,6 +10,19 @@ function showGlobalError(message) {
 
 const CLASSES_OK = true; // no-op, keeps linter quiet about unused pattern
 
+const MODEL_LABELS = {
+  best: "Best (CelebA / 3-stage)",
+  noaug: "No-Augmentation",
+  manipulations: "Manipulation-Robust",
+  cross_domain: "Cross-Domain",
+  tuned: "Tuned Hyperparameters",
+};
+
+const FACE_ALIGNMENT_LABELS = {
+  retinaface: "RetinaFace",
+  center_crop_fallback: "Center-crop (RetinaFace unavailable on this machine)",
+};
+
 // ---------- Health check ----------
 async function checkHealth() {
   try {
@@ -17,8 +30,12 @@ async function checkHealth() {
     const data = await res.json();
     availableModels = data.loaded_models || [];
     const parts = [];
-    parts.push(availableModels.length ? `Loaded models: ${availableModels.join(", ")}` : "No models loaded yet");
-    parts.push(`Face alignment: ${data.face_alignment}`);
+    parts.push(
+      availableModels.length
+        ? `Models in use: ${availableModels.map((m) => MODEL_LABELS[m] || m).join(", ")}`
+        : "No models loaded yet"
+    );
+    parts.push(`Face alignment: ${FACE_ALIGNMENT_LABELS[data.face_alignment] || data.face_alignment}`);
     healthLine.textContent = parts.join(" · ");
 
     if (!availableModels.includes("best")) {
