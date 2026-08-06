@@ -1,0 +1,159 @@
+venv) syngenta@Syngentas-MacBook-Pro rohit % clear
+(venv) syngenta@Syngentas-MacBook-Pro rohit % python run_milestone5_eval.py
+Using Device: mps
+Dataset: /Users/syngenta/Desktop/ds_ai/Group-11-DS-and-AI-Lab-Project/doc/milestone-4/preprocessed_dataset_224
+Output:  milestone5_outputs
+
+Class mapping : {'fake': 0, 'real': 1}
+Train: 51,199  Val: 6,400  Test: 6,401
+
+############################################################
+  OPTIMIZER: AdamW
+############################################################
+
+============================================================
+  Stage 1: Classifier Head (AdamW)
+============================================================
+  Epoch  1/3 | Train Loss 0.2012 Acc 91.91% | Val Loss 0.1479 Acc 94.19% AUC 0.9874 | 276.3s
+    ★ Best model saved (94.19%)
+  Epoch  2/3 | Train Loss 0.1403 Acc 94.59% | Val Loss 0.1277 Acc 94.92% AUC 0.9897 | 278.6s
+    ★ Best model saved (94.92%)
+Evaluating: 100%|█████████████████████████████| 50/50 [00:51<00:00,  8.95it/s]
+  Epoch  3/3 | Train Loss 0.1139 Acc 95.64% | Val Loss 0.1165 Acc 95.53% AUC 0.9911 | 277.7s
+    ★ Best model saved (95.53%)
+  Stage 1: Classifier Head (AdamW) complete — Best Val Acc: 95.53%
+
+Evaluating Stage 1 (AdamW) on test set...
+  Stage 1 (AdamW) Test — Acc: 95.78%  F1: 0.9620  AUC: 0.9926                 
+Unfroze blocks 12→16  |  Trainable params: 3,798,226
+
+============================================================
+  Stage 2: Fine-Tuning (AdamW)
+============================================================
+  Epoch  1/7 | Train Loss 0.0938 Acc 96.51% | Val Loss 0.0943 Acc 96.53% AUC 0.9941 | 322.2s
+    ★ Best model saved (96.53%)
+  Epoch  2/7 | Train Loss 0.0757 Acc 97.24% | Val Loss 0.0844 Acc 96.88% AUC 0.9952 | 322.5s
+    ★ Best model saved (96.88%)
+  Epoch  3/7 | Train Loss 0.0634 Acc 97.75% | Val Loss 0.0780 Acc 97.19% AUC 0.9959 | 323.3s
+    ★ Best model saved (97.19%)
+  Epoch  4/7 | Train Loss 0.0548 Acc 98.07% | Val Loss 0.0751 Acc 97.27% AUC 0.9962 | 319.4s
+    ★ Best model saved (97.27%)
+  Epoch  5/7 | Train Loss 0.0500 Acc 98.25% | Val Loss 0.0734 Acc 97.33% AUC 0.9964 | 311.2s
+    ★ Best model saved (97.33%)
+  Epoch  6/7 | Train Loss 0.0470 Acc 98.35% | Val Loss 0.0728 Acc 97.34% AUC 0.9965 | 311.5s
+    ★ Best model saved (97.34%)
+  Epoch  7/7 | Train Loss 0.0453 Acc 98.41% | Val Loss 0.0725 Acc 97.36% AUC 0.9965 | 311.5s
+    ★ Best model saved (97.36%)
+  Stage 2: Fine-Tuning (AdamW) complete — Best Val Acc: 97.36%
+
+Evaluating Stage 1+2 (AdamW) on test set...
+  Stage 1+2 (AdamW) Test — Acc: 97.55%  F1: 0.9777  AUC: 0.9973               
+
+############################################################
+  OPTIMIZER: Adam
+############################################################
+
+============================================================
+  Stage 1: Classifier Head (Adam)
+============================================================
+  Epoch  1/3 | Train Loss 0.2490 Acc 89.90% | Val Loss 0.2440 Acc 89.81% AUC 0.9731 | 270.1s
+    ★ Best model saved (89.81%)
+  Epoch  2/3 | Train Loss 0.2156 Acc 91.62% | Val Loss 0.1868 Acc 92.95% AUC 0.9784 | 271.0s
+    ★ Best model saved (92.95%)
+  Epoch  3/3 | Train Loss 0.1944 Acc 92.60% | Val Loss 0.1734 Acc 93.50% AUC 0.9826 | 270.5s
+    ★ Best model saved (93.50%)
+  Stage 1: Classifier Head (Adam) complete — Best Val Acc: 93.50%
+
+Evaluating Stage 1 (Adam) on test set...
+  Stage 1 (Adam) Test — Acc: 93.64%  F1: 0.9425  AUC: 0.9827                  
+Unfroze blocks 12→16  |  Trainable params: 3,798,226
+
+============================================================
+  Stage 2: Fine-Tuning (Adam)
+============================================================
+  Epoch  1/7 | Train Loss 0.1606 Acc 93.96% | Val Loss 0.1340 Acc 95.02% AUC 0.9890 | 311.6s
+    ★ Best model saved (95.02%)
+  Epoch  2/7 | Train Loss 0.1329 Acc 95.00% | Val Loss 0.1152 Acc 95.64% AUC 0.9918 | 312.3s
+    ★ Best model saved (95.64%)
+  Epoch  3/7 | Train Loss 0.1166 Acc 95.77% | Val Loss 0.1051 Acc 96.14% AUC 0.9931 | 313.1s
+    ★ Best model saved (96.14%)
+  Epoch  4/7 | Train Loss 0.1062 Acc 96.12% | Val Loss 0.0989 Acc 96.45% AUC 0.9939 | 312.6s
+    ★ Best model saved (96.45%)
+  Epoch  5/7 | Train Loss 0.0999 Acc 96.36% | Val Loss 0.0958 Acc 96.50% AUC 0.9942 | 313.0s
+    ★ Best model saved (96.50%)
+  Epoch  6/7 | Train Loss 0.0961 Acc 96.52% | Val Loss 0.0944 Acc 96.59% AUC 0.9944 | 312.5s
+    ★ Best model saved (96.59%)
+  Epoch  7/7 | Train Loss 0.0957 Acc 96.60% | Val Loss 0.0938 Acc 96.62% AUC 0.9944 | 312.5s
+    ★ Best model saved (96.62%)
+  Stage 2: Fine-Tuning (Adam) complete — Best Val Acc: 96.62%
+
+Evaluating Stage 1+2 (Adam) on test set...
+  Stage 1+2 (Adam) Test — Acc: 96.53%  F1: 0.9686  AUC: 0.9944                
+
+  Saved: milestone5_outputs/adam_vs_adamw.csv
+
+    Configuration  Accuracy  Precision  Recall    F1  ROC-AUC
+  Stage 1 (AdamW)     95.78      94.91   97.51 96.20   0.9926
+Stage 1+2 (AdamW)     97.55      97.26   98.29 97.77   0.9973
+   Stage 1 (Adam)     93.64      93.26   95.26 94.25   0.9827
+ Stage 1+2 (Adam)     96.53      95.83   97.91 96.86   0.9944
+  Saved: milestone5_outputs/adam_vs_adamw_chart.png
+
+  Saved: milestone5_outputs/training_log.csv
+  Saved: milestone5_outputs/stage_comparison.csv
+
+            Stage  Accuracy  Precision  Recall    F1  ROC-AUC
+  Stage 1 (AdamW)     95.78      94.91   97.51 96.20   0.9926
+Stage 1+2 (AdamW)     97.55      97.26   98.29 97.77   0.9973
+   Stage 1 (Adam)     93.64      93.26   95.26 94.25   0.9827
+ Stage 1+2 (Adam)     96.53      95.83   97.91 96.86   0.9944
+
+Generating confusion matrices...
+  Saved: milestone5_outputs/confusion_matrix_stage_1_adamw.png
+  Saved: milestone5_outputs/confusion_matrix_stage_12_adamw.png
+  Saved: milestone5_outputs/confusion_matrix_stage_1_adam.png
+  Saved: milestone5_outputs/confusion_matrix_stage_12_adam.png
+Generating ROC curve...
+  Saved: milestone5_outputs/roc_curve.png
+Generating Precision-Recall curve...
+  Saved: milestone5_outputs/pr_curve.png
+Generating classification report...
+  Saved: milestone5_outputs/classification_report.txt
+
+              precision    recall  f1-score   support
+
+        Real     0.9791    0.9666    0.9728      2901
+        Fake     0.9726    0.9829    0.9777      3500
+
+    accuracy                         0.9755      6401
+   macro avg     0.9758    0.9747    0.9752      6401
+weighted avg     0.9755    0.9755    0.9755      6401
+
+Measuring inference latency (100 images)...
+  MPS_GPU: 4.79 ± 0.47 ms/image                                               
+  CPU: 137.15 ± 3.41 ms/image                                                 
+  Saved: milestone5_outputs/inference_latency.csv
+
+============================================================
+  ✅ MILESTONE 5 — SECTION 4 COMPLETE
+============================================================
+  All outputs saved to: /Users/syngenta/Desktop/ds_ai/rohit/milestone5_outputs
+
+    adam_vs_adamw.csv                             0.2 KB
+    adam_vs_adamw_chart.png                      44.5 KB
+    classification_report.txt                     0.4 KB
+    confusion_matrix_stage_12_adam.png           43.6 KB
+    confusion_matrix_stage_12_adamw.png          46.3 KB
+    confusion_matrix_stage_1_adam.png            43.2 KB
+    confusion_matrix_stage_1_adamw.png           44.0 KB
+    inference_latency.csv                         0.1 KB
+    pr_curve.png                                 80.6 KB
+    roc_curve.png                                92.1 KB
+    stage1_adam_best.pth                      16623.4 KB
+    stage1_adamw_best.pth                     16623.7 KB
+    stage2_adam_best.pth                      16623.4 KB
+    stage2_adamw_best.pth                     16623.7 KB
+    stage_comparison.csv                          0.2 KB
+    training_log.csv                              1.5 KB
+(venv) syngenta@Syngentas-MacBook-Pro rohit % 
+(venv) syngenta@Syngentas-MacBook-Pro rohit % 
