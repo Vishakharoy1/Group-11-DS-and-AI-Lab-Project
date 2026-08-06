@@ -387,7 +387,7 @@ Milestone 1's original role assignments are in
 - Training notebooks: this file, "Training Notebooks — Usage Instructions" above
 - Web app: `webapp/backend/README.md`
 - Team contribution trackers: `doc/Milestone-{1..5}/Team-Contribution-Tracker.md`
-- Earlier milestone reports: `doc/Milestone-{1,2,3}/`, `doc/milestone 4/`
+- Earlier milestone reports: `doc/Milestone-{1,2,3,4}/`
 
 ---
 
