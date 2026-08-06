@@ -138,7 +138,7 @@ function badgeHtml(label, realPct, fakePct) {
 }
 
 // ---------- Shared: run /predict against a given model + render badge/Grad-CAM ----------
-async function runPredictAndRender(bodyId, modelKey, file, previewSrc) {
+async function runPredictAndRender(bodyId, modelKey, file, previewSrc, showReportButton = false) {
   setBody(bodyId, `<span class="spinner">Running prediction + Grad-CAM (${modelKey})…</span>`);
 
   const formData = new FormData();
@@ -151,6 +151,11 @@ async function runPredictAndRender(bodyId, modelKey, file, previewSrc) {
   const data = await res.json();
   const p = data.prediction;
 
+  const reportBtnHtml = showReportButton
+    ? `<button type="button" class="link-btn" id="report-btn-${bodyId}" style="margin-top:10px;">Generate Forensic Report</button>
+       <span id="report-status-${bodyId}" class="placeholder" style="margin-left:8px;"></span>`
+    : "";
+
   setBody(
     bodyId,
     badgeHtml(p.label, p.real_pct, p.fake_pct) +
@@ -159,12 +164,36 @@ async function runPredictAndRender(bodyId, modelKey, file, previewSrc) {
         <figure><img src="${previewSrc}" /><figcaption>Input</figcaption></figure>
         <figure><img src="data:image/png;base64,${data.gradcam_heatmap}" /><figcaption>Heatmap (${p.label})</figcaption></figure>
         <figure><img src="data:image/png;base64,${data.gradcam_overlay}" /><figcaption>Overlay</figcaption></figure>
-      </div>`
+      </div>
+      ${reportBtnHtml}`
   );
+
+  if (showReportButton) {
+    document.getElementById(`report-btn-${bodyId}`).addEventListener("click", () => generateForensicReport(file, modelKey, bodyId));
+  }
+}
+
+// ---------- Forensic report generation (opens a standalone printable HTML report) ----------
+async function generateForensicReport(file, modelKey, bodyId) {
+  const statusEl = document.getElementById(`report-status-${bodyId}`);
+  statusEl.textContent = "Generating report…";
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`/report?model=${modelKey}`, { method: "POST", body: formData });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const html = await res.text();
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    statusEl.textContent = "Report opened in a new tab.";
+  } catch (e) {
+    statusEl.textContent = `Failed to generate report: ${e}`;
+  }
 }
 
 // ---------- 1. Prediction + Grad-CAM (main model, best1) ----------
-setupUploadWidget("predict", (file, previewSrc) => runPredictAndRender("predict-body", "best", file, previewSrc));
+setupUploadWidget("predict", (file, previewSrc) => runPredictAndRender("predict-body", "best", file, previewSrc, true));
 
 // ---------- 2. No-Augmentation Model (independent upload, highest accuracy) ----------
 setupUploadWidget("noaug", (file, previewSrc) => runPredictAndRender("noaug-body", "noaug", file, previewSrc));
