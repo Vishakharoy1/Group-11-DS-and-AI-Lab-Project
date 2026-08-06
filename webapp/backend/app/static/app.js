@@ -280,7 +280,93 @@ setupUploadWidget("manipulation", async (file) => {
   });
 });
 
+// ---------- Standalone DCT & FFT Frequency Detector ----------
+setupUploadWidget("frequency", async (file) => {
+  setBody("frequency-body", `<span class="spinner">Running 2D DCT/FFT spectral analysis & physics extraction…</span>`);
+
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/predict-frequency", { method: "POST", body: formData });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  const label = data.prediction === "FAKE" ? "Fake" : "Real";
+  const realPct = data.real_probability * 100;
+  const fakePct = data.fake_probability * 100;
+  const physics = data.spectral_physics;
+  const weights = data.stream_weights;
+
+  setBody(
+    "frequency-body",
+    badgeHtml(label, realPct, fakePct) +
+      `<div class="placeholder" style="margin:8px 0;">Detector: Standalone DCT & FFT Network · Alignment used: ${data.face_alignment_used}</div>
+      
+      <div style="margin-top:12px; font-weight:600;">Stream Fusion Weights:</div>
+      <table>
+        <thead><tr><th>Global FFT &amp; DCT Weight</th><th>Local 8x8 Block-DCT Weight</th></tr></thead>
+        <tbody><tr><td>${(weights.global_fft_dct_weight * 100).toFixed(1)}%</td><td>${(weights.local_block_dct_weight * 100).toFixed(1)}%</td></tr></tbody>
+      </table>
+
+      <div style="margin-top:12px; font-weight:600;">Spectral Physics Analytics:</div>
+      <table>
+        <thead><tr><th>HFER (High Freq Energy)</th><th>1/f Slope (Alpha)</th><th>Phase Entropy</th><th>Grid Artifact Score</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>${physics.hfer.toFixed(5)}</td>
+            <td>${physics.spectral_alpha.toFixed(4)}</td>
+            <td>${physics.phase_entropy.toFixed(4)} bits</td>
+            <td>${physics.grid_artifact_score.toFixed(5)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:14px; font-weight:600;">Spectral Diagnostic Composite Panel (2x2 Grid):</div>
+      <div style="margin-top:8px;">
+        <img src="data:image/png;base64,${data.panel_b64}" style="max-width:100%; border-radius:8px; border:1px solid var(--border);" alt="Spectral Diagnostic Panel" />
+      </div>`
+  );
+});
+
+// ---------- Standalone SRM Noise & Pixel Artifact Detector ----------
+setupUploadWidget("noise", async (file) => {
+  setBody("noise-body", `<span class="spinner">Analyzing 24-channel spatial noise residuals & SRM filters…</span>`);
+
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/predict-noise", { method: "POST", body: formData });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  const label = data.prediction === "Fake" ? "Fake" : "Real";
+  const realPct = data.real_probability * 100;
+  const fakePct = data.fake_probability * 100;
+
+  setBody(
+    "noise-body",
+    badgeHtml(label, realPct, fakePct) +
+      `<div class="placeholder" style="margin:8px 0;">Detector: Standalone SRM Noise Network · Alignment used: ${data.face_alignment_used}</div>
+      
+      <div style="margin-top:12px; font-weight:600;">Noise Evidence Metrics:</div>
+      <table>
+        <thead><tr><th>Decision</th><th>Confidence</th><th>SRM Residual Energy</th><th>Noise Variance Std</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>${data.decision}</code></td>
+            <td>${(data.confidence * 100).toFixed(1)}%</td>
+            <td>${data.srm_residual_energy.toFixed(4)}</td>
+            <td>${data.noise_variance_std.toFixed(4)}</td>
+          </tr>
+        </tbody>
+      </table>`
+  );
+});
+
 // ---------- 4b. Test All 3 Models on One Image ----------
+
 const THREE_MODELS = ["best", "noaug", "manipulations"];
 
 async function runThreeModels(file) {

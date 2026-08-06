@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """FastAPI app: routes + static frontend mount.
 
 Run with:
@@ -9,22 +11,34 @@ import base64
 import io
 import logging
 
+
+import sys
 import torch
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+
 from PIL import Image
 
 from . import config, gradcam, manipulations, preprocessing, report, results
 from .model import ModelRegistry
 from .schemas import (
     CompareResponse,
+    FrequencyPhysicsMetrics,
+    FrequencyPredictResponse,
+    FrequencyStreamWeights,
     HealthResponse,
+    NoisePredictResponse,
     PredictionResult,
     PredictResponse,
     RobustnessResponse,
     RobustnessRow,
 )
+
+import importlib.util
+
+if str(config.PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(config.PROJECT_DIR))
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("deepfake.main")
@@ -32,6 +46,8 @@ logger = logging.getLogger("deepfake.main")
 app = FastAPI(title="Deepfake Face Detection API")
 
 registry: ModelRegistry | None = None
+freq_detector = None
+noise_detector = None
 
 
 @app.on_event("startup")
@@ -46,6 +62,45 @@ def on_startup():
             "server is restarted.",
             config.CHECKPOINT_DIR,
         )
+
+
+ROOT_DIR = config.PROJECT_DIR.parent
+
+
+def get_freq_detector():
+    global freq_detector
+    if freq_detector is None:
+        try:
+            detector_path = ROOT_DIR / "standalone_dct_fft_detector.py"
+            freq_spec = importlib.util.spec_from_file_location("standalone_dct_fft_detector", detector_path)
+            freq_mod = importlib.util.module_from_spec(freq_spec)
+            freq_spec.loader.exec_module(freq_mod)
+            freq_detector = freq_mod.StandaloneDCTFFTDetector()
+            logger.info("Initialized StandaloneDCTFFTDetector lazily.")
+        except Exception:
+            logger.exception("Failed to initialize StandaloneDCTFFTDetector.")
+    return freq_detector
+
+
+def get_noise_detector():
+    global noise_detector
+    if noise_detector is None:
+        try:
+            detector_path = ROOT_DIR / "standalone_noise_detector.py"
+            noise_spec = importlib.util.spec_from_file_location("standalone_noise_detector", detector_path)
+            noise_mod = importlib.util.module_from_spec(noise_spec)
+            noise_spec.loader.exec_module(noise_mod)
+            noise_detector = noise_mod.StandaloneNoiseDetector()
+            logger.info("Initialized StandaloneNoiseDetector lazily.")
+        except Exception:
+            logger.exception("Failed to initialize StandaloneNoiseDetector.")
+    return noise_detector
+
+
+
+
+
+
 
 
 async def _load_upload_image(file: UploadFile) -> Image.Image:
@@ -213,6 +268,46 @@ async def compare(mode: str, file: UploadFile = File(...)):
     )
 
 
+@app.post("/predict-frequency", response_model=FrequencyPredictResponse)
+async def predict_frequency(file: UploadFile = File(...)):
+    detector = get_freq_detector()
+    if detector is None:
+        raise HTTPException(503, "Frequency detector model is unavailable.")
+    image = await _load_upload_image(file)
+    res = detector.predict_image(image)
+    return FrequencyPredictResponse(
+        prediction=res["prediction"],
+        fake_probability=res["fake_probability"],
+        real_probability=res["real_probability"],
+        confidence=res["confidence"],
+        stream_weights=FrequencyStreamWeights(**res["stream_weights"]),
+        spectral_physics=FrequencyPhysicsMetrics(**res["spectral_physics"]),
+        panel_b64=res["panel_b64"],
+        face_alignment_used=res["face_alignment_used"],
+    )
+
+
+@app.post("/predict-noise", response_model=NoisePredictResponse)
+async def predict_noise(file: UploadFile = File(...)):
+    detector = get_noise_detector()
+    if detector is None:
+        raise HTTPException(503, "Noise detector model is unavailable.")
+    image = await _load_upload_image(file)
+    res = detector.predict_image(image)
+    return NoisePredictResponse(
+        prediction="Fake" if res["decision"] == "likely_ai_generated" else "Real",
+        fake_probability=res["fake_probability"],
+        real_probability=res["real_probability"],
+        decision=res["decision"],
+        confidence=res["confidence"],
+        noise_variance_std=res["noise_variance_std"],
+        srm_residual_energy=res["srm_residual_energy"],
+        face_alignment_used=res["face_alignment_used"],
+    )
+
+
+
+
 @app.get("/api/training-results")
 def training_results():
     """Pre-computed evaluation artifacts from the training notebook
@@ -232,5 +327,16 @@ if config.RESULTS_DIR.is_dir():
 else:
     logger.warning("RESULTS_DIR %s does not exist - /results-assets not mounted.", config.RESULTS_DIR)
 
-# Static frontend - mounted last so it doesn't shadow the API routes above.
-app.mount("/", StaticFiles(directory=str(config.STATIC_DIR), html=True), name="static")
+@app.get("/", response_class=FileResponse)
+def index():
+    return FileResponse(config.STATIC_DIR / "index.html")
+
+
+@app.get("/{file_name}")
+def static_files(file_name: str):
+    file_path = config.STATIC_DIR / file_name
+    if file_path.is_file():
+        return FileResponse(file_path)
+    raise HTTPException(404, f"File {file_name} not found")
+
+

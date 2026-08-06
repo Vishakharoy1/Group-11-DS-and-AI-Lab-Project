@@ -86,9 +86,46 @@
     <div id="manipulation-body" class="placeholder" style="margin-top:14px;">Upload and analyze an image to see the table.</div>
   </section>
 
-  <!-- ===================== 5. Model Comparison ===================== -->
+  <!-- ===================== 5. Standalone DCT & FFT Frequency Detector ===================== -->
+  <section id="frequency-card" class="card">
+    <h2>5. Standalone DCT &amp; FFT Spectral Deepfake Detector</h2>
+    <p class="placeholder"><code>standalone_dct_fft_detector.py</code> — Dual-stream network processing 2D FFT Fourier magnitude/phase, 2D DCT global magnitude, and 8x8 block-DCT local frequency bands, enriched with spectral physics diagnostics (HFER, 1/f alpha decay, phase entropy, grid score) and RetinaFace face alignment.</p>
+
+    <div class="drop-zone" id="drop-zone-frequency">
+      <p>Drag &amp; drop a face image here, or click to choose a file</p>
+      <input type="file" id="file-input-frequency" accept="image/*" hidden />
+    </div>
+    <div class="preview-wrap hidden" id="preview-wrap-frequency">
+      <img class="preview-img" id="preview-img-frequency" alt="Preview" />
+      <button class="analyze-btn" id="analyze-btn-frequency" disabled>Analyze Frequency</button>
+    </div>
+    <p class="error hidden" id="error-frequency"></p>
+
+    <div id="frequency-body" class="placeholder" style="margin-top:14px;">Upload an image to analyze 2D DCT/FFT spectral signatures.</div>
+  </section>
+
+  <!-- ===================== 6. Standalone Noise & Pixel Artifact Detector ===================== -->
+  <section id="noise-card" class="card">
+    <h2>6. Standalone SRM Noise &amp; Pixel Artifact Evidence Detector</h2>
+    <p class="placeholder"><code>standalone_noise_detector.py</code> — 24-channel spatial noise residual network extracting SRM high-pass filter residuals, 3x3 median filtering residuals, Sobel gradients, and Laplacian of Gaussian to detect pixel-level GAN/Diffusion artifacts with RetinaFace face alignment.</p>
+
+    <div class="drop-zone" id="drop-zone-noise">
+      <p>Drag &amp; drop a face image here, or click to choose a file</p>
+      <input type="file" id="file-input-noise" accept="image/*" hidden />
+    </div>
+    <div class="preview-wrap hidden" id="preview-wrap-noise">
+      <img class="preview-img" id="preview-img-noise" alt="Preview" />
+      <button class="analyze-btn" id="analyze-btn-noise" disabled>Analyze Noise</button>
+    </div>
+    <p class="error hidden" id="error-noise"></p>
+
+    <div id="noise-body" class="placeholder" style="margin-top:14px;">Upload an image to analyze spatial noise &amp; pixel evidence.</div>
+  </section>
+
+  <!-- ===================== 7. Model Comparison ===================== -->
   <section id="compare-card" class="card full-width">
-    <h2>5. Model Comparison</h2>
+    <h2>7. Model Comparison</h2>
+
 
     <h3>Real-World Test Accuracy (Test Sample folder, 25 real + 25 fake images)</h3>
     <p class="placeholder">Measured by manually running every image in <code>Test Sample/Test_real_vs_Fake/</code> through each model. Balanced Accuracy = average of Real-accuracy and Fake-accuracy — the fair way to compare models that may be biased toward one class.</p>
