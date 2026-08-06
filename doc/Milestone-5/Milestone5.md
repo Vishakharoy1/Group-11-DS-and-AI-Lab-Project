@@ -314,9 +314,118 @@ The combination of these evaluation metrics provides a comprehensive assessment 
 
 *Owner: Rohit*
 
-*(To be filled in — final held-out test set results: Accuracy, Precision,
-Recall, F1, ROC-AUC; confusion matrix, ROC curve, Precision-Recall curve;
-classification report; Stage 1 vs. Stage 1+2 vs. Stage 1+2+3 comparison.)*
+### 4.1 Optimizer & Stage Comparison
+
+To select the final training configuration, both **Adam** and **AdamW**
+optimizers were benchmarked across the two training stages (Stage 1:
+frozen backbone / classifier head only; Stage 1+2: partial fine-tuning),
+evaluated on the same held-out test set (6,401 images):
+
+| Stage | Accuracy | Precision | Recall | F1 | ROC-AUC |
+|---|---:|---:|---:|---:|---:|
+| Stage 1 (Adam) | 93.64% | 93.26% | 95.26% | 94.25% | 0.9827 |
+| Stage 1 (AdamW) | 95.78% | 94.91% | 97.51% | 96.20% | 0.9926 |
+| Stage 1+2 (Adam) | 96.53% | 95.83% | 97.91% | 96.86% | 0.9944 |
+| **Stage 1+2 (AdamW)** | **97.55%** | **97.26%** | **98.29%** | **97.77%** | **0.9973** |
+
+![Adam vs AdamW comparison](../Milestone-5-rohit/adam_vs_adamw_chart.png)
+
+AdamW outperformed Adam at every stage, and fine-tuning (Stage 1+2)
+outperformed the frozen-backbone configuration (Stage 1) in both optimizer
+runs. **Stage 1+2 with AdamW** was selected as the final configuration for
+this milestone's held-out evaluation, consistent with M4's own selection
+of AdamW during its 24-experiment hyperparameter sweep.
+
+### 4.2 Final Held-Out Test Set Results
+
+Classification report for the selected model (Stage 1+2, AdamW) on the
+full 6,401-image held-out test set:
+
+```
+              precision    recall  f1-score   support
+
+        Real     0.9791    0.9666    0.9728      2901
+        Fake     0.9726    0.9829    0.9777      3500
+
+    accuracy                         0.9755      6401
+   macro avg     0.9758    0.9747    0.9752      6401
+weighted avg     0.9755    0.9755    0.9755      6401
+```
+
+- **Accuracy:** 97.55%
+- **Macro Precision / Recall / F1:** 97.58% / 97.47% / 97.52%
+- **ROC-AUC:** 0.9973
+
+This is measured on the strictly held-out test split described in
+Section 2 (satisfying Objective 1) and is slightly below M4's own
+reported 99.06% test accuracy — expected, since M4's figure came from the
+best of a 24-run hyperparameter sweep with a longer Stage 3 unfreeze
+phase, whereas this benchmark isolates the Stage 1 vs. Stage 1+2
+comparison specifically to quantify the *contribution of fine-tuning*
+rather than to chase the single best configuration.
+
+<table>
+<tr>
+<td valign="top" width="50%">
+
+**Confusion Matrix — Stage 1+2 (AdamW), final model**
+
+![Confusion matrix Stage 1+2 AdamW](../Milestone-5-rohit/confusion_matrix_stage_12_adamw.png)
+
+</td>
+<td valign="top" width="50%">
+
+**ROC Curve**
+
+![ROC curve](../Milestone-5-rohit/roc_curve.png)
+
+</td>
+</tr>
+<tr>
+<td valign="top" width="50%">
+
+**Precision-Recall Curve**
+
+![PR curve](../Milestone-5-rohit/pr_curve.png)
+
+</td>
+<td valign="top" width="50%">
+
+**Confusion Matrix — Stage 1+2 (Adam), for comparison**
+
+![Confusion matrix Stage 1+2 Adam](../Milestone-5-rohit/confusion_matrix_stage_12_adam.png)
+
+</td>
+</tr>
+</table>
+
+Stage 1-only confusion matrices (`confusion_matrix_stage_1_adam.png`,
+`confusion_matrix_stage_1_adamw.png`) are also available in
+`doc/Milestone-5-rohit/` and show the same Adam-vs-AdamW gap prior to
+fine-tuning.
+
+### 4.3 Training Dynamics
+
+Per-epoch training/validation loss, accuracy, and AUC for all four
+runs (Stage 1 and Stage 1+2, both optimizers) are logged in
+`doc/Milestone-5-rohit/training_log.csv`. Validation accuracy rose
+monotonically within each stage for both optimizers, with AdamW
+converging to a higher final validation AUC in both Stage 1 (0.9911 vs.
+0.9826) and Stage 1+2 (0.9965 vs. 0.9944), confirming AdamW's weight
+decay decoupling gives a consistent, not just headline-number,
+advantage in this setup.
+
+### 4.4 Inference Latency
+
+| Device | Mean | Std | Min | Max |
+|---|---:|---:|---:|---:|
+| GPU (Apple MPS) | 4.79 ms | 0.47 ms | 4.32 ms | 6.40 ms |
+| CPU | 137.15 ms | 3.41 ms | 132.50 ms | 159.56 ms |
+
+Raw forward-pass latency only (no Grad-CAM, no pre/post-processing
+overhead) — see Section 9.2 for the full end-to-end `/predict` request
+breakdown on a separate CPU-only benchmark machine, and Section 9.5 for
+the combined accuracy-vs-speed recommendation.
 
 ---
 
@@ -591,12 +700,15 @@ built around it.
 
 ### 9.3 VRAM Usage
 
-*(To be filled in — GPU VRAM usage from Rohit's Section 4 benchmarking
-environment. Per M3's reported figure, MobileNetV3-Large as configured
-for this task has **4.2M parameters** — small enough that VRAM at
-inference should be modest for any reasonable batch size, but the actual
-peak VRAM depends on batch size and whether Grad-CAM's backward-pass
-activations are retained.)*
+*(Still to be filled in — Rohit's Section 4 benchmark
+(`doc/Milestone-5-rohit/inference_latency.csv`) measured latency on GPU
+(Apple MPS) and CPU but did not capture peak VRAM/unified-memory usage.
+Per M3's reported figure, MobileNetV3-Large as configured for this task
+has **4.2M parameters** — small enough that VRAM at inference should be
+modest for any reasonable batch size, but the actual peak VRAM depends on
+batch size and whether Grad-CAM's backward-pass activations are retained;
+a dedicated `nvidia-smi`/`torch.cuda.max_memory_allocated()` measurement
+would be needed to state a number here.)*
 
 ### 9.4 Quantization Potential
 
@@ -621,10 +733,38 @@ strong quantization candidate:
 
 ### 9.5 Accuracy vs. Speed Trade-off Summary
 
-*(To be filled in once Rohit's Section 4 numbers land — combine his
-GPU/CPU accuracy-preserving latency figures with the CPU-only findings
-above to state a final recommendation: e.g. GPU for interactive
-Grad-CAM-enabled use, CPU acceptable for prediction-only/batch use.)*
+Combining Rohit's Section 4 benchmark with the Section 9.2 CPU findings
+above:
+
+| Configuration | Accuracy | ROC-AUC | Raw Forward-Pass Latency |
+|---|---:|---:|---:|
+| Stage 1+2 (AdamW), GPU (Apple MPS) | 97.55% | 0.9973 | **4.79 ms** |
+| Stage 1+2 (AdamW), CPU (Rohit's benchmark machine) | 97.55% | 0.9973 | 137.15 ms |
+| Same checkpoint family, CPU (Section 9.2, Intel i7-7700 desktop) | — | — | 15.8 ms (forward pass) / ~2.2 s (full `/predict` incl. Grad-CAM) |
+
+Three takeaways:
+
+1. **Model accuracy is identical regardless of device** — Stage 1+2
+   (AdamW)'s 97.55% accuracy / 0.9973 ROC-AUC is a property of the
+   weights, not the hardware. Device choice only affects latency, not
+   correctness.
+2. **The raw forward pass is fast everywhere** — even the slowest CPU
+   measurement (137 ms on Rohit's machine) is comfortably real-time for
+   a single-image prediction endpoint. GPU (4.79 ms) is roughly 29× faster
+   than that CPU figure, but both are well within interactive budgets for
+   prediction-only use.
+3. **Grad-CAM, not the model, is what forces a GPU recommendation** — as
+   established in Section 9.2, the full `/predict` request (forward pass
+   + Grad-CAM backward pass + heatmap rendering) balloons to ~2.2 s on
+   CPU. That overhead is orthogonal to which device runs the base model.
+
+**Final recommendation:** use **GPU for any interactive, Grad-CAM-enabled
+deployment** (keeps the full explainability request in the tens-of-ms
+range instead of seconds), and treat **CPU as acceptable only for
+prediction-only or batch use** where Grad-CAM is skipped — consistent
+with Section 9.4's finding that quantizing the model itself would not
+meaningfully help, since the bottleneck is the explainability layer, not
+inference.
 
 ---
 
