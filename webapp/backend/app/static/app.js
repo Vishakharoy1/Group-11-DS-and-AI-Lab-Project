@@ -152,14 +152,17 @@ setupUploadWidget("predict", (file, previewSrc) => runPredictAndRender("predict-
 // ---------- 2. No-Augmentation Model (independent upload, highest accuracy) ----------
 setupUploadWidget("noaug", (file, previewSrc) => runPredictAndRender("noaug-body", "noaug", file, previewSrc));
 
-// ---------- 2. Cross-Domain Testing ----------
+// ---------- 2. Cross-Domain Testing (dedicated cross_domain model) ----------
 setupUploadWidget("crossdomain", async (file, previewSrc) => {
   setBody("crossdomain-body", `<span class="spinner">Running prediction…</span>`);
 
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch("/predict", { method: "POST", body: formData });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const res = await fetch("/predict?model=cross_domain", { method: "POST", body: formData });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail || `HTTP ${res.status}`);
+  }
   const data = await res.json();
   const p = data.prediction;
 
@@ -170,9 +173,8 @@ setupUploadWidget("crossdomain", async (file, previewSrc) => {
       <div>${badgeHtml(p.label, p.real_pct, p.fake_pct)}</div>
     </div>
     <p class="placeholder" style="margin-top:10px;">
-      See Section 5's Cross-Domain Testing table for the measured face_main vs.
-      nano_banana accuracy gap — treat this prediction with reduced confidence
-      if your image is far outside the face domain.
+      Prediction from the dedicated cross-domain model (trained on general,
+      non-face images across multiple domains), not the main face model.
     </p>`
   );
 });
@@ -232,7 +234,63 @@ setupUploadWidget("manipulation", async (file) => {
   });
 });
 
-// ---------- 4. Model Comparison ----------
+// ---------- 4b. Test All 3 Models on One Image ----------
+const THREE_MODELS = ["best", "noaug", "manipulations"];
+
+setupUploadWidget("compare3", async (file, previewSrc) => {
+  setBody("compare3-body", `<span class="spinner">Running all 3 models…</span>`);
+
+  const runOne = async (modelKey) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await fetch(`/predict?model=${modelKey}`, { method: "POST", body: formData });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        return { modelKey, error: detail.detail || `HTTP ${res.status}` };
+      }
+      const data = await res.json();
+      return { modelKey, prediction: data.prediction };
+    } catch (e) {
+      return { modelKey, error: String(e) };
+    }
+  };
+
+  const outcomes = await Promise.all(THREE_MODELS.map(runOne));
+
+  const rowsHtml = outcomes
+    .map((o) => {
+      if (o.error) {
+        return `<tr><td><code>${o.modelKey}</code></td><td colspan="4" class="placeholder">${o.error}</td></tr>`;
+      }
+      const p = o.prediction;
+      const pct = p.label === "Real" ? p.real_pct : p.fake_pct;
+      return `
+        <tr>
+          <td><code>${o.modelKey}</code></td>
+          <td><span class="badge ${p.label === "Real" ? "real" : "fake"}">${p.label}</span></td>
+          <td>${p.real_pct.toFixed(2)}%</td>
+          <td>${p.fake_pct.toFixed(2)}%</td>
+          <td><div class="confidence-bar" style="width:100px;"><div style="width:${pct.toFixed(1)}%"></div></div></td>
+        </tr>`;
+    })
+    .join("");
+
+  setBody(
+    "compare3-body",
+    `<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-bottom:12px;">
+      <img src="${previewSrc}" style="width:140px; border-radius:8px; border:1px solid var(--border);" />
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Model</th><th>Prediction</th><th>Real%</th><th>Fake%</th><th>Confidence</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>`
+  );
+});
+
+// ---------- 4c. Pairwise Model Comparison ----------
 setupUploadWidget("compare", async (file) => {
   document.querySelectorAll("#compare-card .compare-body").forEach(
     (el) => (el.innerHTML = `<span class="spinner">Comparing models…</span>`)
