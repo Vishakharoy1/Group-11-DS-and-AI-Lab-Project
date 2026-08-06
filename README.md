@@ -76,19 +76,25 @@ python src/infer.py --input path/to/image_or_video
 
 ---
 
-## Proposed Architecture
-
-The proposed framework combines:
-
-- **RGB Spatial Feature Extraction** alongside **FFT/DCT-based frequency analysis** for spectral feature extraction.
-- **Vision Transformer (ViT)** backbone for capturing long-range spatial dependencies.
-- **Cross-Attention Fusion Mechanism** to combine spatial and spectral feature branches.
-- **Explainability Visualizations** highlighting relevant facial regions and frequency patterns.
-- **Forensic Report Generation** aggregating predictions, confidence scores, and attention maps.
-
 ## Architecture
 
-![ViT-based Spatial-Frequency Deepfake Detection Pipeline](Architecture/architecture.jpg)
+> The Milestone 1 proposal (Vision Transformer + FFT/DCT frequency
+> fusion) was **not the final architecture used**. Milestone 3's
+> head-to-head architecture bake-off selected **MobileNetV3-Large**
+> instead, based on demonstrated generalization to out-of-distribution
+> images and a far smaller footprint (4.2M vs. 40.7M parameters). The
+> diagram below reflects the actual deployed model
+> (`mobilenetv3_best.pth`, produced by `final-mobilenet (1).ipynb`),
+> including its real three-stage transfer-learning strategy.
+
+![MobileNetV3-Large architecture and three-stage transfer learning strategy](images/mobilenetv3_architecture_v2.png)
+
+The final framework combines:
+
+- **MobileNetV3-Large backbone** (ImageNet-pretrained, depthwise-separable convolutions, Squeeze-and-Excitation, Hardswish activations) — 4,204,594 total parameters.
+- **Three-stage transfer learning**: Stage 1 (frozen backbone, classifier head only) → Stage 2 (last 25% of backbone unfrozen) → Stage 3 (full unfreeze + CelebA-HD real photos, added specifically to fix a shortcut-learning failure mode identified in Milestone 5 — see `doc/Milestone-5/Milestone5.md`).
+- **Grad-CAM explainability**, highlighting the facial regions driving each prediction.
+- **Automated forensic report generation** (`POST /report` in the local web app) — prediction, confidence, Grad-CAM evidence, and known reliability limitations compiled into one printable document.
 
 ---
 
