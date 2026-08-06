@@ -1188,6 +1188,76 @@ explainability layer.
 
 *Owner: Vishakha*
 
-*(To be filled in last, once Sections 1–9 are complete — summarize
-evaluation highlights, compare against original M4 objectives, formal
-sign-off statement.)*
+### 10.1 Objectives Revisited
+
+Section 1 set seven objectives for this milestone. Status against each:
+
+| # | Objective | Status |
+|---|---|---|
+| 1 | Final evaluation on a strictly held-out test set (Accuracy, Precision, Recall, F1, ROC-AUC) | **Mostly done.** Accuracy/Precision/Recall/F1 measured directly on the real 2,401-image held-out set (Section 4.2: 99.63% accuracy). ROC-AUC was never computed by the training notebook and remains an open item (Section 3.5, 4.2) — a ready-to-run Kaggle cell has been prepared to close this. |
+| 2 | Root-cause the shortcut-learning misclassification issue | **Done.** Section 5.4 identifies domain shift between FFHQ-style training images and modern HDR/sharpened smartphone photos as the root cause, with a concrete shortcut-feature table and two independent confirmations (Raunak's Real-Latest probe at 8.6% accuracy, and this milestone's own local Test Sample check at 62.0%, Section 4.5). |
+| 3 | Verify training/deployment preprocessing consistency | **Done.** `preprocessing.py`'s `val_transform` (resize→tensor→normalize) is an exact port of the notebook's own `val_transform`, confirmed by direct code comparison. |
+| 4 | Quantify robustness under manipulations (tints, JPEG, blur, noise) | **Done.** Section 6's 11-manipulation stress test on both a true-Real and true-Fake sample. |
+| 5 | Verify explainability via Grad-CAM | **Done.** Section 6.1/6.2 and Section 5's embedded failure-case heatmaps confirm the model attends to facial structure on correct predictions, and to post-processing artifact regions on false positives. |
+| 6 | Assess deployment readiness (latency, size, quantization) | **Mostly done.** Model size (16.24 MB) and CPU latency (15.53–15.8 ms, cross-validated across two independent local benchmarks) are real measurements. GPU latency and VRAM remain estimates, not measurements (Section 9.2/9.3) — the only concrete unfinished technical item in this milestone. |
+| 7 | Compile findings into a viva-ready report | **Done** — this document. |
+
+### 10.2 Key Findings
+
+1. **The headline numbers were never the problem — generalization was.**
+   `mobilenetv3_best.pth` scores 99.63% accuracy and 99.71% validation
+   accuracy on in-distribution data (Section 4), matching or exceeding
+   M4's own reported figures. The M4 faculty review's concern was correct:
+   these numbers say nothing about real-world robustness.
+2. **The failure mode is real, large, and reproducible.** Accuracy on
+   genuine real photos drops to 8.6% (Raunak's Real-Latest probe) and
+   independently to 62.0% (this milestone's own local check, Section 4.5)
+   once images shift away from the FFHQ-like training distribution —
+   two independent tests, same conclusion.
+3. **The cause is identified, not just observed.** Section 5.4 traces the
+   failure to specific, nameable image properties (HDR, sharpening,
+   saturation) rather than leaving it as an unexplained accuracy gap —
+   and Section 8.2 shows the notebook's existing `ChannelShift`
+   augmentation, while a reasonable attempt, doesn't actually target
+   these specific properties, explaining why the fix so far has been
+   partial (Stage 3's CelebA-HD addition helped but didn't close the
+   gap).
+4. **The model is not the deployment bottleneck — explainability is.**
+   Section 9.2 shows a 15.53–15.8 ms raw forward pass vs. a ~2.2 s full
+   Grad-CAM-enabled request, a ~140× gap. Any future speed optimization
+   effort should target Grad-CAM rendering, not model quantization
+   (Section 9.4).
+5. **Every number in this report traces to a real, checkable source** —
+   either the actual `final-mobilenet (1).ipynb` notebook output, a
+   locally-run benchmark against the real checkpoint, or an explicitly
+   labeled estimate/open item. Several figures from earlier drafts
+   (dataset split sizes, model file size, an entire benchmark section,
+   a fabricated notebook citation) did not survive this verification
+   pass and were corrected or removed rather than left in.
+
+### 10.3 Comparison Against M4
+
+M4 delivered a checkpoint and reported near-perfect in-distribution
+metrics without surfacing the shortcut-learning or preprocessing-
+consistency risks — not because M4's numbers were wrong, but because
+in-distribution evaluation alone cannot reveal them. M5's contribution is
+not a better checkpoint (Stage 3's CelebA-HD addition is a partial fix,
+not a solved problem) but a **correctly scoped evaluation**: this
+milestone found the real failure mode, measured its size on two
+independent probes, traced it to a specific and actionable cause, and
+was honest about what remains unmeasured (GPU/VRAM benchmarks, ROC-AUC on
+the real test set, demographic fairness) rather than presenting
+incomplete work as finished.
+
+### 10.4 Sign-Off
+
+Milestone 5's evaluation is complete against its stated objectives, with
+two concrete open items carried forward rather than closed prematurely:
+(1) a real GPU latency/VRAM benchmark, pending a successful Kaggle GPU
+run, and (2) completion of `cross-domain.ipynb`, which will also unblock
+this report's remaining ROC-AUC and OOD-testing gaps. `mobilenetv3_best.pth`
+is deployment-viable for CPU-only, prediction-only use today; interactive
+Grad-CAM-enabled deployment should be paired with a GPU once one is
+available to benchmark against. Demographic fairness is explicitly
+disclosed as unassessed and should not be inferred as either present or
+absent from anything in this report.
