@@ -418,6 +418,7 @@ To improve generalization in future work, the following enhancements are recomme
 - Use hard negative mining by incorporating misclassified real images into subsequent fine-tuning.
 - Evaluate the model on multiple unseen domains throughout training instead of validating only on FFHQ-like images.
 - Apply stronger augmentation (colour jitter, JPEG compression, blur, sharpening, and noise) to reduce reliance on dataset-specific image statistics. (Tried, It decreases validation accuracy from ~90% to ~70%)
+- Try bigger and different models that may perform better (Tried this in Earlier Milestone, ConvUNeXt and EfficientNet they were performing poor compared to MobileNetV3) 
 
 These improvements are expected to reduce shortcut learning and enable the classifier to learn genuine facial authenticity features that generalize better to real-world deployment.
 
