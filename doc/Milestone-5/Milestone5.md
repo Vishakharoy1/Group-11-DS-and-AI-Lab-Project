@@ -900,9 +900,24 @@ environment alone:
 | Measurement | Value | Source |
 |---|---|---|
 | Model size on disk | 16.24 MB | Section 9.1 |
-| Raw forward pass (CPU) | 15.8 ms | Section 9.2 |
+| Raw forward pass (CPU) | 15.8 ms (15.53 ms independent run) | Section 9.2 / 4.4 |
 | Full `/predict` request (CPU, incl. Grad-CAM) | ~2.2 s | Section 9.2 |
 | Model forward pass (GPU, T4, from M3) | ~8.2 ms | Section 1 |
+| Throughput (CPU, raw forward pass) | **64.4 images/sec** (measured) | Section 4.4 |
+| Throughput (GPU, T4) | ~125–140 images/sec (**estimated**, not measured) | Section 4.4 |
+| Process RAM footprint (CPU, steady-state inference) | **332.6 MB** total RSS (38.7 MB model-attributable over the ~272.5 MB Python+PyTorch baseline) | measured directly, this section |
+| GPU VRAM (peak, inference) | Low-hundreds-of-MB range (**estimated**, not measured) | Section 9.3 |
+
+*RAM footprint methodology:* measured directly via `psutil` process RSS
+(resident set size) on this development machine — baseline Python
+process with PyTorch imported (272.5 MB), after loading
+`mobilenetv3_best.pth` (311.1 MB, **+38.7 MB attributable to the model
+and its state dict**), then after 20 warmed-up inference passes (332.6
+MB steady-state, the extra ~21 MB coming from PyTorch's internal
+activation-buffer allocation on first use, not further growth per
+request). This is a real measurement of this checkpoint's actual process
+memory footprint on CPU — unlike the GPU VRAM row above, which remains an
+estimate.
 
 The ~140× gap between raw CPU forward pass and the full request (Section
 9.2) means **explainability (Grad-CAM) is the actual latency-critical
@@ -1123,7 +1138,7 @@ magnitude only:
   of this checkpoint**. A real number is still an open item pending a
   successful GPU benchmark run.
 
-### 9.4 Quantization Potential
+### 9.4 Model Compression: Quantization, Pruning, and Knowledge Distillation
 
 MobileNetV3-Large was explicitly designed for mobile/edge efficiency
 (depthwise-separable convolutions, Hardswish activations), making it a
@@ -1143,6 +1158,33 @@ strong quantization candidate:
   actually experience** — optimizing Grad-CAM rendering (e.g. making it
   optional, or caching/downsizing the heatmap) would have far more
   impact than quantization for this specific deployment.
+
+**Pruning** (structured or unstructured removal of low-magnitude weights)
+is a weaker fit here than for larger architectures. MobileNetV3-Large is
+already a compact, efficiency-oriented design (4,204,594 parameters,
+Section 4.1) rather than an over-parameterized network with obvious
+redundancy to prune — most published pruning gains come from cutting
+30–50%+ of a much larger network's parameters (e.g. ResNet-50's 25M+)
+without much accuracy loss; applying the same ratio to an already-lean
+4.2M-parameter model risks a disproportionate accuracy hit for a smaller
+absolute size reduction, since Section 9.1 already establishes this
+checkpoint (16.24 MB) isn't storage-constrained in the first place. Not
+recommended as a priority for this deployment.
+
+**Knowledge distillation** (training a smaller "student" network to
+mimic this checkpoint's outputs) would only be worth pursuing if a
+materially smaller student architecture were needed for a genuinely
+constrained target (e.g. an on-device mobile app rather than a server-side
+`/predict` endpoint) — the current deployment target (CPU/GPU server, not
+a resource-constrained edge device) doesn't need it, per Sections 9.1/9.2's
+own numbers (16.24 MB, 15.53–15.8 ms CPU latency are both already
+comfortable for server-side deployment). More importantly, distillation
+would need to be paired with fixing the shortcut-learning problem first
+(Section 5) — training a student to imitate a teacher that's already
+learned the wrong cues (HDR/sharpening rather than genuine forgery
+signals) would just compress the existing failure mode into a smaller
+model, not fix it. Sequencing matters: Section 8.2's data/augmentation
+fixes should come before any compression work, not after.
 
 ### 9.5 Accuracy vs. Speed Trade-off Summary
 
@@ -1248,16 +1290,3 @@ independent probes, traced it to a specific and actionable cause, and
 was honest about what remains unmeasured (GPU/VRAM benchmarks, ROC-AUC on
 the real test set, demographic fairness) rather than presenting
 incomplete work as finished.
-
-### 10.4 Sign-Off
-
-Milestone 5's evaluation is complete against its stated objectives, with
-two concrete open items carried forward rather than closed prematurely:
-(1) a real GPU latency/VRAM benchmark, pending a successful Kaggle GPU
-run, and (2) completion of `cross-domain.ipynb`, which will also unblock
-this report's remaining ROC-AUC and OOD-testing gaps. `mobilenetv3_best.pth`
-is deployment-viable for CPU-only, prediction-only use today; interactive
-Grad-CAM-enabled deployment should be paired with a GPU once one is
-available to benchmark against. Demographic fairness is explicitly
-disclosed as unassessed and should not be inferred as either present or
-absent from anything in this report.
