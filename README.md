@@ -88,7 +88,7 @@ what each output file means.
 
 ## Architecture
 
-![MobileNetV3-Large architecture and three-stage transfer learning strategy](images/mobilenetv3_architecture_v2.png)
+![MobileNetV3-Large architecture and three-stage transfer learning strategy](images/mobilenetv3_pipeline_v3.png)
 
 The final framework combines:
 
@@ -317,7 +317,7 @@ Group-11-DS-and-AI-Lab-Project/
 ├── README.md                      # This file
 |
 ├── images/
-│   └── mobilenetv3_architecture_v2.png
+│   └── mobilenetv3_pipeline_v3.png
 |
 ├── webapp/
 │   ├── backend/                   # FastAPI app + static frontend (README.md inside)
