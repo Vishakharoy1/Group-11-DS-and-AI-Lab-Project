@@ -11,10 +11,11 @@ import logging
 
 import torch
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
-from . import config, gradcam, manipulations, preprocessing, results
+from . import config, gradcam, manipulations, preprocessing, report, results
 from .model import ModelRegistry
 from .schemas import (
     CompareResponse,
@@ -107,6 +108,38 @@ async def predict(model: str = "best", file: UploadFile = File(...)):
         gradcam_overlay=result["overlay_b64"],
         face_alignment_used=method,
     )
+
+
+@app.post("/report", response_class=HTMLResponse)
+async def generate_report(model: str = "best", file: UploadFile = File(...)):
+    """Runs the same prediction + Grad-CAM pipeline as /predict, then
+    renders the result as a standalone printable HTML forensic report
+    instead of JSON."""
+    model_obj = _require_model(model)
+    filename = file.filename or "uploaded_image"
+    image = await _load_upload_image(file)
+
+    cropped, method = preprocessing.crop_and_align_face(image)
+    result = gradcam.gradcam_overlay(model_obj, cropped, preprocessing.val_transform, registry.device)
+
+    input_buf = io.BytesIO()
+    cropped.resize((config.IMG_SIZE, config.IMG_SIZE)).save(input_buf, format="PNG")
+    input_b64 = base64.b64encode(input_buf.getvalue()).decode("ascii")
+
+    checkpoint_filename = config.CHECKPOINTS.get(model, config.CHECKPOINTS["best"]).name
+
+    html = report.build_report_html(
+        input_image_b64=input_b64,
+        filename=filename,
+        model_name=checkpoint_filename,
+        face_alignment_used=method,
+        label=result["prediction"]["label"],
+        real_pct=result["prediction"]["real_pct"],
+        fake_pct=result["prediction"]["fake_pct"],
+        heatmap_b64=result["heatmap_b64"],
+        overlay_b64=result["overlay_b64"],
+    )
+    return HTMLResponse(content=html)
 
 
 @app.post("/robustness", response_model=RobustnessResponse)
