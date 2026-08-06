@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Deepfake Face Detector</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header>
+  <h1>Deepfake Face Detector</h1>
+  <p id="health-line">Checking backend status…</p>
+  <p id="global-error" class="error hidden"></p>
+</header>
+
+<main>
+  <!-- ===================== 1. Prediction + Grad-CAM ===================== -->
+  <section id="predict-card" class="card">
+    <h2>1. Real vs. AI Prediction &amp; Explainability</h2>
+    <p class="placeholder">Main model (<code>mobilenetv3_best.pth</code> — CelebA/3-stage). Upload a face image for a Real/Fake prediction with a Grad-CAM heatmap.</p>
+
+    <div class="drop-zone" id="drop-zone-predict">
+      <p>Drag &amp; drop an image here, or click to choose a file</p>
+      <input type="file" id="file-input-predict" accept="image/*" hidden />
+    </div>
+    <div class="preview-wrap hidden" id="preview-wrap-predict">
+      <img class="preview-img" id="preview-img-predict" alt="Preview" />
+      <button class="analyze-btn" id="analyze-btn-predict" disabled>Analyze</button>
+    </div>
+    <p class="error hidden" id="error-predict"></p>
+
+    <div id="predict-body" class="placeholder" style="margin-top:14px;">Upload and analyze an image to see the result.</div>
+  </section>
+
+  <!-- ===================== 2. No-Augmentation Model ===================== -->
+  <section id="noaug-card" class="card">
+    <h2>2. No-Augmentation Model <span class="badge real" style="font-size:0.7rem;">Highest Test Accuracy</span></h2>
+    <p class="placeholder"><code>mobilenetv3_noaug.pth</code> — trained without the augmentation pipeline. Per Section 6's Augmentation Ablation table, this model scores 97.56% test accuracy vs. 66.21% for the main augmented model. Separate upload, independent of Section 1.</p>
+
+    <div class="drop-zone" id="drop-zone-noaug">
+      <p>Drag &amp; drop an image here, or click to choose a file</p>
+      <input type="file" id="file-input-noaug" accept="image/*" hidden />
+    </div>
+    <div class="preview-wrap hidden" id="preview-wrap-noaug">
+      <img class="preview-img" id="preview-img-noaug" alt="Preview" />
+      <button class="analyze-btn" id="analyze-btn-noaug" disabled>Analyze</button>
+    </div>
+    <p class="error hidden" id="error-noaug"></p>
+
+    <div id="noaug-body" class="placeholder" style="margin-top:14px;">Upload and analyze an image to see the result.</div>
+  </section>
+
+  <!-- ===================== 3. Cross-Domain Testing ===================== -->
+  <section id="cross-domain-card" class="card">
+    <h2>3. Cross-Domain Testing</h2>
+    <p class="placeholder">Dedicated cross-domain model (<code>mobilenetv3_cross_domain.pth</code>, trained on general non-face images) — upload an image OUTSIDE the face domain (animal, landscape, object) to see how it generalizes. Not yet available until that checkpoint is trained/downloaded from Kaggle.</p>
+
+    <div class="drop-zone" id="drop-zone-crossdomain">
+      <p>Drag &amp; drop a non-face image here, or click to choose a file</p>
+      <input type="file" id="file-input-crossdomain" accept="image/*" hidden />
+    </div>
+    <div class="preview-wrap hidden" id="preview-wrap-crossdomain">
+      <img class="preview-img" id="preview-img-crossdomain" alt="Preview" />
+      <button class="analyze-btn" id="analyze-btn-crossdomain" disabled>Analyze</button>
+    </div>
+    <p class="error hidden" id="error-crossdomain"></p>
+
+    <div id="crossdomain-body" class="placeholder" style="margin-top:14px;">Upload and analyze an image to see the result.</div>
+  </section>
+
+  <!-- ===================== 4. Manipulation Robustness ===================== -->
+  <section id="manipulation-card" class="card">
+    <h2>4. Manipulation Robustness Testing</h2>
+    <p class="placeholder"><code>mobilenetv3_manipulations.pth</code> — trained specifically to stay robust under these corruptions (not the main model). The upload is run through 11 manipulations (tint, brightness, blur, jpeg, noise, etc.) and re-predicted for each.</p>
+
+    <div class="drop-zone" id="drop-zone-manipulation">
+      <p>Drag &amp; drop an image here, or click to choose a file</p>
+      <input type="file" id="file-input-manipulation" accept="image/*" hidden />
+    </div>
+    <div class="preview-wrap hidden" id="preview-wrap-manipulation">
+      <img class="preview-img" id="preview-img-manipulation" alt="Preview" />
+      <button class="analyze-btn" id="analyze-btn-manipulation" disabled>Analyze</button>
+    </div>
+    <p class="error hidden" id="error-manipulation"></p>
+
+    <div id="manipulation-body" class="placeholder" style="margin-top:14px;">Upload and analyze an image to see the table.</div>
+  </section>
+
+  <!-- ===================== 5. Model Comparison ===================== -->
+  <section id="compare-card" class="card full-width">
+    <h2>5. Model Comparison</h2>
+
+    <h3>Real-World Test Accuracy (Test Sample folder, 25 real + 25 fake images)</h3>
+    <p class="placeholder">Measured by manually running every image in <code>Test Sample/Test_real_vs_Fake/</code> through each model. Balanced Accuracy = average of Real-accuracy and Fake-accuracy — the fair way to compare models that may be biased toward one class.</p>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Model</th><th>Real Accuracy</th><th>Fake Accuracy</th><th>Balanced Accuracy</th><th>Bias</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>best</code></td><td>76.0% (19/25)</td><td>75.0% (12/16)</td><td><strong>75.5%</strong></td>
+            <td><span class="badge real">None</span> — errs roughly equally both ways</td>
+          </tr>
+          <tr>
+            <td><code>noaug</code></td><td>40.0% (10/25)</td><td>100.0% (16/16)</td><td>70.0%</td>
+            <td><span class="badge fake">Severe</span> — defaults to "Fake" regardless of input</td>
+          </tr>
+          <tr>
+            <td><code>manipulations</code></td><td>64.0% (16/25)</td><td>68.8% (11/16)</td><td>66.4%</td>
+            <td><span class="badge real">Mild</span> — moderate accuracy both ways</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="placeholder" style="margin-top:8px;">
+      "Fake Accuracy" excludes 9 numbered test files per folder found to likely be mislabeled real
+      photos (all 3 models independently agreed they were Real). <code>noaug</code>'s 100% fake-catch
+      rate looks best in isolation, but comes from a severe bias toward predicting "Fake" — it
+      wrongly flagged 15 of 25 genuine real photos, which is a worse real-world failure mode
+      (false-accusation risk) than its headline number suggests. <code>best</code> has the highest
+      balanced accuracy and no systematic bias.
+    </p>
+
+    <h3 style="margin-top:24px;">Example: One Real + One Fake Image, All 3 Models</h3>
+    <p class="placeholder">Pre-loaded samples from <code>Test Sample/Test_real_vs_Fake/</code> — no upload needed, runs automatically.</p>
+    <div id="sample-compare-body" class="placeholder">Running sample comparison…</div>
+
+    <h3 style="margin-top:24px;">Test All 3 Models on Your Own Image</h3>
+    <p class="placeholder">Upload once, see <code>best</code>, <code>noaug</code>, and <code>manipulations</code> side by side.</p>
+
+    <div class="drop-zone" id="drop-zone-compare3">
+      <p>Drag &amp; drop an image here, or click to choose a file</p>
+      <input type="file" id="file-input-compare3" accept="image/*" hidden />
+    </div>
+    <div class="preview-wrap hidden" id="preview-wrap-compare3">
+      <img class="preview-img" id="preview-img-compare3" alt="Preview" />
+      <button class="analyze-btn" id="analyze-btn-compare3" disabled>Analyze</button>
+    </div>
+    <p class="error hidden" id="error-compare3"></p>
+
+    <div id="compare3-body" class="placeholder" style="margin-top:14px;">Upload and analyze an image to see all 3 models side by side.</div>
+
+    <h3 style="margin-top:24px;">Pairwise Comparisons</h3>
+    <p class="placeholder">Upload once, compared across whichever checkpoints are loaded.</p>
+
+    <div class="drop-zone" id="drop-zone-compare">
+      <p>Drag &amp; drop an image here, or click to choose a file</p>
+      <input type="file" id="file-input-compare" accept="image/*" hidden />
+    </div>
+    <div class="preview-wrap hidden" id="preview-wrap-compare">
+      <img class="preview-img" id="preview-img-compare" alt="Preview" />
+      <button class="analyze-btn" id="analyze-btn-compare" disabled>Analyze</button>
+    </div>
+    <p class="error hidden" id="error-compare"></p>
+
+    <div id="compare-augmentation" class="compare-block" style="margin-top:14px;">
+      <h3>With vs. Without Augmentation</h3>
+      <div class="compare-body placeholder">—</div>
+    </div>
+    <div id="compare-hparams" class="compare-block">
+      <h3>Baseline vs. Tuned Hyperparameters</h3>
+      <div class="compare-body placeholder">—</div>
+    </div>
+  </section>
+
+  <!-- ===================== 6. Training & Evaluation Results ===================== -->
+  <section id="training-results-card" class="card full-width">
+    <h2>6. Training &amp; Evaluation Results</h2>
+    <p class="placeholder">Pre-computed results from the actual training run on the full test set (not live inference) — from <code>Deepfake/output/</code>.</p>
+    <div id="training-results-body">
+      <span class="spinner">Loading training results…</span>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
