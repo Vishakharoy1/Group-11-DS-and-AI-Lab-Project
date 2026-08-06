@@ -169,86 +169,144 @@ The notebook automatically detects the available GPU and uses an NVIDIA Tesla T4
 
 *Owner: Aman / Raunak*
 
-# 3. Evaluation Metrics
+Evaluating a deepfake face detection model requires more than reporting overall classification accuracy. In practical applications, the model must not only distinguish between authentic and AI-generated facial images but also generalize to images captured under different conditions, devices, and datasets. Therefore, multiple evaluation metrics were selected to assess various aspects of model performance, including classification correctness, reliability, robustness, and generalization.
 
-Evaluating a deepfake detection model requires more than measuring overall accuracy. Since the objective is to reliably distinguish between authentic and AI-generated face images, multiple evaluation metrics were selected to assess different aspects of model performance. The chosen metrics include Accuracy, Precision, Recall, F1-score, and Receiver Operating Characteristic – Area Under the Curve (ROC-AUC). Together, these metrics provide a comprehensive assessment of classification performance and robustness.
+The proposed MobileNetV3 model was evaluated using **Accuracy, Precision, Recall, F1-score, ROC-AUC**, and a **cross-domain evaluation** on unseen real-world images. Together, these metrics provide a comprehensive assessment of the model's effectiveness.
+
+---
 
 ## 3.1 Accuracy
-Accuracy measures the proportion of correctly classified images among all test samples. It provides an overall indication of the model's classification performance.
 
-$$\text{Accuracy} = \frac{\text{TP} + \text{TN}}{\text{TP} + \text{TN} + \text{FP} + \text{FN}}$$
+Accuracy measures the proportion of correctly classified images among all evaluated samples.
+
+$$
+Accuracy=\frac{TP+TN}{TP+TN+FP+FN}
+$$
 
 where:
-* **TP** = True Positives (Fake images correctly classified as Fake)
-* **TN** = True Negatives (Real images correctly classified as Real)
-* **FP** = False Positives (Real images incorrectly classified as Fake)
-* **FN** = False Negatives (Fake images incorrectly classified as Real)
+
+- **TP** = True Positives (Fake images correctly classified as Fake)
+- **TN** = True Negatives (Real images correctly classified as Real)
+- **FP** = False Positives (Real images incorrectly classified as Fake)
+- **FN** = False Negatives (Fake images incorrectly classified as Real)
 
 ### Justification
-Accuracy provides an intuitive measure of the model's overall correctness and is widely used for comparing different deep learning models. Since the training and evaluation datasets are relatively balanced, accuracy serves as a useful baseline metric. However, it does not distinguish between different types of classification errors and is therefore complemented by additional evaluation metrics.
+
+Accuracy provides an overall measure of classification performance and is useful for comparing different model architectures during training. Since the training and validation datasets are approximately balanced, accuracy serves as an appropriate baseline metric.
+
+However, accuracy alone cannot reveal whether the model generalizes beyond the training distribution. As demonstrated in the cross-domain experiments, a model achieving over **99% validation accuracy** may still perform poorly on unseen real-world images. Therefore, additional evaluation metrics and cross-domain testing are necessary.
 
 ---
 
 ## 3.2 Precision
-Precision measures the proportion of images predicted as fake that are actually fake.
 
-$$\text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}$$
+Precision measures the proportion of images predicted as **Fake** that are actually fake.
+
+$$
+Precision=\frac{TP}{TP+FP}
+$$
 
 ### Justification
-High precision indicates that the model produces relatively few false alarms. In deepfake detection, this means that genuine images are less likely to be incorrectly classified as fake, reducing unnecessary false accusations and improving the reliability of the system.
+
+Precision indicates how reliable the model's fake predictions are. High precision reduces false positives, ensuring that genuine facial images are not unnecessarily classified as AI-generated.
+
+This metric is particularly important in applications such as identity verification, media authentication, and digital forensics, where falsely accusing genuine images can reduce trust in the system.
 
 ---
 
 ## 3.3 Recall
-Recall measures the proportion of actual fake images that are correctly detected by the model.
 
-$$\text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}$$
+Recall measures the proportion of actual fake images that are correctly detected.
+
+$$
+Recall=\frac{TP}{TP+FN}
+$$
 
 ### Justification
-Recall is particularly important in deepfake detection because missing a manipulated image can have serious consequences. A high recall ensures that most AI-generated images are successfully identified, minimizing false negatives.
+
+Recall reflects the model's ability to detect manipulated images. A high recall minimizes false negatives, ensuring that AI-generated images are less likely to evade detection.
+
+Since undetected deepfakes may lead to misinformation, identity misuse, or security threats, recall is a critical metric for evaluating deepfake detection systems.
 
 ---
 
 ## 3.4 F1-Score
+
 The F1-score is the harmonic mean of Precision and Recall.
 
-$$\text{F1-score} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$
+$$
+F1=\frac{2\times Precision\times Recall}{Precision+Recall}
+$$
 
 ### Justification
-Precision and Recall often exhibit a trade-off. The F1-score balances both metrics into a single value, making it particularly useful when evaluating models that must simultaneously minimize false positives and false negatives. For deepfake detection, the F1-score provides a more representative measure of performance than accuracy alone.
+
+Precision and Recall often have an inverse relationship. Increasing one may decrease the other.
+
+The F1-score provides a balanced evaluation by considering both metrics simultaneously, making it particularly suitable for deepfake detection where both false positives and false negatives have practical consequences.
 
 ---
 
 ## 3.5 ROC-AUC
-The Receiver Operating Characteristic (ROC) curve illustrates the relationship between the True Positive Rate (Recall) and the False Positive Rate at different classification thresholds. The Area Under the ROC Curve (ROC-AUC) summarizes the model's ability to distinguish between real and fake images across all possible thresholds.
 
-$$\text{TPR} = \frac{\text{TP}}{\text{TP} + \text{FN}}$$
+The Receiver Operating Characteristic (ROC) curve illustrates the relationship between the **True Positive Rate (Recall)** and the **False Positive Rate** across different classification thresholds.
 
-$$\text{FPR} = \frac{\text{FP}}{\text{FP} + \text{TN}}$$
+$$
+TPR=\frac{TP}{TP+FN}
+$$
 
-The ROC-AUC value ranges from 0 to 1, where:
-* **1.0** indicates perfect classification.
-* **0.5** represents random guessing.
+$$
+FPR=\frac{FP}{FP+TN}
+$$
 
-Values closer to 1 indicate better discriminative capability.
+The Area Under the ROC Curve (ROC-AUC) summarizes the model's ability to distinguish between Real and Fake images over all possible decision thresholds.
+
+The ROC-AUC score ranges from **0 to 1**, where:
+
+- **1.0** indicates perfect discrimination.
+- **0.5** represents random guessing.
+- Higher values indicate better discriminative capability.
 
 ### Justification
-Unlike Accuracy, Precision, or Recall, ROC-AUC evaluates the model independently of a fixed classification threshold. This makes it particularly valuable for comparing different deepfake detection models and assessing their ability to separate authentic and synthetic images under varying decision thresholds.
+
+Unlike Accuracy, Precision, and Recall, ROC-AUC evaluates model performance independently of a fixed decision threshold.
 
 ---
 
-## 3.6 Overall Justification
-No single metric can fully characterize the performance of a deepfake detection system. Therefore, multiple complementary metrics were employed:
+## 3.6 Cross-Domain Evaluation
+
+In addition to the standard classification metrics, **cross-domain evaluation** was performed to assess the model's ability to generalize beyond the training dataset.
+
+The model was evaluated on two groups of genuine facial images:
+
+- **Real-Old:** Images from the FFHQ distribution, which closely resembles the training data.
+- **Real-Latest:** Recent real-world smartphone photographs collected outside the training distribution.
+
+This evaluation was designed to determine whether the model learned genuine facial authenticity features or dataset-specific characteristics.
+
+### Justification
+
+Traditional evaluation metrics computed on the validation set may overestimate real-world performance when the validation data follows the same distribution as the training data.
+
+Cross-domain evaluation provides a more realistic assessment of deployment performance by measuring the model's robustness to unseen image distributions.
+
+As demonstrated in this work, although the model achieved a validation accuracy exceeding **99%**, its performance decreased substantially on recent real-world photographs, highlighting the importance of evaluating model generalization in addition to conventional classification metrics.
+
+---
+
+## 3.7 Overall Justification
+
+No single metric can fully characterize the performance of a deepfake detection system. Therefore, multiple complementary evaluation metrics were employed.
 
 | Metric | Purpose | Reason for Selection |
-| :--- | :--- | :--- |
-| **Accuracy** | Measures overall classification correctness | Provides a general measure of model performance. |
-| **Precision** | Measures the correctness of fake predictions | Reduces false identification of genuine images as fake. |
-| **Recall** | Measures the ability to detect fake images | Minimizes missed detections of AI-generated images. |
-| **F1-score** | Balances Precision and Recall | Provides a comprehensive performance measure when both error types are important. |
-| **ROC-AUC** | Measures discrimination across all thresholds | Evaluates the model's overall ability to distinguish between real and fake images irrespective of the decision threshold. |
+|---------|---------|----------------------|
+| **Accuracy** | Measures overall classification correctness | Provides an overall measure of model performance. |
+| **Precision** | Measures correctness of fake predictions | Reduces false identification of genuine images as fake. |
+| **Recall** | Measures ability to detect fake images | Minimizes missed detections of AI-generated images. |
+| **F1-score** | Balances Precision and Recall | Provides a balanced evaluation of both error types. |
+| **ROC-AUC** | Measures discrimination across decision thresholds | Evaluates overall classification capability independent of threshold selection. |
+| **Cross-Domain Evaluation** | Measures generalization to unseen image distributions | Evaluates real-world robustness beyond the validation dataset. |
 
-Using these five complementary metrics ensures a comprehensive evaluation of the proposed MobileNetV3-Large deepfake detection model in terms of overall accuracy, reliability, robustness, and discriminative capability.
+The combination of these evaluation metrics provides a comprehensive assessment of the proposed MobileNetV3 deepfake detection model. While Accuracy, Precision, Recall, F1-score, and ROC-AUC quantify classification performance, cross-domain evaluation measures the model's ability to generalize to real-world facial images captured under unseen conditions. Together, these metrics provide a more reliable assessment of both model effectiveness and practical deployment readiness.
 
 ---
 
