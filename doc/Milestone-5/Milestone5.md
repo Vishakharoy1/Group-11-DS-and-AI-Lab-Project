@@ -125,9 +125,6 @@ time, not a projected/generic split:
 | **Validation Set** | 2,400 |
 | **Test Set** | 2,401 |
 
-*(A previous draft of this section cited Train 51,199 / Val 6,400 / Test
-6,401 — those numbers did not match any run of this notebook and have
-been corrected here.)*
 
 ---
 
