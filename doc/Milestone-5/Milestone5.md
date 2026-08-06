@@ -448,7 +448,7 @@ desktop machine) closely, cross-validating both measurements.
 
 **GPU latency: estimated, not measured.** A ready-to-run Kaggle benchmark
 cell was prepared to measure this directly on the T4 GPU
-(`doc/Milestone-5/kaggle_gpu_benchmark_cell.py`), but it could not be run
+(`outputs/kaggle_gpu_benchmark_cell.py`), but it could not be run
 successfully. No GPU is available in this local development environment
 either, so no real GPU number exists for `mobilenetv3_best.pth`. As a
 clearly-labeled substitute (**not a measurement**), extrapolating from
@@ -1119,7 +1119,7 @@ built around it.
 ### 9.3 VRAM Usage
 
 **Estimated, not measured.** A ready-to-run benchmark cell
-(`torch.cuda.max_memory_allocated()`, `doc/Milestone-5/kaggle_gpu_benchmark_cell.py`)
+(`torch.cuda.max_memory_allocated()`, `outputs/kaggle_gpu_benchmark_cell.py`)
 was prepared to get a real number on Kaggle's T4 GPU, but the run did not
 succeed, and no GPU is available locally either — so no measured VRAM
 figure exists for this checkpoint. As a rough, clearly-labeled order of

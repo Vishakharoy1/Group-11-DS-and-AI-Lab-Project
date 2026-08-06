@@ -56,7 +56,7 @@ area addressed this milestone: Loss function, Dropout, Label Smoothing
 - Wrote **Section 9 (Deployment Readiness Assessment)**, including a
   cross-milestone latency comparison against M3's own reported GPU
   benchmark.
-- Wrote the training notebook usage README (`NOTEBOOK_README.md`) and
+- Wrote the training notebook usage instructions (merged into `README.md`) and
   the web application README (`webapp/backend/README.md`).
 - Leading compilation of the final presentation (PDF) — pending outputs
   from other members.
