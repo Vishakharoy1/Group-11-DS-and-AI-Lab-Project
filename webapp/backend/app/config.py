@@ -17,10 +17,23 @@ RESULTS_DIR = Path(os.environ.get("RESULTS_DIR", PROJECT_DIR / "output"))
 
 CHECKPOINTS = {
     # "best" is the internal role name used throughout the app (main model
-    # for Prediction/Grad-CAM/comparison baseline) - the actual
-    # file on disk is named mobilenetv3_best1.pth.
-    "best": CHECKPOINT_DIR / "mobilenetv3_best1.pth",
+    # for Prediction/Grad-CAM/comparison baseline). This is the CelebA/
+    # 3-stage checkpoint (final-mobilenet.ipynb: Stage 1 frozen backbone ->
+    # Stage 2 partial unfreeze -> Stage 3 full unfreeze fine-tuned with
+    # added CelebA-HD real photos specifically to fix modern-smartphone-
+    # photo-misclassified-as-fake). File has no optimizer_state_dict
+    # (Stage 3's save omits it), so it's smaller (~17MB) than the other
+    # checkpoints here.
+    "best": CHECKPOINT_DIR / "mobilenetv3_best.pth",
+    # Trained on general (non-face) images across multiple domains
+    # (Nano Banana, CIFAKE, CrossDomain, Places365, Artifact) via
+    # cross-domain.ipynb - used for Cross-Domain Testing instead of "best".
+    "cross_domain": CHECKPOINT_DIR / "mobilenetv3_cross_domain.pth",
     "tuned": CHECKPOINT_DIR / "mobilenetv3_tuned.pth",
+    # From an earlier training run (augmentation ablation experiment).
+    # Not one of the 3 "official" models (best/cross_domain/manipulations)
+    # - kept intentionally as an optional 4th model for Section 2
+    # (No-Augmentation Model) and the augmentation comparison panel.
     "noaug": CHECKPOINT_DIR / "mobilenetv3_noaug.pth",
     # Trained specifically to stay robust under the 11 manipulations
     # (tint/brightness/blur/jpeg/noise/etc.) - used for the Manipulation

@@ -1,0 +1,2 @@
+Device,N_images,mean_ms,std_ms,min_ms,max_ms,throughput_img_per_sec,peak_vram_mib
+GPU (Tesla T4),100,6.452,1.173,5.778,11.687,154.98,274.24
