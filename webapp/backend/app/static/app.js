@@ -385,15 +385,15 @@ async function runCrossDomainExample() {
         const formData = new FormData();
         formData.append("file", file);
         const predRes = await fetch("/predict?model=cross_domain", { method: "POST", body: formData });
-        if (!predRes.ok) throw new Error(`HTTP ${predRes.status}`);
-        const data = await predRes.json();
-        const p = data.prediction;
-        return `<div style="flex:1; min-width:220px; display:flex; align-items:center; gap:14px;">
-          <img src="${s.url}" style="width:90px; height:90px; object-fit:cover; border-radius:8px; border:1px solid var(--border);" />
-          <div>
-            <div class="placeholder" style="margin-bottom:4px;">${s.label}</div>
-            ${badgeHtml(p.label, p.real_pct, p.fake_pct)}
+        const outcome = predRes.ok
+          ? { modelKey: "cross_domain", prediction: (await predRes.json()).prediction }
+          : { modelKey: "cross_domain", error: `HTTP ${predRes.status}` };
+        return `<div style="flex:1; min-width:260px;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+            <img src="${s.url}" style="width:100px; border-radius:8px; border:1px solid var(--border);" />
+            <strong>${s.label}</strong>
           </div>
+          ${threeModelsTableHtml([outcome])}
         </div>`;
       })
     );
