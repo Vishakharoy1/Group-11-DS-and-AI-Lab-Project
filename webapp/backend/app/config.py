@@ -49,6 +49,10 @@ RESULT_TABLES = {
     "manipulation": "manipulation_results.csv",
     "augmentation_ablation": "augmentation_ablation_results.csv",
     "cross_domain": "cross_domain_results.csv",
+    # Per-domain validation accuracy from the actual cross_domain model
+    # (cross-domain.ipynb Cell 11) - distinct from "cross_domain" above,
+    # which is an older face_main/nano_banana split from a different run.
+    "domain_accuracy_cross": "domain_accuracy_cross.csv",
 }
 
 RESULT_IMAGES = {
@@ -57,6 +61,8 @@ RESULT_IMAGES = {
     "augmentation_samples": "augmentation_samples.png",
     "manipulation_samples": "manipulation_samples.png",
     "cross_domain_samples": "cross_domain_samples.png",
+    "confusion_matrix_cross_domain": "confusion_matrix_cross_domain.png",
+    "training_curves_cross": "training_curves_cross.png",
 }
 
 IMG_SIZE = 224

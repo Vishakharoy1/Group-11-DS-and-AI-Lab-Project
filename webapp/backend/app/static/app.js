@@ -369,6 +369,40 @@ async function runSampleCompare() {
   }
 }
 
+// ---------- 3a. Pre-loaded example: one real + one fake, cross_domain model ----------
+async function runCrossDomainExample() {
+  const samples = [
+    { url: "sample_cross_real.jpg", label: "Real (ground truth)" },
+    { url: "sample_cross_fake.png", label: "Fake (ground truth)" },
+  ];
+
+  try {
+    const blocks = await Promise.all(
+      samples.map(async (s) => {
+        const res = await fetch(s.url);
+        const blob = await res.blob();
+        const file = new File([blob], s.url, { type: blob.type });
+        const formData = new FormData();
+        formData.append("file", file);
+        const predRes = await fetch("/predict?model=cross_domain", { method: "POST", body: formData });
+        if (!predRes.ok) throw new Error(`HTTP ${predRes.status}`);
+        const data = await predRes.json();
+        const p = data.prediction;
+        return `<div style="flex:1; min-width:220px; display:flex; align-items:center; gap:14px;">
+          <img src="${s.url}" style="width:90px; height:90px; object-fit:cover; border-radius:8px; border:1px solid var(--border);" />
+          <div>
+            <div class="placeholder" style="margin-bottom:4px;">${s.label}</div>
+            ${badgeHtml(p.label, p.real_pct, p.fake_pct)}
+          </div>
+        </div>`;
+      })
+    );
+    setBody("cross-example-body", `<div style="display:flex; gap:24px; flex-wrap:wrap;">${blocks.join("")}</div>`);
+  } catch (e) {
+    setBody("cross-example-body", `<span class="error">Failed to run cross-domain example: ${e}</span>`);
+  }
+}
+
 // ---------- 4c. Pairwise Model Comparison ----------
 setupUploadWidget("compare", async (file) => {
   document.querySelectorAll("#compare-card .compare-body").forEach(
@@ -431,6 +465,7 @@ const TABLE_TITLES = {
   manipulation: "Manipulation Testing (Priority 3)",
   augmentation_ablation: "Augmentation Ablation (Priority 1)",
   cross_domain: "Cross-Domain Testing (Priority 4)",
+  domain_accuracy_cross: "Cross-Domain Model — Per-Domain Validation Accuracy",
 };
 
 async function loadTrainingResults() {
@@ -464,6 +499,14 @@ async function loadTrainingResults() {
       html += `<div class="results-section"><h3>Cross-Domain Samples</h3><div class="image-gallery gallery-2col">${imgFig(images.cross_domain_samples, "Cross-Domain Samples")}</div></div>`;
     }
 
+    // Row 4: Cross-Domain Model's own confusion matrix + training curves
+    const row4 = [];
+    if (images.confusion_matrix_cross_domain) row4.push(imgFig(images.confusion_matrix_cross_domain, "Cross-Domain Model — Confusion Matrix"));
+    if (images.training_curves_cross) row4.push(imgFig(images.training_curves_cross, "Cross-Domain Model — Training Curves"));
+    if (row4.length) {
+      html += `<div class="results-section"><h3>Cross-Domain Model — Training Results</h3><div class="image-gallery gallery-2col">${row4.join("")}</div></div>`;
+    }
+
     // Grad-CAM correct/incorrect galleries, capped at 3 per row
     const gallery = data.gradcam_gallery || {};
     html += renderGradcamGroup("Correct", gallery.correct);
@@ -489,5 +532,6 @@ async function loadTrainingResults() {
 }
 
 checkHealth();
+runCrossDomainExample();
 loadTrainingResults();
 runSampleCompare();

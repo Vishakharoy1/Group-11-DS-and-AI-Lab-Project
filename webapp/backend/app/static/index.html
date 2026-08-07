@@ -53,8 +53,13 @@
   <!-- ===================== 3. Cross-Domain Testing ===================== -->
   <section id="cross-domain-card" class="card">
     <h2>3. Cross-Domain Testing</h2>
-    <p class="placeholder">Dedicated cross-domain model (<code>mobilenetv3_cross_domain.pth</code>, trained on general non-face images) — upload an image OUTSIDE the face domain (animal, landscape, object) to see how it generalizes. Not yet available until that checkpoint is trained/downloaded from Kaggle.</p>
+    <p class="placeholder">Dedicated cross-domain model (<code>mobilenetv3_cross_domain.pth</code>, trained on general non-face images across Nano Banana, CIFAKE, CrossDomain, Places365, and Artifact) — upload an image OUTSIDE the face domain (animal, landscape, object) to see how it generalizes.</p>
 
+    <h3 style="margin-top:14px;">Example: One Real + One Fake Image (pre-loaded)</h3>
+    <p class="placeholder">Real image from <code>Test Sample/Cross Domain/Real/</code>, fake image from <code>Test Sample/Cross Domain/Fake/</code> — no upload needed, runs automatically.</p>
+    <div id="cross-example-body" class="placeholder">Running example…</div>
+
+    <h3 style="margin-top:20px;">Test Your Own Image</h3>
     <div class="drop-zone" id="drop-zone-crossdomain">
       <p>Drag &amp; drop a non-face image here, or click to choose a file</p>
       <input type="file" id="file-input-crossdomain" accept="image/*" hidden />
@@ -108,6 +113,10 @@
             <td><code>manipulations</code></td><td>64.0% (16/25)</td><td>68.8% (11/16)</td><td>66.4%</td>
             <td><span class="badge real">Mild</span> — moderate accuracy both ways</td>
           </tr>
+          <tr>
+            <td><code>cross_domain</code>*</td><td>64.3% (9/14)</td><td>100.0% (9/9)</td><td><strong>82.1%</strong></td>
+            <td><span class="badge fake">Mild</span> — leans toward "Fake" on non-face-domain images</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -118,6 +127,11 @@
       wrongly flagged 15 of 25 genuine real photos, which is a worse real-world failure mode
       (false-accusation risk) than its headline number suggests. <code>best</code> has the highest
       balanced accuracy and no systematic bias.
+    </p>
+    <p class="placeholder" style="margin-top:4px;">
+      * <code>cross_domain</code> was measured on a <strong>different, non-face image set</strong>
+      (<code>Test Sample/Cross Domain/</code>, 14 real + 9 fake) — not directly comparable to the
+      other three rows above, which were all measured on the same 25+25 face image set.
     </p>
 
     <h3 style="margin-top:24px;">Example: One Real + One Fake Image, All 3 Models</h3>
