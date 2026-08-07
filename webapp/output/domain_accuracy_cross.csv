@@ -1,0 +1,9 @@
+Domain,Class,N,Accuracy (%)
+FAKE,Fake,728,96.3
+Fake,Fake,2,100.0
+REAL,Real,734,85.3
+Real,Real,1,0.0
+artifact-dataset,Fake,1251,79.4
+data_256,Real,1521,93.3
+fake,Fake,720,97.2
+real,Real,746,95.0
