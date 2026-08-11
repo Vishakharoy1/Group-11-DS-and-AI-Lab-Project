@@ -18,6 +18,7 @@ function initTheme() {
 let activeAnalysis = null; // see buildAnalysisRecord() for shape
 let analysisCounter = 123;
 let availableModels = [];
+let analysisHistory = []; // every analysis run this session (newest first) - not persisted server-side yet
 
 function nextAnalysisId() {
   analysisCounter += 1;
@@ -38,6 +39,7 @@ function goToPage(pageKey) {
 
   if (pageKey === "gradcam") renderGradcamPage();
   if (pageKey === "report") renderReportPage();
+  if (pageKey === "history") renderHistoryPage();
   if (pageKey === "guide") renderGuidePage();
 }
 
@@ -248,9 +250,16 @@ async function runAnalysis(pageKey, modelKey) {
       generatedAt: nowString(),
     };
 
+    analysisHistory.unshift({ ...activeAnalysis, status: "completed" });
     renderResultCard(pageKey, resultArea);
   } catch (e) {
     resultArea.innerHTML = `<p style="color:var(--fake);">Analysis failed: ${e.message}</p>`;
+    analysisHistory.unshift({
+      analysisId: nextAnalysisId(), modelKey,
+      modelLabel: document.getElementById(`page-${pageKey}`).dataset.modelLabel,
+      filename: file.name, resolution: `${w} × ${h}`, previewUrl,
+      status: "failed", errorMessage: e.message, generatedAt: nowString(),
+    });
   } finally {
     container.dataset.locked = "";
     if (analyzeBtn) analyzeBtn.disabled = false;
@@ -600,6 +609,181 @@ async function urlToB64(url) {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result.split(",")[1]);
     reader.readAsDataURL(blob);
+  });
+}
+
+/* ===================== Analysis History page ===================== */
+function historyStatusBadge(status) {
+  if (status === "failed") return `<span class="badge" style="background:var(--fake-bg); color:var(--fake);">&#9888; Failed</span>`;
+  return `<span class="badge" style="background:var(--real-bg); color:var(--real);">&#10003; Completed</span>`;
+}
+
+function getFilteredHistory() {
+  const searchId = (document.getElementById("history-search-id")?.value || "").toLowerCase().trim();
+  const searchFile = (document.getElementById("history-search-filename")?.value || "").toLowerCase().trim();
+  const modelFilter = document.getElementById("history-filter-model")?.value || "all";
+  const predFilter = document.getElementById("history-filter-prediction")?.value || "all";
+
+  return analysisHistory.filter((r) => {
+    if (searchId && !r.analysisId.toLowerCase().includes(searchId)) return false;
+    if (searchFile && !r.filename.toLowerCase().includes(searchFile)) return false;
+    if (modelFilter !== "all" && r.modelKey !== modelFilter) return false;
+    if (predFilter !== "all") {
+      if (predFilter === "failed" && r.status !== "failed") return false;
+      if (predFilter === "real" && r.label !== "Real") return false;
+      if (predFilter === "fake" && r.label !== "Fake") return false;
+    }
+    return true;
+  });
+}
+
+function historyTableRowsHtml(rows) {
+  if (!rows.length) {
+    return `<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--muted);">No analyses match these filters.</td></tr>`;
+  }
+  return rows.map((r) => {
+    const isFailed = r.status === "failed";
+    const isReal = r.label === "Real";
+    const predictionCell = isFailed
+      ? `<span style="color:var(--muted);">&mdash;</span>`
+      : `<span style="color:${isReal ? "var(--real)" : "var(--fake)"}; font-weight:bold;">${isReal ? "AUTHENTIC" : "AI GENERATED"}</span>`;
+    const confidenceCell = isFailed ? "&mdash;" : `${(isReal ? r.realPct : r.fakePct).toFixed(2)}%`;
+    const actionCell = isFailed
+      ? `<span style="color:var(--muted); font-size:0.78rem;">${r.errorMessage || "Analysis failed"}</span>`
+      : `<button class="btn" style="padding:6px 14px; font-size:0.78rem;" onclick="viewHistoryEntry('${r.analysisId}')">View Details &#8594;</button>`;
+
+    return `
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:10px 8px; font-weight:bold;">${r.analysisId}</td>
+        <td style="padding:10px 8px; color:var(--muted); font-size:0.82rem;">${r.generatedAt}</td>
+        <td style="padding:10px 8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <img src="${r.previewUrl}" style="width:36px; height:36px; object-fit:cover; border-radius:6px; border:1px solid var(--border);" />
+            <div>
+              <div style="font-size:0.82rem;">${r.filename}</div>
+              ${r.resolution ? `<div style="font-size:0.72rem; color:var(--muted);">${r.resolution}</div>` : ""}
+            </div>
+          </div>
+        </td>
+        <td style="padding:10px 8px; font-size:0.82rem;">${r.modelLabel}</td>
+        <td style="padding:10px 8px;">${predictionCell}</td>
+        <td style="padding:10px 8px;">${confidenceCell}</td>
+        <td style="padding:10px 8px;">${historyStatusBadge(r.status)}</td>
+        <td style="padding:10px 8px;">${actionCell}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function refreshHistoryTable() {
+  const rows = getFilteredHistory();
+  document.getElementById("history-table-body").innerHTML = historyTableRowsHtml(rows);
+}
+
+function viewHistoryEntry(analysisId) {
+  const record = analysisHistory.find((r) => r.analysisId === analysisId);
+  if (!record || record.status === "failed") return;
+  activeAnalysis = record;
+  goToPage("report");
+}
+
+function renderHistoryPage() {
+  const body = document.getElementById("history-body");
+  const total = analysisHistory.length;
+  const mainCount = analysisHistory.filter((r) => r.modelKey === "noaug").length;
+  const crossCount = analysisHistory.filter((r) => r.modelKey === "cross_domain").length;
+  const completedCount = analysisHistory.filter((r) => r.status === "completed").length;
+  const successRate = total ? ((completedCount / total) * 100).toFixed(1) : "0.0";
+
+  if (total === 0) {
+    body.innerHTML = `
+      <div class="page-header">
+        <h1>ANALYSIS HISTORY</h1>
+        <p class="page-desc">Review previous image authenticity analyses, predictions, model results, and forensic reports.</p>
+      </div>
+      <div class="empty-state">
+        <div class="empty-state-icon">&#8986;</div>
+        <div class="empty-state-title">NO ANALYSES YET</div>
+        <div class="empty-state-sub">Run an analysis on the Main Model or Cross-Domain Model page and it will appear here.</div>
+        <button class="btn btn-primary" onclick="goToPage('main')">Go to Main Model</button>
+      </div>
+    `;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="page-header">
+      <h1>ANALYSIS HISTORY</h1>
+      <p class="page-desc">Review previous image authenticity analyses, predictions, model results, and forensic reports.</p>
+    </div>
+
+    <div class="history-stats">
+      <div class="history-stat-card">
+        <div class="history-stat-label">TOTAL ANALYSES</div>
+        <div class="history-stat-value">${total}</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">MAIN MODEL</div>
+        <div class="history-stat-value">${mainCount}</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">CROSS-DOMAIN MODEL</div>
+        <div class="history-stat-value">${crossCount}</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">SUCCESS RATE</div>
+        <div class="history-stat-value">${successRate}%</div>
+      </div>
+    </div>
+
+    <div class="history-filters">
+      <input type="text" id="history-search-id" class="history-input" placeholder="Search Analysis ID…" />
+      <input type="text" id="history-search-filename" class="history-input" placeholder="Search Filename…" />
+      <select id="history-filter-model" class="history-input">
+        <option value="all">All Models</option>
+        <option value="noaug">Main Model</option>
+        <option value="cross_domain">Cross-Domain Model</option>
+      </select>
+      <select id="history-filter-prediction" class="history-input">
+        <option value="all">All Results</option>
+        <option value="real">Authentic</option>
+        <option value="fake">AI Generated</option>
+        <option value="failed">Failed</option>
+      </select>
+      <button class="btn" id="history-clear-filters">&#8635; Clear Filters</button>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border); text-align:left; color:var(--muted); font-size:0.72rem; letter-spacing:0.04em;">
+            <th style="padding:8px;">ANALYSIS ID</th>
+            <th style="padding:8px;">DATE &amp; TIME</th>
+            <th style="padding:8px;">IMAGE</th>
+            <th style="padding:8px;">MODEL</th>
+            <th style="padding:8px;">PREDICTION</th>
+            <th style="padding:8px;">CONFIDENCE</th>
+            <th style="padding:8px;">STATUS</th>
+            <th style="padding:8px;">ACTION</th>
+          </tr>
+        </thead>
+        <tbody id="history-table-body">${historyTableRowsHtml(analysisHistory)}</tbody>
+      </table>
+    </div>
+  `;
+
+  ["history-search-id", "history-search-filename"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", refreshHistoryTable);
+  });
+  ["history-filter-model", "history-filter-prediction"].forEach((id) => {
+    document.getElementById(id).addEventListener("change", refreshHistoryTable);
+  });
+  document.getElementById("history-clear-filters").addEventListener("click", () => {
+    document.getElementById("history-search-id").value = "";
+    document.getElementById("history-search-filename").value = "";
+    document.getElementById("history-filter-model").value = "all";
+    document.getElementById("history-filter-prediction").value = "all";
+    refreshHistoryTable();
   });
 }
 
