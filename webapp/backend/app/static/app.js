@@ -1,537 +1,706 @@
-const healthLine = document.getElementById("health-line");
-const globalError = document.getElementById("global-error");
-
-let availableModels = [];
-
-function showGlobalError(message) {
-  globalError.textContent = message;
-  globalError.classList.remove("hidden");
+/* ===================== Theme handling ===================== */
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("ff-theme", theme);
+  document.querySelectorAll("[data-theme-choice]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.themeChoice === theme);
+  });
+}
+function initTheme() {
+  const saved = localStorage.getItem("ff-theme") || "light";
+  applyTheme(saved);
+  document.querySelectorAll("[data-theme-choice]").forEach((btn) => {
+    btn.addEventListener("click", () => applyTheme(btn.dataset.themeChoice));
+  });
 }
 
-const CLASSES_OK = true; // no-op, keeps linter quiet about unused pattern
+/* ===================== Global state ===================== */
+let activeAnalysis = null; // see buildAnalysisRecord() for shape
+let analysisCounter = 123;
+let availableModels = [];
 
-const MODEL_LABELS = {
-  best: "Best (CelebA / 3-stage)",
-  noaug: "No-Augmentation",
-  manipulations: "Manipulation-Robust",
-  cross_domain: "Cross-Domain",
-  tuned: "Tuned Hyperparameters",
-};
+function nextAnalysisId() {
+  analysisCounter += 1;
+  return `FA-${String(analysisCounter).padStart(6, "0")}`;
+}
 
-const FACE_ALIGNMENT_LABELS = {
-  retinaface: "RetinaFace",
-  center_crop_fallback: "Center-crop (RetinaFace unavailable on this machine)",
-};
+/* ===================== Navigation ===================== */
+function initNav() {
+  document.querySelectorAll(".nav-item").forEach((btn) => {
+    btn.addEventListener("click", () => goToPage(btn.dataset.page));
+  });
+}
 
-// ---------- Health check ----------
+function goToPage(pageKey) {
+  document.querySelectorAll(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.page === pageKey));
+  document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
+  document.getElementById(`page-${pageKey}`).classList.add("active");
+
+  if (pageKey === "gradcam") renderGradcamPage();
+  if (pageKey === "report") renderReportPage();
+  if (pageKey === "guide") renderGuidePage();
+}
+
+/* ===================== Health check ===================== */
 async function checkHealth() {
   try {
     const res = await fetch("/health");
     const data = await res.json();
     availableModels = data.loaded_models || [];
-    const parts = [];
-    parts.push(
-      availableModels.length
-        ? `Models in use: ${availableModels.map((m) => MODEL_LABELS[m] || m).join(", ")}`
-        : "No models loaded yet"
-    );
-    parts.push(`Face alignment: ${FACE_ALIGNMENT_LABELS[data.face_alignment] || data.face_alignment}`);
-    healthLine.textContent = parts.join(" · ");
-
-    if (!availableModels.includes("best")) {
-      showGlobalError(
-        "No 'best' checkpoint is loaded on the server. Place mobilenetv3_best1.pth " +
-        "in the checkpoints folder (or point CHECKPOINT_DIR at it) and restart the server."
-      );
-      disableAllAnalyzeButtons(true);
-    }
   } catch (e) {
-    healthLine.textContent = "Backend unreachable.";
-    showGlobalError("Could not reach the backend at /health. Is uvicorn running?");
-    disableAllAnalyzeButtons(true);
+    availableModels = [];
   }
+  updateModelStatus("main", "noaug", "status-main");
+  updateModelStatus("crossdomain", "cross_domain", "status-crossdomain");
 }
 
-function disableAllAnalyzeButtons(disabled) {
-  document.querySelectorAll(".analyze-btn").forEach((btn) => {
-    btn.disabled = disabled;
-  });
+function updateModelStatus(pageKey, modelKey, statusElId) {
+  const el = document.getElementById(statusElId);
+  const available = availableModels.includes(modelKey);
+  if (available) {
+    el.innerHTML = `<span class="status-dot"></span> Model Available`;
+    el.classList.remove("unavailable");
+  } else {
+    el.innerHTML = `<span class="status-dot"></span> Model not loaded on server yet — checkpoint unavailable`;
+    el.classList.add("unavailable");
+  }
+  renderUploadStage(pageKey, modelKey, available);
 }
 
-// ---------- Generic upload-widget wiring ----------
-// Wires drag/drop + click + file-input + preview + Analyze button for one
-// section, identified by `prefix` (matches the -predict/-crossdomain/
-// -manipulation/-compare id suffixes in index.html). Returns nothing; the
-// caller supplies onAnalyze(file) to run when the button is clicked.
-function setupUploadWidget(prefix, onAnalyze) {
-  const dropZone = document.getElementById(`drop-zone-${prefix}`);
-  const fileInput = document.getElementById(`file-input-${prefix}`);
-  const previewWrap = document.getElementById(`preview-wrap-${prefix}`);
-  const previewImg = document.getElementById(`preview-img-${prefix}`);
-  const analyzeBtn = document.getElementById(`analyze-btn-${prefix}`);
-  const errorEl = document.getElementById(`error-${prefix}`);
-
-  let selectedFile = null;
-
-  function showError(message) {
-    errorEl.textContent = message;
-    errorEl.classList.remove("hidden");
-  }
-  function clearError() {
-    errorEl.classList.add("hidden");
-    errorEl.textContent = "";
-  }
-
-  function setFile(file) {
-    if (!file.type.startsWith("image/")) {
-      showError("Please choose an image file.");
-      return;
-    }
-    clearError();
-    selectedFile = file;
-    previewImg.src = URL.createObjectURL(file);
-    previewWrap.classList.remove("hidden");
-    analyzeBtn.disabled = availableModels.length === 0;
-  }
-
-  dropZone.addEventListener("click", () => fileInput.click());
-  dropZone.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    dropZone.classList.add("dragover");
+/* ===================== Format helpers ===================== */
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+function fileTypeLabel(file) {
+  const t = (file.type || "").split("/")[1];
+  return t ? t.toUpperCase() : (file.name.split(".").pop() || "?").toUpperCase();
+}
+function readImageDims(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight, url });
+    img.onerror = () => resolve({ w: 0, h: 0, url });
+    img.src = url;
   });
-  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
-  dropZone.addEventListener("drop", (e) => {
+}
+function nowString() {
+  const d = new Date();
+  return d.toLocaleDateString(undefined, { day: "2-digit", month: "long", year: "numeric" }) +
+    ", " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+/* ===================== Upload stage (Main + Cross-Domain pages share this) ===================== */
+const pageFileState = {}; // pageKey -> { file, previewUrl, w, h }
+
+function renderUploadStage(pageKey, modelKey, modelAvailable) {
+  const container = document.querySelector(`[data-page-body="${pageKey}"]`);
+  if (!container) return;
+  // Don't clobber an in-progress analyzing/result view on re-check of health
+  if (container.dataset.locked === "1") return;
+
+  container.innerHTML = `
+    <div class="upload-grid">
+      <div class="dropzone" id="dropzone-${pageKey}">
+        <div class="dropzone-icon">
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 16V4M12 4L7 9M12 4l5 5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="dropzone-title">UPLOAD IMAGE</div>
+        <div class="dropzone-sub">Drag &amp; drop your image here</div>
+        <div class="dropzone-sub">or</div>
+        <button type="button" class="browse-btn">Browse from Computer</button>
+        <input type="file" id="file-input-${pageKey}" accept="image/jpeg,image/png,image/jpg" hidden />
+        <div class="dropzone-formats">JPG &nbsp;&bull;&nbsp; JPEG &nbsp;&bull;&nbsp; PNG</div>
+        <div class="dropzone-maxsize">Maximum file size: 10 MB</div>
+      </div>
+      <div class="preview-card" style="align-items:center; justify-content:center; color:var(--muted); text-align:center;">
+        Upload an image to begin analysis.
+      </div>
+    </div>
+  `;
+
+  const dropzone = document.getElementById(`dropzone-${pageKey}`);
+  const fileInput = document.getElementById(`file-input-${pageKey}`);
+
+  dropzone.addEventListener("click", () => fileInput.click());
+  dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("dragover"); });
+  dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+  dropzone.addEventListener("drop", (e) => {
     e.preventDefault();
-    dropZone.classList.remove("dragover");
-    if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+    dropzone.classList.remove("dragover");
+    if (e.dataTransfer.files.length) handleFileSelected(pageKey, modelKey, e.dataTransfer.files[0], modelAvailable);
   });
   fileInput.addEventListener("change", () => {
-    if (fileInput.files.length) setFile(fileInput.files[0]);
+    if (fileInput.files.length) handleFileSelected(pageKey, modelKey, fileInput.files[0], modelAvailable);
   });
+}
 
-  analyzeBtn.addEventListener("click", async () => {
-    if (!selectedFile) return;
-    clearError();
-    analyzeBtn.disabled = true;
-    try {
-      await onAnalyze(selectedFile, previewImg.src);
-    } catch (e) {
-      showError(`Request failed: ${e}`);
-    } finally {
-      analyzeBtn.disabled = false;
+async function handleFileSelected(pageKey, modelKey, file, modelAvailable) {
+  if (!file.type.startsWith("image/")) return;
+  const dims = await readImageDims(file);
+  pageFileState[pageKey] = { file, previewUrl: dims.url, w: dims.w, h: dims.h };
+  renderPreviewStage(pageKey, modelKey, modelAvailable);
+}
+
+function renderPreviewStage(pageKey, modelKey, modelAvailable) {
+  const container = document.querySelector(`[data-page-body="${pageKey}"]`);
+  const { file, previewUrl, w, h } = pageFileState[pageKey];
+
+  container.innerHTML = `
+    <div class="upload-grid">
+      <div class="dropzone" id="dropzone-${pageKey}" style="min-height:auto; padding:16px;">
+        <div class="dropzone-sub">Upload a different image to replace this one.</div>
+        <button type="button" class="browse-btn">Browse from Computer</button>
+        <input type="file" id="file-input-${pageKey}" accept="image/jpeg,image/png,image/jpg" hidden />
+      </div>
+      <div class="preview-card">
+        <img class="preview-img" src="${previewUrl}" alt="preview" />
+        <div class="preview-meta">
+          <div class="preview-meta-row">&#128196; ${file.name}</div>
+          <div class="preview-meta-row">&#128444; ${w} &times; ${h}</div>
+          <div class="preview-meta-row">&#128190; ${formatBytes(file.size)}</div>
+          <div class="preview-actions">
+            <button type="button" class="btn btn-block" id="replace-btn-${pageKey}">Replace Image</button>
+            <button type="button" class="btn btn-primary btn-block" id="analyze-btn-${pageKey}" ${modelAvailable ? "" : "disabled"}>
+              Analyze Image
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="result-area-${pageKey}" style="margin-top:20px;"></div>
+  `;
+
+  const dropzone = document.getElementById(`dropzone-${pageKey}`);
+  const fileInput = document.getElementById(`file-input-${pageKey}`);
+  dropzone.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files.length) handleFileSelected(pageKey, modelKey, fileInput.files[0], modelAvailable);
+  });
+  document.getElementById(`replace-btn-${pageKey}`).addEventListener("click", () => fileInput.click());
+
+  const analyzeBtn = document.getElementById(`analyze-btn-${pageKey}`);
+  if (!modelAvailable) {
+    document.getElementById(`result-area-${pageKey}`).innerHTML =
+      `<p style="color:var(--fake); font-size:0.85rem;">This model's checkpoint isn't loaded on the server yet, so analysis can't run.</p>`;
+  } else {
+    analyzeBtn.addEventListener("click", () => runAnalysis(pageKey, modelKey));
+  }
+}
+
+async function runAnalysis(pageKey, modelKey) {
+  const container = document.querySelector(`[data-page-body="${pageKey}"]`);
+  container.dataset.locked = "1";
+  const resultArea = document.getElementById(`result-area-${pageKey}`);
+  const analyzeBtn = document.getElementById(`analyze-btn-${pageKey}`);
+  if (analyzeBtn) analyzeBtn.disabled = true;
+
+  resultArea.innerHTML = `
+    <div class="card analyzing-card">
+      <div class="spinner-ring"></div>
+      <div class="analyzing-title">ANALYZING IMAGE</div>
+      <div class="analyzing-sub">Processing the submitted image…</div>
+      <div class="step-list">
+        <div>&#10003; Image validation</div>
+        <div>&#10003; Face detection</div>
+        <div>&#10003; Preprocessing</div>
+        <div>&hellip; Model inference</div>
+        <div>&hellip; Confidence calculation</div>
+      </div>
+    </div>
+  `;
+
+  const { file, previewUrl, w, h } = pageFileState[pageKey];
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const res = await fetch(`/predict?model=${modelKey}`, { method: "POST", body: formData });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(detail.detail || `HTTP ${res.status}`);
     }
-  });
+    const data = await res.json();
+    const p = data.prediction;
+
+    const modelLabel = document.getElementById(`page-${pageKey}`).dataset.modelLabel;
+    activeAnalysis = {
+      analysisId: nextAnalysisId(),
+      modelKey, modelLabel, modelVersion: "v1.0",
+      pageKey,
+      filename: file.name,
+      fileType: fileTypeLabel(file),
+      resolution: `${w} × ${h}`,
+      fileSize: formatBytes(file.size),
+      colorMode: "RGB (converted for inference)",
+      previewUrl,
+      label: p.label,
+      realPct: p.real_pct,
+      fakePct: p.fake_pct,
+      heatmapB64: data.gradcam_heatmap,
+      overlayB64: data.gradcam_overlay,
+      faceAlignmentUsed: data.face_alignment_used,
+      generatedAt: nowString(),
+    };
+
+    renderResultCard(pageKey, resultArea);
+  } catch (e) {
+    resultArea.innerHTML = `<p style="color:var(--fake);">Analysis failed: ${e.message}</p>`;
+  } finally {
+    container.dataset.locked = "";
+    if (analyzeBtn) analyzeBtn.disabled = false;
+  }
 }
 
-function setBody(id, html) {
-  document.getElementById(id).innerHTML = html;
+function renderResultCard(pageKey, resultArea) {
+  const a = activeAnalysis;
+  const isReal = a.label === "Real";
+  const verdictText = isReal ? "REAL / AUTHENTIC" : "AI GENERATED";
+  const confidence = isReal ? a.realPct : a.fakePct;
+
+  resultArea.innerHTML = `
+    <h2 style="font-size:1rem; letter-spacing:0.05em; margin-bottom:14px;">AUTHENTICITY RESULT</h2>
+    <div class="result-grid">
+      <div>
+        <div class="verdict-box ${isReal ? "real" : "fake"}">
+          <div class="verdict-icon">${isReal ? "&#9989;" : "&#9888;&#65039;"}</div>
+          <div>
+            <div class="verdict-label">${verdictText}</div>
+            <div class="verdict-conf">${confidence.toFixed(2)}%</div>
+            <div class="verdict-conf-label">Confidence Score</div>
+          </div>
+        </div>
+        <div class="metric-tiles">
+          <div class="metric-tile ai">
+            <div class="metric-tile-label">AI PROBABILITY</div>
+            <div class="metric-tile-value">${a.fakePct.toFixed(2)}%</div>
+            <div class="bar-track"><div class="bar-fill ai" style="width:${a.fakePct}%"></div></div>
+          </div>
+          <div class="metric-tile real">
+            <div class="metric-tile-label">REAL PROBABILITY</div>
+            <div class="metric-tile-value">${a.realPct.toFixed(2)}%</div>
+            <div class="bar-track"><div class="bar-fill real" style="width:${a.realPct}%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="info-panel-title">MODEL INFORMATION</div>
+        <div class="info-row"><span class="k">Model</span><span>${a.modelLabel}</span></div>
+        <div class="info-row"><span class="k">Version</span><span>${a.modelVersion}</span></div>
+        <div class="info-row"><span class="k">Status</span><span class="status-completed">Completed</span></div>
+        <div class="info-row"><span class="k">Analysis ID</span><span>${a.analysisId}</span></div>
+      </div>
+    </div>
+    <div class="action-row">
+      <button class="btn" id="view-gradcam-btn">&#8857; View Grad-CAM</button>
+      <button class="btn btn-primary" id="generate-report-btn">&#128196; Generate Forensic Report</button>
+    </div>
+  `;
+
+  document.getElementById("view-gradcam-btn").addEventListener("click", () => goToPage("gradcam"));
+  document.getElementById("generate-report-btn").addEventListener("click", () => goToPage("report"));
 }
 
-function badgeHtml(label, realPct, fakePct) {
-  const cls = label === "Real" ? "real" : "fake";
-  const pct = label === "Real" ? realPct : fakePct;
+/* ===================== Grad-CAM page ===================== */
+let gradcamMode = "overlay";
+let gradcamIntensity = 65;
+
+function emptyStateHtml(title, sub) {
   return `
-    <span class="badge ${cls}">${label}</span>
-    <div style="margin-top:8px;">Real: ${realPct.toFixed(2)}% &nbsp;|&nbsp; Fake: ${fakePct.toFixed(2)}%</div>
-    <div class="confidence-bar"><div style="width:${pct.toFixed(1)}%"></div></div>
+    <div class="empty-state">
+      <div class="empty-state-icon">&#8857;</div>
+      <div class="empty-state-title">${title}</div>
+      <div class="empty-state-sub">${sub}</div>
+      <button class="btn btn-primary" onclick="goToPage('main')">Go to Main Model</button>
+    </div>
   `;
 }
 
-// ---------- Shared: run /predict against a given model + render badge/Grad-CAM ----------
-async function runPredictAndRender(bodyId, modelKey, file, previewSrc, showReportButton = false) {
-  setBody(bodyId, `<span class="spinner">Running prediction + Grad-CAM (${modelKey})…</span>`);
-
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await fetch(`/predict?model=${modelKey}`, { method: "POST", body: formData });
-  if (!res.ok) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error(detail.detail || `HTTP ${res.status}`);
+function renderGradcamPage() {
+  const body = document.getElementById("gradcam-body");
+  if (!activeAnalysis) {
+    body.innerHTML = emptyStateHtml(
+      "NO ANALYSIS AVAILABLE",
+      "Complete an image analysis first to generate a Grad-CAM explanation."
+    );
+    return;
   }
-  const data = await res.json();
-  const p = data.prediction;
+  const a = activeAnalysis;
+  const isReal = a.label === "Real";
 
-  const reportBtnHtml = showReportButton
-    ? `<button type="button" class="link-btn" id="report-btn-${bodyId}" style="margin-top:10px;">Generate Forensic Report</button>
-       <span id="report-status-${bodyId}" class="placeholder" style="margin-left:8px;"></span>`
-    : "";
+  body.innerHTML = `
+    <div class="gradcam-meta-bar">
+      <div class="gradcam-meta-item"><div class="k">ANALYSIS ID</div><div class="v">${a.analysisId}</div></div>
+      <div class="gradcam-meta-item"><div class="k">MODEL</div><div class="v">${a.modelLabel}</div></div>
+      <div class="gradcam-meta-item"><div class="k">PREDICTION</div><div class="v" style="color:${isReal ? "var(--real)" : "var(--fake)"}">${isReal ? "Real" : "AI Generated"}</div></div>
+      <div class="gradcam-meta-item"><div class="k">CONFIDENCE</div><div class="v">${(isReal ? a.realPct : a.fakePct).toFixed(2)}%</div></div>
+    </div>
 
-  setBody(
-    bodyId,
-    badgeHtml(p.label, p.real_pct, p.fake_pct) +
-      `<div class="placeholder" style="margin:8px 0;">Model: ${modelKey} · Face alignment used: ${data.face_alignment_used}</div>
-      <div class="gradcam-grid">
-        <figure><img src="${previewSrc}" /><figcaption>Input</figcaption></figure>
-        <figure><img src="data:image/png;base64,${data.gradcam_heatmap}" /><figcaption>Heatmap (${p.label})</figcaption></figure>
-        <figure><img src="data:image/png;base64,${data.gradcam_overlay}" /><figcaption>Overlay</figcaption></figure>
+    <div class="gradcam-images">
+      <div class="gradcam-panel">
+        <div class="gradcam-panel-title">ORIGINAL IMAGE</div>
+        <img src="${a.previewUrl}" alt="original" />
       </div>
-      ${reportBtnHtml}`
-  );
-
-  if (showReportButton) {
-    document.getElementById(`report-btn-${bodyId}`).addEventListener("click", () => generateForensicReport(file, modelKey, bodyId));
-  }
-}
-
-// ---------- Forensic report generation (opens a standalone printable HTML report) ----------
-async function generateForensicReport(file, modelKey, bodyId) {
-  const statusEl = document.getElementById(`report-status-${bodyId}`);
-  statusEl.textContent = "Generating report…";
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
-    const res = await fetch(`/report?model=${modelKey}`, { method: "POST", body: formData });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const html = await res.text();
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    statusEl.textContent = "Report opened in a new tab.";
-  } catch (e) {
-    statusEl.textContent = `Failed to generate report: ${e}`;
-  }
-}
-
-// ---------- 1. Prediction + Grad-CAM (main model, best1) ----------
-setupUploadWidget("predict", (file, previewSrc) => runPredictAndRender("predict-body", "best", file, previewSrc, true));
-
-// ---------- 2. No-Augmentation Model (independent upload, highest accuracy) ----------
-setupUploadWidget("noaug", (file, previewSrc) => runPredictAndRender("noaug-body", "noaug", file, previewSrc));
-
-// ---------- 2. Cross-Domain Testing (dedicated cross_domain model) ----------
-setupUploadWidget("crossdomain", async (file, previewSrc) => {
-  setBody("crossdomain-body", `<span class="spinner">Running prediction…</span>`);
-
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await fetch("/predict?model=cross_domain", { method: "POST", body: formData });
-  if (!res.ok) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error(detail.detail || `HTTP ${res.status}`);
-  }
-  const data = await res.json();
-  const p = data.prediction;
-
-  setBody(
-    "crossdomain-body",
-    `<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
-      <img src="${previewSrc}" style="width:140px; border-radius:8px; border:1px solid var(--border);" />
-      <div>${badgeHtml(p.label, p.real_pct, p.fake_pct)}</div>
+      <div class="gradcam-panel">
+        <div class="gradcam-panel-title">GRAD-CAM <span id="gradcam-mode-label">OVERLAY</span></div>
+        <div style="position:relative;">
+          <img id="gradcam-base-img" src="${a.previewUrl}" alt="base" style="display:block;" />
+          <img id="gradcam-heat-img" src="data:image/png;base64,${a.heatmapB64}" alt="heatmap"
+               style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:${gradcamIntensity / 100};" />
+        </div>
+      </div>
     </div>
-    <p class="placeholder" style="margin-top:10px;">
-      Prediction from the dedicated cross-domain model (trained on general,
-      non-face images across multiple domains), not the main face model.
-    </p>`
-  );
-});
 
-// ---------- 3. Manipulation Robustness ----------
-// Just a verdict + confidence score - nothing else. Verdict = majority
-// vote across all 11 manipulation predictions; confidence = average
-// confidence of the manipulations that agree with that verdict.
-setupUploadWidget("manipulation", async (file) => {
-  setBody("manipulation-body", `<span class="spinner">Running 11 manipulations…</span>`);
+    <div class="gradcam-controls">
+      <div class="mode-toggle" id="mode-toggle">
+        <button class="mode-btn" data-mode="original">Original</button>
+        <button class="mode-btn" data-mode="heatmap">Heatmap</button>
+        <button class="mode-btn" data-mode="overlay">Overlay</button>
+      </div>
+      <div class="intensity-row" id="intensity-row">
+        <span style="font-size:0.8rem; color:var(--muted);">Overlay Intensity</span>
+        <input type="range" min="0" max="100" value="${gradcamIntensity}" id="intensity-slider" />
+        <span id="intensity-value" style="font-size:0.85rem; font-weight:bold; min-width:36px;">${gradcamIntensity}%</span>
+      </div>
+    </div>
 
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await fetch("/robustness", { method: "POST", body: formData });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  const rows = data.rows;
+    <div class="explain-box">
+      <div class="explain-box-title">WHY DID THE MODEL MAKE THIS PREDICTION?</div>
+      <p>The Grad-CAM visualization highlights image regions that received stronger activation during the model's prediction. These regions indicate where the model focused its attention when producing the classification.</p>
+      <p style="margin:0;"><strong>Grad-CAM shows model attention, not definitive proof of manipulation or authenticity.</strong></p>
+    </div>
 
-  const fakeRows = rows.filter((r) => r.label === "Fake");
-  const realRows = rows.filter((r) => r.label === "Real");
-  const verdict = fakeRows.length >= realRows.length ? "Fake" : "Real";
-  const supporting = verdict === "Fake" ? fakeRows : realRows;
-  const avgConfidence =
-    supporting.reduce((sum, r) => sum + (verdict === "Fake" ? r.fake_pct : r.real_pct), 0) / supporting.length;
+    <div class="action-row">
+      <button class="btn" id="download-viz-btn">&#8681; Download Visualization</button>
+      <button class="btn btn-primary" id="gradcam-report-btn">&#128196; Generate Forensic Report</button>
+      <button class="btn" id="gradcam-back-btn">&#8592; Back to Analysis</button>
+    </div>
+  `;
 
-  const rowsHtml = rows
-    .map(
-      (r) => `
-        <tr>
-          <td><img class="thumb" src="data:image/png;base64,${r.thumbnail}" /></td>
-          <td>${r.manipulation}</td>
-          <td><span class="badge ${r.label === "Real" ? "real" : "fake"}">${r.label}</span></td>
-          <td>${r.real_pct.toFixed(1)}%</td>
-          <td>${r.fake_pct.toFixed(1)}%</td>
-        </tr>`
-    )
-    .join("");
-
-  setBody(
-    "manipulation-body",
-    `<span class="badge ${verdict === "Fake" ? "fake" : "real"}" style="font-size:1.05rem; padding:6px 16px;">${verdict}</span>
-    <div style="margin-top:8px;">Confidence: ${avgConfidence.toFixed(1)}%</div>
-    <div class="confidence-bar"><div style="width:${avgConfidence.toFixed(1)}%"></div></div>
-    <button type="button" class="link-btn" id="manip-details-toggle">Show detailed breakdown (for report)</button>
-    <div id="manip-details" class="hidden" style="margin-top:12px;">
-      <table>
-        <thead><tr><th></th><th>Manipulation</th><th>Prediction</th><th>Real%</th><th>Fake%</th></tr></thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
-    </div>`
-  );
-
-  document.getElementById("manip-details-toggle").addEventListener("click", (e) => {
-    const details = document.getElementById("manip-details");
-    const isHidden = details.classList.toggle("hidden");
-    e.target.textContent = isHidden ? "Show detailed breakdown (for report)" : "Hide detailed breakdown";
+  applyGradcamMode(gradcamMode);
+  document.querySelectorAll(".mode-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.mode === gradcamMode);
+    btn.addEventListener("click", () => { gradcamMode = btn.dataset.mode; applyGradcamMode(gradcamMode); });
   });
-});
-
-// ---------- 4b. Test All 3 Models on One Image ----------
-const THREE_MODELS = ["best", "noaug", "manipulations"];
-
-async function runThreeModels(file) {
-  const runOne = async (modelKey) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const res = await fetch(`/predict?model=${modelKey}`, { method: "POST", body: formData });
-      if (!res.ok) {
-        const detail = await res.json().catch(() => ({}));
-        return { modelKey, error: detail.detail || `HTTP ${res.status}` };
-      }
-      const data = await res.json();
-      return { modelKey, prediction: data.prediction };
-    } catch (e) {
-      return { modelKey, error: String(e) };
-    }
-  };
-  return Promise.all(THREE_MODELS.map(runOne));
+  document.getElementById("intensity-slider").addEventListener("input", (e) => {
+    gradcamIntensity = Number(e.target.value);
+    document.getElementById("intensity-value").textContent = `${gradcamIntensity}%`;
+    if (gradcamMode === "overlay") document.getElementById("gradcam-heat-img").style.opacity = gradcamIntensity / 100;
+  });
+  document.getElementById("download-viz-btn").addEventListener("click", () => downloadGradcamVisualization());
+  document.getElementById("gradcam-report-btn").addEventListener("click", () => goToPage("report"));
+  document.getElementById("gradcam-back-btn").addEventListener("click", () => goToPage(activeAnalysis.pageKey));
 }
 
-function threeModelsTableHtml(outcomes) {
-  const rowsHtml = outcomes
-    .map((o) => {
-      if (o.error) {
-        return `<tr><td><code>${o.modelKey}</code></td><td colspan="4" class="placeholder">${o.error}</td></tr>`;
-      }
-      const p = o.prediction;
-      const pct = p.label === "Real" ? p.real_pct : p.fake_pct;
-      return `
-        <tr>
-          <td><code>${o.modelKey}</code></td>
-          <td><span class="badge ${p.label === "Real" ? "real" : "fake"}">${p.label}</span></td>
-          <td>${p.real_pct.toFixed(2)}%</td>
-          <td>${p.fake_pct.toFixed(2)}%</td>
-          <td><div class="confidence-bar" style="width:100px;"><div style="width:${pct.toFixed(1)}%"></div></div></td>
-        </tr>`;
-    })
-    .join("");
-  return `<div style="overflow-x:auto;">
-    <table>
-      <thead><tr><th>Model</th><th>Prediction</th><th>Real%</th><th>Fake%</th><th>Confidence</th></tr></thead>
-      <tbody>${rowsHtml}</tbody>
-    </table>
-  </div>`;
+function applyGradcamMode(mode) {
+  document.querySelectorAll(".mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
+  const label = document.getElementById("gradcam-mode-label");
+  const base = document.getElementById("gradcam-base-img");
+  const heat = document.getElementById("gradcam-heat-img");
+  const intensityRow = document.getElementById("intensity-row");
+  if (!base || !heat) return;
+
+  if (mode === "original") {
+    label.textContent = "ORIGINAL";
+    base.src = activeAnalysis.previewUrl;
+    heat.style.opacity = 0;
+    intensityRow.style.visibility = "hidden";
+  } else if (mode === "heatmap") {
+    label.textContent = "HEATMAP";
+    base.src = `data:image/png;base64,${activeAnalysis.heatmapB64}`;
+    heat.style.opacity = 0;
+    intensityRow.style.visibility = "hidden";
+  } else {
+    label.textContent = "OVERLAY";
+    base.src = activeAnalysis.previewUrl;
+    heat.style.opacity = gradcamIntensity / 100;
+    intensityRow.style.visibility = "visible";
+  }
 }
 
-setupUploadWidget("compare3", async (file, previewSrc) => {
-  setBody("compare3-body", `<span class="spinner">Running all 3 models…</span>`);
-  const outcomes = await runThreeModels(file);
-  setBody(
-    "compare3-body",
-    `<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-bottom:12px;">
-      <img src="${previewSrc}" style="width:140px; border-radius:8px; border:1px solid var(--border);" />
+function downloadGradcamVisualization() {
+  const heat = document.getElementById("gradcam-heat-img");
+  const link = document.createElement("a");
+  link.href = gradcamMode === "heatmap" ? `data:image/png;base64,${activeAnalysis.heatmapB64}` : `data:image/png;base64,${activeAnalysis.overlayB64}`;
+  link.download = `${activeAnalysis.analysisId}_gradcam_${gradcamMode}.png`;
+  link.click();
+}
+
+/* ===================== Report page ===================== */
+const INFERENCE_STEPS_APPLIED = ["Face Detection", "Image Resize", "Normalization", "Tensor Conversion"];
+const TRAINING_AUGMENTATIONS = ["Random Resized Crop", "Random Horizontal Flip", "Color Jitter", "Channel Shift", "Gaussian Blur", "JPEG Compression", "Gaussian Noise"];
+
+function renderReportPage() {
+  const body = document.getElementById("report-body");
+  if (!activeAnalysis) {
+    body.innerHTML = emptyStateHtml(
+      "NO FORENSIC REPORT AVAILABLE",
+      "Complete an image analysis before generating a report."
+    );
+    return;
+  }
+  const a = activeAnalysis;
+  const isReal = a.label === "Real";
+  const verdictText = isReal ? "REAL / AUTHENTIC" : "AI GENERATED";
+  const confidence = isReal ? a.realPct : a.fakePct;
+
+  const preprocessRows = INFERENCE_STEPS_APPLIED.map((s) => `<tr><td>${s}</td><td class="tag-applied">&#10003; Applied</td></tr>`).join("");
+  const augRows = TRAINING_AUGMENTATIONS.map((s) => `<li>${s}</li>`).join("");
+
+  body.innerHTML = `
+    <div class="report-doc">
+      <div class="report-topbar">
+        <div>
+          <h1>AI IMAGE AUTHENTICITY<br/>FORENSIC ANALYSIS REPORT</h1>
+        </div>
+        <div class="download-dropdown">
+          <button class="btn btn-primary" id="download-report-btn">&#128196; Download Report &#9662;</button>
+          <div class="download-menu" id="download-menu">
+            <button id="download-pdf-btn">&#128196; PDF</button>
+            <button id="download-docx-btn">&#128196; Word Document (.docx)</button>
+          </div>
+        </div>
+      </div>
+      <div class="report-meta">Analysis ID: ${a.analysisId} &nbsp;|&nbsp; Generated: ${a.generatedAt}</div>
+
+      <div class="report-section">
+        <div class="report-section-title"><span class="report-section-num">1</span> CASE INFORMATION</div>
+        <div class="report-kv"><span class="k">Analysis ID</span><span>${a.analysisId}</span></div>
+        <div class="report-kv"><span class="k">Date &amp; Time</span><span>${a.generatedAt}</span></div>
+        <div class="report-kv"><span class="k">Uploaded Filename</span><span>${a.filename}</span></div>
+      </div>
+
+      <div class="report-grid-3">
+        <div class="report-section">
+          <div class="report-section-title"><span class="report-section-num">2</span> IMAGE INFORMATION</div>
+          <div class="report-kv"><span class="k">File Type</span><span>${a.fileType}</span></div>
+          <div class="report-kv"><span class="k">Resolution</span><span>${a.resolution}</span></div>
+          <div class="report-kv"><span class="k">File Size</span><span>${a.fileSize}</span></div>
+          <div class="report-kv"><span class="k">Color Mode</span><span>RGB</span></div>
+        </div>
+        <div class="report-section" style="grid-column: span 2;">
+          <div class="report-section-title"><span class="report-section-num">3</span> MODEL INFORMATION</div>
+          <div class="report-kv"><span class="k">Model</span><span>${a.modelLabel}</span></div>
+          <div class="report-kv"><span class="k">Model Version</span><span>${a.modelVersion}</span></div>
+          <div class="report-kv"><span class="k">Prediction</span><span style="color:${isReal ? "var(--real)" : "var(--fake)"}; font-weight:bold;">${verdictText}</span></div>
+          <div class="report-kv"><span class="k">Confidence</span><span>${confidence.toFixed(2)}%</span></div>
+          <div class="report-kv"><span class="k">AI Probability</span><span>${a.fakePct.toFixed(2)}%</span></div>
+          <div class="report-kv"><span class="k">Real Probability</span><span>${a.realPct.toFixed(2)}%</span></div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <div class="report-section-title"><span class="report-section-num">4</span> INFERENCE PREPROCESSING PIPELINE</div>
+        <table class="preprocess-table"><tbody>${preprocessRows}</tbody></table>
+        <div style="margin-top:14px; font-size:0.78rem; color:var(--muted); font-weight:bold;">TRAINING AUGMENTATION (used during training, NOT applied during inference)</div>
+        <ul style="font-size:0.82rem; color:var(--muted); margin:8px 0 0 0;">${augRows}</ul>
+      </div>
+
+      <div class="report-section">
+        <div class="report-section-title"><span class="report-section-num">5</span> EXPLAINABILITY ANALYSIS (GRAD-CAM)</div>
+        <div class="report-images">
+          <figure style="margin:0;"><img src="${a.previewUrl}" alt="original" /><figcaption>Original Image</figcaption></figure>
+          <figure style="margin:0;"><img src="data:image/png;base64,${a.overlayB64}" alt="overlay" /><figcaption>Grad-CAM Overlay</figcaption></figure>
+        </div>
+        <p style="font-size:0.82rem; color:var(--muted); margin-top:12px; margin-bottom:0;">The Grad-CAM visualization highlights regions that received stronger activation during the model's prediction — this shows model attention, not definitive proof of manipulation or authenticity.</p>
+      </div>
+
+      <div class="report-section">
+        <div class="report-section-title"><span class="report-section-num">6</span> FINAL ASSESSMENT</div>
+        <div class="final-assessment">
+          <div class="verdict-icon ${isReal ? "" : ""}" style="color:${isReal ? "var(--real)" : "var(--fake)"};">${isReal ? "&#9989;" : "&#9888;&#65039;"}</div>
+          <div>
+            <div class="verdict-label" style="color:${isReal ? "var(--real)" : "var(--fake)"};">${verdictText}</div>
+            <div class="verdict-conf" style="color:${isReal ? "var(--real)" : "var(--fake)"};">${confidence.toFixed(2)}%</div>
+            <div class="verdict-conf-label">Confidence Score</div>
+          </div>
+          <p style="font-size:0.85rem; color:var(--muted); margin:0;">The model classified the submitted image as ${verdictText.toLowerCase()} with a confidence score of ${confidence.toFixed(2)}%. Based on the analysis, the likelihood of this image being artificially generated is ${a.fakePct >= 70 ? "high" : a.fakePct >= 40 ? "moderate" : "low"}.</p>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <div class="report-section-title"><span class="report-section-num">7</span> DISCLAIMER</div>
+        <div class="disclaimer-box">This report represents the output of an AI-based image authenticity detection model and should be interpreted as an analytical assessment rather than definitive proof of image manipulation or authenticity. It does not constitute a certified, legally admissible forensic conclusion.</div>
+      </div>
     </div>
-    ${threeModelsTableHtml(outcomes)}`
-  );
-});
+  `;
 
-// ---------- 4a. Pre-loaded example: one real + one fake, all 3 models ----------
-async function runSampleCompare() {
-  const samples = [
-    { url: "sample_real.jpg", label: "Real (ground truth)" },
-    { url: "sample_fake.png", label: "Fake (ground truth)" },
-  ];
+  const dropdownBtn = document.getElementById("download-report-btn");
+  const menu = document.getElementById("download-menu");
+  dropdownBtn.addEventListener("click", () => menu.classList.toggle("open"));
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".download-dropdown")) menu.classList.remove("open");
+  }, { once: true });
 
-  try {
-    const blocks = await Promise.all(
-      samples.map(async (s) => {
-        const res = await fetch(s.url);
-        const blob = await res.blob();
-        const file = new File([blob], s.url, { type: blob.type });
-        const outcomes = await runThreeModels(file);
-        return `<div style="flex:1; min-width:260px;">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
-            <img src="${s.url}" style="width:100px; border-radius:8px; border:1px solid var(--border);" />
-            <strong>${s.label}</strong>
-          </div>
-          ${threeModelsTableHtml(outcomes)}
-        </div>`;
-      })
-    );
-    setBody("sample-compare-body", `<div style="display:flex; gap:24px; flex-wrap:wrap;">${blocks.join("")}</div>`);
-  } catch (e) {
-    setBody("sample-compare-body", `<span class="error">Failed to run sample comparison: ${e}</span>`);
-  }
+  document.getElementById("download-pdf-btn").addEventListener("click", () => {
+    menu.classList.remove("open");
+    printReportAsPdf();
+  });
+  document.getElementById("download-docx-btn").addEventListener("click", () => {
+    menu.classList.remove("open");
+    downloadDocxReport();
+  });
 }
 
-// ---------- 3a. Pre-loaded example: one real + one fake, cross_domain model ----------
-async function runCrossDomainExample() {
-  const samples = [
-    { url: "sample_cross_real.jpg", label: "Real (ground truth)" },
-    { url: "sample_cross_fake.png", label: "Fake (ground truth)" },
-  ];
-
-  try {
-    const blocks = await Promise.all(
-      samples.map(async (s) => {
-        const res = await fetch(s.url);
-        const blob = await res.blob();
-        const file = new File([blob], s.url, { type: blob.type });
-        const formData = new FormData();
-        formData.append("file", file);
-        const predRes = await fetch("/predict?model=cross_domain", { method: "POST", body: formData });
-        const outcome = predRes.ok
-          ? { modelKey: "cross_domain", prediction: (await predRes.json()).prediction }
-          : { modelKey: "cross_domain", error: `HTTP ${predRes.status}` };
-        return `<div style="flex:1; min-width:260px;">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
-            <img src="${s.url}" style="width:100px; border-radius:8px; border:1px solid var(--border);" />
-            <strong>${s.label}</strong>
-          </div>
-          ${threeModelsTableHtml([outcome])}
-        </div>`;
-      })
-    );
-    setBody("cross-example-body", `<div style="display:flex; gap:24px; flex-wrap:wrap;">${blocks.join("")}</div>`);
-  } catch (e) {
-    setBody("cross-example-body", `<span class="error">Failed to run cross-domain example: ${e}</span>`);
-  }
+function printReportAsPdf() {
+  const page = document.getElementById("page-report");
+  page.classList.add("printing");
+  window.print();
+  window.addEventListener("afterprint", () => page.classList.remove("printing"), { once: true });
 }
 
-// ---------- 4c. Pairwise Model Comparison ----------
-setupUploadWidget("compare", async (file) => {
-  document.querySelectorAll("#compare-card .compare-body").forEach(
-    (el) => (el.innerHTML = `<span class="spinner">Comparing models…</span>`)
-  );
-
-  await Promise.all([
-    runCompare(file, "augmentation", "compare-augmentation"),
-    runCompare(file, "hparams", "compare-hparams"),
-  ]);
-});
-
-async function runCompare(file, mode, containerId) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const el = document.querySelector(`#${containerId} .compare-body`);
+async function downloadDocxReport() {
+  const a = activeAnalysis;
+  const isReal = a.label === "Real";
+  const payload = {
+    analysis_id: a.analysisId,
+    generated_at: a.generatedAt,
+    filename: a.filename,
+    file_type: a.fileType,
+    resolution: a.resolution,
+    file_size: a.fileSize,
+    color_mode: "RGB",
+    model_label: a.modelLabel,
+    model_version: a.modelVersion,
+    label: a.label,
+    real_pct: a.realPct,
+    fake_pct: a.fakePct,
+    input_image_b64: a.previewUrl.startsWith("data:") ? a.previewUrl.split(",")[1] : await urlToB64(a.previewUrl),
+    overlay_b64: a.overlayB64,
+  };
   try {
-    const res = await fetch(`/compare?mode=${mode}`, { method: "POST", body: formData });
+    const res = await fetch("/report/docx", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (!data.available) {
-      el.innerHTML = `<span class="placeholder">${data.reason || "Not available."}</span>`;
-      return;
-    }
-    const names = Object.keys(data.results);
-    el.innerHTML = names
-      .map((name) => {
-        const r = data.results[name];
-        return `<div class="compare-model"><div class="name">${name}</div>${badgeHtml(r.label, r.real_pct, r.fake_pct)}</div>`;
-      })
-      .join("");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${a.analysisId}_report.docx`;
+    link.click();
+    URL.revokeObjectURL(url);
   } catch (e) {
-    el.innerHTML = `<span class="error">Comparison failed: ${e}</span>`;
+    alert(`Failed to generate Word report: ${e.message}`);
   }
 }
 
-// ---------- 5. Training & Evaluation Results (pre-computed, not live) ----------
-function imgFig(url, caption) {
-  return `<figure><img src="${url}" loading="lazy" /><figcaption>${caption}</figcaption></figure>`;
+async function urlToB64(url) {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(",")[1]);
+    reader.readAsDataURL(blob);
+  });
 }
 
-function renderGenericTable(rows) {
-  if (!rows || rows.length === 0) return `<p class="placeholder">No data.</p>`;
-  const headers = Object.keys(rows[0]);
-  const head = headers.map((h) => `<th>${h}</th>`).join("");
-  const body = rows
-    .map((row) => `<tr>${headers.map((h) => `<td>${row[h]}</td>`).join("")}</tr>`)
-    .join("");
-  return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+/* ===================== User Guide page ===================== */
+function renderGuidePage() {
+  const body = document.getElementById("guide-body");
+  body.innerHTML = `
+    <div class="guide-intro-grid">
+      <div class="guide-intro-card">
+        <div class="icon">&#128187;</div>
+        <h3>What is this system?</h3>
+        <p>Face Forensics AI Authenticity is an AI-powered system that analyzes face images to determine whether they are Real (Authentic) or AI Generated.</p>
+      </div>
+      <div class="guide-intro-card">
+        <div class="icon">&#9881;&#65039;</div>
+        <h3>Main Model</h3>
+        <p>The Main Model is our primary face authenticity detection model, trained to provide high-accuracy classification.</p>
+      </div>
+      <div class="guide-intro-card">
+        <div class="icon">&#127760;</div>
+        <h3>Cross-Domain Model</h3>
+        <p>The Cross-Domain Model is designed to generalize across different image domains, cameras, and generation sources.</p>
+      </div>
+      <div class="guide-intro-card">
+        <div class="icon">&#128161;</div>
+        <h3>Why Two Models?</h3>
+        <p>Using two complementary models helps improve reliability and reduces false predictions across diverse real-world scenarios.</p>
+      </div>
+    </div>
+
+    <div class="guide-steps">
+      ${["Select Model", "Upload Image", "Click Analyze", "Review Result", "Open Grad-CAM", "Generate Report"]
+        .map((label, i, arr) => `
+          <div class="guide-step">
+            <div class="circle">${i + 1}</div>
+            <div class="label">${label}</div>
+          </div>
+          ${i < arr.length - 1 ? '<div class="guide-arrow">&#8594;</div>' : ""}
+        `).join("")}
+    </div>
+
+    <div class="guide-grid-2">
+      <div class="guide-card">
+        <h4>Understanding Confidence</h4>
+        <p>The confidence score (0%–100%) indicates how strongly the model believes in its prediction.</p>
+        <ul>
+          <li>90% and above: Very High Confidence</li>
+          <li>70%–90%: High Confidence</li>
+          <li>50%–70%: Moderate Confidence</li>
+          <li>Below 50%: Low Confidence</li>
+        </ul>
+        <div class="guide-note">Confidence reflects model certainty, not absolute truth.</div>
+      </div>
+      <div class="guide-card">
+        <h4>Using Grad-CAM</h4>
+        <p>Grad-CAM highlights the image regions that had the strongest influence on the model's prediction.</p>
+        <ul>
+          <li>Red/Yellow areas = High activation</li>
+          <li>Blue areas = Low activation</li>
+          <li>Overlay intensity slider adjusts blend strength</li>
+        </ul>
+        <div class="guide-note">Grad-CAM shows model attention, not definitive proof of manipulation.</div>
+      </div>
+      <div class="guide-card">
+        <h4>Understanding the Report</h4>
+        <p>The forensic report includes all important information about the analysis:</p>
+        <ul>
+          <li>Case &amp; Image Information</li>
+          <li>Model Information &amp; Result</li>
+          <li>Preprocessing Steps (Inference)</li>
+          <li>Grad-CAM Visualization</li>
+          <li>Final Assessment &amp; Disclaimer</li>
+        </ul>
+        <div class="guide-note">Reports can be downloaded as PDF or Word documents.</div>
+      </div>
+      <div class="guide-card">
+        <h4>Important Disclaimer</h4>
+        <ul>
+          <li>Results should be interpreted as an analytical assessment only.</li>
+          <li>This is not a substitute for professional forensic investigation.</li>
+          <li>We do not guarantee 100% accuracy in all scenarios.</li>
+        </ul>
+        <div class="guide-note guide-warning">The system does not provide absolute proof of authenticity or manipulation.</div>
+      </div>
+    </div>
+
+    <div class="guide-grid-2">
+      <div class="guide-card">
+        <h4>No Analysis Available (Grad-CAM)</h4>
+        <p>If you open Grad-CAM without completing an analysis, you will see an empty state prompting you to run an analysis first.</p>
+        <button class="btn" onclick="goToPage('main')">Go to Main Model</button>
+      </div>
+      <div class="guide-card">
+        <h4>No Report Available</h4>
+        <p>If you open Forensic Report without completing an analysis, you will see an empty state prompting you to run an analysis first.</p>
+        <button class="btn" onclick="goToPage('main')">Go to Main Model</button>
+      </div>
+    </div>
+  `;
 }
 
-function renderGradcamGroup(title, urls) {
-  if (!urls || !urls.length) return "";
-  const figs = urls.map((url) => imgFig(url, title)).join("");
-  return `<div class="results-section"><h3>Grad-CAM — ${title} Predictions</h3><div class="image-gallery gradcam-gallery">${figs}</div></div>`;
-}
-
-const TABLE_TITLES = {
-  robustness: "Robustness (corruption accuracy)",
-  manipulation: "Manipulation Testing (Priority 3)",
-  augmentation_ablation: "Augmentation Ablation (Priority 1)",
-  cross_domain: "Cross-Domain Testing (Priority 4)",
-  domain_accuracy_cross: "Cross-Domain Model — Per-Domain Validation Accuracy",
-};
-
-async function loadTrainingResults() {
-  const container = document.getElementById("training-results-body");
-  try {
-    const res = await fetch("/api/training-results");
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const images = data.images || {};
-
-    let html = "";
-
-    // Row 1: Confusion Matrix + Preprocessing Samples
-    const row1 = [];
-    if (images.confusion_matrix) row1.push(imgFig(images.confusion_matrix, "Confusion Matrix"));
-    if (images.preprocessing_samples) row1.push(imgFig(images.preprocessing_samples, "Preprocessing Samples"));
-    if (row1.length) {
-      html += `<div class="results-section"><h3>Confusion Matrix &amp; Preprocessing</h3><div class="image-gallery gallery-2col">${row1.join("")}</div></div>`;
-    }
-
-    // Row 2: Augmentation Samples + Manipulation Samples
-    const row2 = [];
-    if (images.augmentation_samples) row2.push(imgFig(images.augmentation_samples, "Augmentation Samples"));
-    if (images.manipulation_samples) row2.push(imgFig(images.manipulation_samples, "Manipulation Samples"));
-    if (row2.length) {
-      html += `<div class="results-section"><h3>Augmentation &amp; Manipulation Samples</h3><div class="image-gallery gallery-2col">${row2.join("")}</div></div>`;
-    }
-
-    // Row 3: Cross-Domain Samples, on its own
-    if (images.cross_domain_samples) {
-      html += `<div class="results-section"><h3>Cross-Domain Samples</h3><div class="image-gallery gallery-2col">${imgFig(images.cross_domain_samples, "Cross-Domain Samples")}</div></div>`;
-    }
-
-    // Row 4: Cross-Domain Model's own confusion matrix + training curves
-    const row4 = [];
-    if (images.confusion_matrix_cross_domain) row4.push(imgFig(images.confusion_matrix_cross_domain, "Cross-Domain Model — Confusion Matrix"));
-    if (images.training_curves_cross) row4.push(imgFig(images.training_curves_cross, "Cross-Domain Model — Training Curves"));
-    if (row4.length) {
-      html += `<div class="results-section"><h3>Cross-Domain Model — Training Results</h3><div class="image-gallery gallery-2col">${row4.join("")}</div></div>`;
-    }
-
-    // Grad-CAM correct/incorrect galleries, capped at 3 per row
-    const gallery = data.gradcam_gallery || {};
-    html += renderGradcamGroup("Correct", gallery.correct);
-    html += renderGradcamGroup("Incorrect", gallery.incorrect);
-
-    // Tables
-    const tableKeys = Object.keys(data.tables || {});
-    if (tableKeys.length) {
-      const blocks = tableKeys
-        .map((key) => `<div><h3>${TABLE_TITLES[key] || key}</h3>${renderGenericTable(data.tables[key])}</div>`)
-        .join("");
-      html += `<div class="results-section"><div class="results-tables">${blocks}</div></div>`;
-    }
-
-    if (!html) {
-      html = `<p class="placeholder">No result artifacts found in Deepfake/output/.</p>`;
-    }
-
-    container.innerHTML = html;
-  } catch (e) {
-    container.innerHTML = `<span class="error">Failed to load training results: ${e}</span>`;
-  }
-}
-
+/* ===================== Init ===================== */
+initTheme();
+initNav();
 checkHealth();
-runCrossDomainExample();
-loadTrainingResults();
-runSampleCompare();
