@@ -11,7 +11,7 @@ import logging
 
 import torch
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
@@ -19,6 +19,7 @@ from . import config, gradcam, manipulations, preprocessing, report, results
 from .model import ModelRegistry
 from .schemas import (
     CompareResponse,
+    DocxReportRequest,
     HealthResponse,
     PredictionResult,
     PredictResponse,
@@ -140,6 +141,34 @@ async def generate_report(model: str = "best", file: UploadFile = File(...)):
         overlay_b64=result["overlay_b64"],
     )
     return HTMLResponse(content=html)
+
+
+@app.post("/report/docx")
+async def generate_docx_report(payload: DocxReportRequest):
+    """Builds a downloadable .docx from analysis data already computed by
+    the frontend (the Report page is the canonical rendering; this just
+    reproduces the same data as a Word document)."""
+    buf = report.build_docx(
+        analysis_id=payload.analysis_id,
+        generated_at_str=payload.generated_at,
+        filename=payload.filename,
+        file_type=payload.file_type,
+        resolution=payload.resolution,
+        file_size=payload.file_size,
+        color_mode=payload.color_mode,
+        model_label=payload.model_label,
+        model_version=payload.model_version,
+        label=payload.label,
+        real_pct=payload.real_pct,
+        fake_pct=payload.fake_pct,
+        input_image_b64=payload.input_image_b64,
+        overlay_b64=payload.overlay_b64,
+    )
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{payload.analysis_id}_report.docx"'},
+    )
 
 
 @app.post("/robustness", response_model=RobustnessResponse)

@@ -39,3 +39,20 @@ class CompareResponse(BaseModel):
     available: bool
     reason: str | None = None
     results: dict[str, PredictionResult] = {}
+
+
+class DocxReportRequest(BaseModel):
+    analysis_id: str
+    generated_at: str
+    filename: str
+    file_type: str
+    resolution: str
+    file_size: str
+    color_mode: str
+    model_label: str
+    model_version: str = "v1.0"
+    label: str
+    real_pct: float
+    fake_pct: float
+    input_image_b64: str
+    overlay_b64: str

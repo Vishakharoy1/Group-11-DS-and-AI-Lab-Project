@@ -1,15 +1,55 @@
-"""Builds a standalone, printable HTML forensic report for one analyzed
-image - prediction, Grad-CAM evidence, methodology, and the reliability
-caveats established in the Milestone 5 evaluation (real numbers, not
-generic disclaimers)."""
+"""Builds forensic report documents for one analyzed image - prediction,
+Grad-CAM evidence, methodology, and the reliability caveats established
+in the Milestone 5 evaluation (real numbers, not generic disclaimers).
 
+build_report_html() is the legacy standalone HTML report (still callable
+via POST /report). build_docx() backs the new frontend's "Download Report
+-> Word Document (.docx)" action - the frontend Report page itself is the
+canonical on-screen rendering; this just needs to reproduce the same data
+as a downloadable .docx."""
+
+import base64
+import io
 import uuid
 from datetime import datetime, timezone
+
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 FACE_ALIGNMENT_LABELS = {
     "retinaface": "RetinaFace (automatic face detection & alignment)",
     "center_crop_fallback": "Center-crop fallback (RetinaFace unavailable on this server)",
 }
+
+INFERENCE_STEPS_APPLIED = ["Face Detection", "Image Resize", "Normalization", "Tensor Conversion"]
+TRAINING_AUGMENTATIONS = [
+    "Random Resized Crop",
+    "Random Horizontal Flip",
+    "Color Jitter",
+    "Channel Shift",
+    "Gaussian Blur",
+    "JPEG Compression",
+    "Gaussian Noise",
+]
+
+RELIABILITY_NOTES = [
+    "Strong on in-distribution data: 99.63% accuracy on the model's own held-out test set.",
+    "Weak on modern smartphone photos: accuracy on genuine recent smartphone photographs dropped to "
+    "8.6% in cross-domain testing, and 62.0% in a separate local check. If this input is a modern "
+    "smartphone photo (HDR, heavy sharpening, high saturation), treat an AI-Generated verdict with caution.",
+    "Dominant error type is false positives: genuine photos being misclassified as AI-generated, not "
+    "fakes evading detection.",
+    "Non-face images produce meaningless results: if the input does not contain a clearly detectable "
+    "face, this verdict should be disregarded entirely.",
+]
+
+DISCLAIMER_TEXT = (
+    "This report represents the output of an AI-based image authenticity detection model and should be "
+    "interpreted as an analytical assessment rather than definitive proof of image manipulation or "
+    "authenticity. It does not constitute a certified, legally admissible forensic conclusion. No "
+    "chain-of-custody or examiner certification is implied."
+)
 
 
 def build_report_html(
@@ -206,3 +246,114 @@ def build_report_html(
 </body>
 </html>
 """
+
+
+def _b64_to_stream(b64_str: str) -> io.BytesIO:
+    return io.BytesIO(base64.b64decode(b64_str))
+
+
+def build_docx(
+    *,
+    analysis_id: str,
+    generated_at_str: str,
+    filename: str,
+    file_type: str,
+    resolution: str,
+    file_size: str,
+    color_mode: str,
+    model_label: str,
+    model_version: str,
+    label: str,
+    real_pct: float,
+    fake_pct: float,
+    input_image_b64: str,
+    overlay_b64: str,
+) -> io.BytesIO:
+    """Builds a .docx matching the Report page's on-screen sections. Returns
+    an in-memory buffer ready to stream as a download."""
+    doc = Document()
+
+    verdict_text = "AI GENERATED" if label != "Real" else "REAL / AUTHENTIC"
+    verdict_color = RGBColor(0xC6, 0x28, 0x28) if label != "Real" else RGBColor(0x2E, 0x7D, 0x32)
+    confidence = fake_pct if label != "Real" else real_pct
+
+    title = doc.add_heading("AI Image Authenticity", level=0)
+    title.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    subtitle = doc.add_heading("Forensic Analysis Report", level=1)
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
+    meta = doc.add_paragraph()
+    meta.add_run(f"Analysis ID: {analysis_id}    |    Generated: {generated_at_str}").italic = True
+
+    doc.add_heading("1. Case Information", level=2)
+    table1 = doc.add_table(rows=0, cols=2)
+    for k, v in [("Analysis ID", analysis_id), ("Date & Time", generated_at_str), ("Uploaded Filename", filename)]:
+        row = table1.add_row().cells
+        row[0].text, row[1].text = k, v
+
+    doc.add_heading("2. Image Information", level=2)
+    table2 = doc.add_table(rows=0, cols=2)
+    for k, v in [
+        ("File Type", file_type),
+        ("Resolution", resolution),
+        ("File Size", file_size),
+        ("Color Mode", color_mode),
+    ]:
+        row = table2.add_row().cells
+        row[0].text, row[1].text = k, v
+
+    doc.add_heading("3. Model Information", level=2)
+    table3 = doc.add_table(rows=0, cols=2)
+    for k, v in [
+        ("Model", model_label),
+        ("Model Version", model_version),
+        ("Prediction", verdict_text),
+        ("Confidence", f"{confidence:.2f}%"),
+        ("AI Probability", f"{fake_pct:.2f}%"),
+        ("Real Probability", f"{real_pct:.2f}%"),
+    ]:
+        row = table3.add_row().cells
+        row[0].text, row[1].text = k, v
+
+    doc.add_heading("4. Inference Preprocessing Pipeline", level=2)
+    p = doc.add_paragraph("Applied at inference time:")
+    for step in INFERENCE_STEPS_APPLIED:
+        doc.add_paragraph(step, style="List Bullet")
+    p2 = doc.add_paragraph("Training augmentation (used during model training, NOT applied during inference):")
+    for aug in TRAINING_AUGMENTATIONS:
+        doc.add_paragraph(aug, style="List Bullet")
+
+    doc.add_heading("5. Explainability Analysis (Grad-CAM)", level=2)
+    img_table = doc.add_table(rows=1, cols=2)
+    input_cell, overlay_cell = img_table.rows[0].cells
+    input_cell.paragraphs[0].add_run().add_picture(_b64_to_stream(input_image_b64), width=Inches(2.6))
+    overlay_cell.paragraphs[0].add_run().add_picture(_b64_to_stream(overlay_b64), width=Inches(2.6))
+    doc.add_paragraph(
+        "The Grad-CAM overlay highlights regions that received stronger activation during the model's "
+        "prediction. These regions indicate where the model focused its attention when producing the "
+        "classification - this shows model attention, not definitive proof of manipulation or authenticity."
+    )
+
+    doc.add_heading("6. Final Assessment", level=2)
+    verdict_para = doc.add_paragraph()
+    verdict_run = verdict_para.add_run(f"{verdict_text} — {confidence:.2f}%")
+    verdict_run.bold = True
+    verdict_run.font.size = Pt(16)
+    verdict_run.font.color.rgb = verdict_color
+    doc.add_paragraph(
+        f"The model classified the submitted image as {verdict_text.lower()} with a confidence score of "
+        f"{confidence:.2f}%."
+    )
+
+    doc.add_heading("Reliability & Known Limitations", level=2)
+    for note in RELIABILITY_NOTES:
+        doc.add_paragraph(note, style="List Bullet")
+
+    doc.add_heading("7. Disclaimer", level=2)
+    disclaimer_para = doc.add_paragraph(DISCLAIMER_TEXT)
+    disclaimer_para.runs[0].italic = True
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf
