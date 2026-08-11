@@ -18,7 +18,38 @@ function initTheme() {
 let activeAnalysis = null; // see buildAnalysisRecord() for shape
 let analysisCounter = 123;
 let availableModels = [];
-let analysisHistory = []; // every analysis run this session (newest first) - not persisted server-side yet
+let analysisHistory = []; // newest first - persisted to localStorage, survives reloads (no backend DB yet)
+
+const HISTORY_STORAGE_KEY = "ff_analysis_history";
+const COUNTER_STORAGE_KEY = "ff_analysis_counter";
+const MAX_HISTORY_ENTRIES = 15; // caps localStorage size (entries embed base64 images)
+
+function loadPersistedHistory() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || "[]");
+    analysisHistory = Array.isArray(saved) ? saved : [];
+  } catch (e) {
+    analysisHistory = [];
+  }
+  const savedCounter = Number(localStorage.getItem(COUNTER_STORAGE_KEY));
+  if (!Number.isNaN(savedCounter) && savedCounter > analysisCounter) analysisCounter = savedCounter;
+}
+
+function addToHistory(record) {
+  analysisHistory.unshift(record);
+  analysisHistory = analysisHistory.slice(0, MAX_HISTORY_ENTRIES);
+  try {
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(analysisHistory));
+    localStorage.setItem(COUNTER_STORAGE_KEY, String(analysisCounter));
+  } catch (e) {
+    // Quota exceeded - drop older half and retry once, then give up silently
+    // (in-memory history still works for the rest of this session either way).
+    try {
+      analysisHistory = analysisHistory.slice(0, Math.floor(MAX_HISTORY_ENTRIES / 2));
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(analysisHistory));
+    } catch (e2) { /* storage unavailable - continue in-memory only */ }
+  }
+}
 
 function nextAnalysisId() {
   analysisCounter += 1;
@@ -80,12 +111,19 @@ function fileTypeLabel(file) {
   return t ? t.toUpperCase() : (file.name.split(".").pop() || "?").toUpperCase();
 }
 function readImageDims(file) {
+  // Uses a data: URL (not URL.createObjectURL) so the preview survives
+  // JSON-serializing into localStorage and still works after a page reload -
+  // blob: URLs are invalidated as soon as the page that created them unloads.
   return new Promise((resolve) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight, url });
-    img.onerror = () => resolve({ w: 0, h: 0, url });
-    img.src = url;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result;
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight, url });
+      img.onerror = () => resolve({ w: 0, h: 0, url });
+      img.src = url;
+    };
+    reader.readAsDataURL(file);
   });
 }
 function nowString() {
@@ -250,11 +288,11 @@ async function runAnalysis(pageKey, modelKey) {
       generatedAt: nowString(),
     };
 
-    analysisHistory.unshift({ ...activeAnalysis, status: "completed" });
+    addToHistory({ ...activeAnalysis, status: "completed" });
     renderResultCard(pageKey, resultArea);
   } catch (e) {
     resultArea.innerHTML = `<p style="color:var(--fake);">Analysis failed: ${e.message}</p>`;
-    analysisHistory.unshift({
+    addToHistory({
       analysisId: nextAnalysisId(), modelKey,
       modelLabel: document.getElementById(`page-${pageKey}`).dataset.modelLabel,
       filename: file.name, resolution: `${w} × ${h}`, previewUrl,
@@ -477,21 +515,19 @@ function renderReportPage() {
       </div>
       <div class="report-meta">Analysis ID: ${a.analysisId} &nbsp;|&nbsp; Generated: ${a.generatedAt}</div>
 
-      <div class="report-grid-2col">
-        <div class="report-col-stack">
-          <div class="report-section">
-            <div class="report-section-title"><span class="report-section-num">1</span> CASE INFORMATION</div>
-            <div class="report-kv"><span class="k">Analysis ID</span><span>${a.analysisId}</span></div>
-            <div class="report-kv"><span class="k">Date &amp; Time</span><span>${a.generatedAt}</span></div>
-            <div class="report-kv"><span class="k">Uploaded Filename</span><span>${a.filename}</span></div>
-          </div>
-          <div class="report-section">
-            <div class="report-section-title"><span class="report-section-num">2</span> IMAGE INFORMATION</div>
-            <div class="report-kv"><span class="k">File Type</span><span>${a.fileType}</span></div>
-            <div class="report-kv"><span class="k">Resolution</span><span>${a.resolution}</span></div>
-            <div class="report-kv"><span class="k">File Size</span><span>${a.fileSize}</span></div>
-            <div class="report-kv"><span class="k">Color Mode</span><span>RGB</span></div>
-          </div>
+      <div class="report-grid-info">
+        <div class="report-section">
+          <div class="report-section-title"><span class="report-section-num">1</span> CASE INFORMATION</div>
+          <div class="report-kv"><span class="k">Analysis ID</span><span>${a.analysisId}</span></div>
+          <div class="report-kv"><span class="k">Date &amp; Time</span><span>${a.generatedAt}</span></div>
+          <div class="report-kv"><span class="k">Uploaded Filename</span><span>${a.filename}</span></div>
+        </div>
+        <div class="report-section">
+          <div class="report-section-title"><span class="report-section-num">2</span> IMAGE INFORMATION</div>
+          <div class="report-kv"><span class="k">File Type</span><span>${a.fileType}</span></div>
+          <div class="report-kv"><span class="k">Resolution</span><span>${a.resolution}</span></div>
+          <div class="report-kv"><span class="k">File Size</span><span>${a.fileSize}</span></div>
+          <div class="report-kv"><span class="k">Color Mode</span><span>RGB</span></div>
         </div>
         <div class="report-section">
           <div class="report-section-title"><span class="report-section-num">3</span> MODEL INFORMATION</div>
@@ -687,7 +723,79 @@ function viewHistoryEntry(analysisId) {
   goToPage("report");
 }
 
+let historyTimelineLimit = 5;
+
+function groupHistoryByDate(records) {
+  const groups = [];
+  const byLabel = {};
+  records.forEach((r) => {
+    const dateLabel = (r.generatedAt || "").split(",").slice(0, 2).join(",").trim() || "Unknown date";
+    if (!byLabel[dateLabel]) {
+      byLabel[dateLabel] = { dateLabel, entries: [] };
+      groups.push(byLabel[dateLabel]);
+    }
+    byLabel[dateLabel].entries.push(r);
+  });
+  return groups;
+}
+
+function timelinePredictionBadge(r) {
+  if (r.status === "failed") return `<span class="badge" style="background:var(--fake-bg); color:var(--fake); font-size:0.68rem;">ANALYSIS FAILED</span>`;
+  const isReal = r.label === "Real";
+  return `<span class="badge" style="background:${isReal ? "var(--real-bg)" : "var(--fake-bg)"}; color:${isReal ? "var(--real)" : "var(--fake)"}; font-size:0.68rem;">${isReal ? "AUTHENTIC" : "AI GENERATED"}</span>`;
+}
+
+function historyTimelineHtml() {
+  if (!analysisHistory.length) {
+    return `<p style="color:var(--muted); font-size:0.85rem;">No analyses yet.</p>`;
+  }
+  const visible = analysisHistory.slice(0, historyTimelineLimit);
+  const groups = groupHistoryByDate(visible);
+  const groupsHtml = groups.map((g) => `
+    <div class="timeline-date-header">${g.dateLabel}</div>
+    ${g.entries.map((r) => {
+      const time = (r.generatedAt || "").split(",").pop().trim();
+      const confidence = r.status === "failed" ? "" : `<div class="timeline-confidence">${(r.label === "Real" ? r.realPct : r.fakePct).toFixed(2)}%</div>`;
+      const action = r.status === "failed"
+        ? `<span style="color:var(--muted); font-size:0.75rem;">${r.errorMessage || "Failed"}</span>`
+        : `<a href="#" class="timeline-view-link" onclick="viewHistoryEntry('${r.analysisId}'); return false;">View Analysis &#8594;</a>`;
+      return `
+        <div class="timeline-entry">
+          <span class="timeline-dot"></span>
+          <div class="timeline-entry-body">
+            <div class="timeline-time">${time}</div>
+            <div class="timeline-id">${r.analysisId}</div>
+            <div class="timeline-filename">${r.filename}</div>
+            <div class="timeline-model">${r.modelLabel || ""}</div>
+            ${timelinePredictionBadge(r)}
+            ${confidence}
+            <div>${action}</div>
+          </div>
+        </div>
+      `;
+    }).join("")}
+  `).join("");
+
+  const loadMoreHtml = historyTimelineLimit < analysisHistory.length
+    ? `<button class="btn btn-block" id="timeline-load-more" style="margin-top:12px;">Load More &#8595;</button>`
+    : "";
+
+  return groupsHtml + loadMoreHtml;
+}
+
+function refreshTimeline() {
+  document.getElementById("history-timeline-body").innerHTML = historyTimelineHtml();
+  const loadMoreBtn = document.getElementById("timeline-load-more");
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", () => {
+      historyTimelineLimit += 5;
+      refreshTimeline();
+    });
+  }
+}
+
 function renderHistoryPage() {
+  historyTimelineLimit = 5;
   const body = document.getElementById("history-body");
   const total = analysisHistory.length;
   const mainCount = analysisHistory.filter((r) => r.modelKey === "noaug").length;
@@ -753,22 +861,29 @@ function renderHistoryPage() {
       <button class="btn" id="history-clear-filters">&#8635; Clear Filters</button>
     </div>
 
-    <div style="overflow-x:auto;">
-      <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
-        <thead>
-          <tr style="border-bottom:2px solid var(--border); text-align:left; color:var(--muted); font-size:0.72rem; letter-spacing:0.04em;">
-            <th style="padding:8px;">ANALYSIS ID</th>
-            <th style="padding:8px;">DATE &amp; TIME</th>
-            <th style="padding:8px;">IMAGE</th>
-            <th style="padding:8px;">MODEL</th>
-            <th style="padding:8px;">PREDICTION</th>
-            <th style="padding:8px;">CONFIDENCE</th>
-            <th style="padding:8px;">STATUS</th>
-            <th style="padding:8px;">ACTION</th>
-          </tr>
-        </thead>
-        <tbody id="history-table-body">${historyTableRowsHtml(analysisHistory)}</tbody>
-      </table>
+    <div class="history-layout">
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border); text-align:left; color:var(--muted); font-size:0.72rem; letter-spacing:0.04em;">
+              <th style="padding:8px;">ANALYSIS ID</th>
+              <th style="padding:8px;">DATE &amp; TIME</th>
+              <th style="padding:8px;">IMAGE</th>
+              <th style="padding:8px;">MODEL</th>
+              <th style="padding:8px;">PREDICTION</th>
+              <th style="padding:8px;">CONFIDENCE</th>
+              <th style="padding:8px;">STATUS</th>
+              <th style="padding:8px;">ACTION</th>
+            </tr>
+          </thead>
+          <tbody id="history-table-body">${historyTableRowsHtml(analysisHistory)}</tbody>
+        </table>
+      </div>
+
+      <div class="history-timeline-panel">
+        <div class="history-timeline-title">&#8986; TIMELINE (Latest First)</div>
+        <div id="history-timeline-body">${historyTimelineHtml()}</div>
+      </div>
     </div>
   `;
 
@@ -785,6 +900,14 @@ function renderHistoryPage() {
     document.getElementById("history-filter-prediction").value = "all";
     refreshHistoryTable();
   });
+
+  const loadMoreBtn = document.getElementById("timeline-load-more");
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", () => {
+      historyTimelineLimit += 5;
+      refreshTimeline();
+    });
+  }
 }
 
 /* ===================== User Guide page ===================== */
@@ -888,4 +1011,5 @@ function renderGuidePage() {
 /* ===================== Init ===================== */
 initTheme();
 initNav();
+loadPersistedHistory();
 checkHealth();
