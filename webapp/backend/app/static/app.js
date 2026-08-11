@@ -468,22 +468,23 @@ function renderReportPage() {
       </div>
       <div class="report-meta">Analysis ID: ${a.analysisId} &nbsp;|&nbsp; Generated: ${a.generatedAt}</div>
 
-      <div class="report-section">
-        <div class="report-section-title"><span class="report-section-num">1</span> CASE INFORMATION</div>
-        <div class="report-kv"><span class="k">Analysis ID</span><span>${a.analysisId}</span></div>
-        <div class="report-kv"><span class="k">Date &amp; Time</span><span>${a.generatedAt}</span></div>
-        <div class="report-kv"><span class="k">Uploaded Filename</span><span>${a.filename}</span></div>
-      </div>
-
-      <div class="report-grid-3">
-        <div class="report-section">
-          <div class="report-section-title"><span class="report-section-num">2</span> IMAGE INFORMATION</div>
-          <div class="report-kv"><span class="k">File Type</span><span>${a.fileType}</span></div>
-          <div class="report-kv"><span class="k">Resolution</span><span>${a.resolution}</span></div>
-          <div class="report-kv"><span class="k">File Size</span><span>${a.fileSize}</span></div>
-          <div class="report-kv"><span class="k">Color Mode</span><span>RGB</span></div>
+      <div class="report-grid-2col">
+        <div class="report-col-stack">
+          <div class="report-section">
+            <div class="report-section-title"><span class="report-section-num">1</span> CASE INFORMATION</div>
+            <div class="report-kv"><span class="k">Analysis ID</span><span>${a.analysisId}</span></div>
+            <div class="report-kv"><span class="k">Date &amp; Time</span><span>${a.generatedAt}</span></div>
+            <div class="report-kv"><span class="k">Uploaded Filename</span><span>${a.filename}</span></div>
+          </div>
+          <div class="report-section">
+            <div class="report-section-title"><span class="report-section-num">2</span> IMAGE INFORMATION</div>
+            <div class="report-kv"><span class="k">File Type</span><span>${a.fileType}</span></div>
+            <div class="report-kv"><span class="k">Resolution</span><span>${a.resolution}</span></div>
+            <div class="report-kv"><span class="k">File Size</span><span>${a.fileSize}</span></div>
+            <div class="report-kv"><span class="k">Color Mode</span><span>RGB</span></div>
+          </div>
         </div>
-        <div class="report-section" style="grid-column: span 2;">
+        <div class="report-section">
           <div class="report-section-title"><span class="report-section-num">3</span> MODEL INFORMATION</div>
           <div class="report-kv"><span class="k">Model</span><span>${a.modelLabel}</span></div>
           <div class="report-kv"><span class="k">Model Version</span><span>${a.modelVersion}</span></div>
