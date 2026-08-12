@@ -75,6 +75,8 @@ function goToPage(pageKey) {
 }
 
 /* ===================== Health check ===================== */
+let mainPageModelKey = "noaug"; // toggled between "noaug" (Model 1) and "best" (Model 2)
+
 async function checkHealth() {
   try {
     const res = await fetch("/health");
@@ -83,8 +85,32 @@ async function checkHealth() {
   } catch (e) {
     availableModels = [];
   }
-  updateModelStatus("main", "noaug", "status-main");
+  updateModelStatus("main", mainPageModelKey, "status-main");
   updateModelStatus("crossdomain", "cross_domain", "status-crossdomain");
+}
+
+function initMainModelToggle() {
+  const toggle = document.getElementById("main-model-toggle");
+  if (!toggle) return;
+  toggle.querySelectorAll(".model-toggle-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const modelKey = btn.dataset.mainModel;
+      const modelLabel = btn.dataset.mainLabel;
+      mainPageModelKey = modelKey;
+
+      toggle.querySelectorAll(".model-toggle-btn").forEach((b) => b.classList.toggle("active", b === btn));
+
+      const pageMain = document.getElementById("page-main");
+      pageMain.dataset.modelKey = modelKey;
+      pageMain.dataset.modelLabel = modelLabel;
+
+      const body = document.querySelector('[data-page-body="main"]');
+      if (body) body.dataset.locked = ""; // force a fresh upload stage even mid-analysis
+      delete pageFileState["main"]; // switching models clears any selected/analyzed image
+
+      updateModelStatus("main", modelKey, "status-main");
+    });
+  });
 }
 
 function updateModelStatus(pageKey, modelKey, statusElId) {
@@ -1011,5 +1037,6 @@ function renderGuidePage() {
 /* ===================== Init ===================== */
 initTheme();
 initNav();
+initMainModelToggle();
 loadPersistedHistory();
 checkHealth();
