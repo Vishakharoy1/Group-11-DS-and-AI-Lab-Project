@@ -275,8 +275,9 @@ async function runAnalysis(pageKey, modelKey) {
         <div>&#10003; Image validation</div>
         <div>&#10003; Face detection</div>
         <div>&#10003; Preprocessing</div>
-        <div>&hellip; Model inference</div>
-        <div>&hellip; Confidence calculation</div>
+        <div>&#10003; Model inference</div>
+        <div>&#10003; Confidence calculation</div>
+        <div>&hellip; Forensic scan (meta-detector)</div>
       </div>
     </div>
   `;
@@ -311,6 +312,7 @@ async function runAnalysis(pageKey, modelKey) {
       heatmapB64: data.gradcam_heatmap,
       overlayB64: data.gradcam_overlay,
       faceAlignmentUsed: data.face_alignment_used,
+      meta: data.meta_detector || null,
       generatedAt: nowString(),
     };
 
@@ -373,10 +375,83 @@ function renderResultCard(pageKey, resultArea) {
       <button class="btn" id="view-gradcam-btn">&#8857; View Grad-CAM</button>
       <button class="btn btn-primary" id="generate-report-btn">&#128196; Generate Forensic Report</button>
     </div>
+    ${metaPanelHtml(a)}
   `;
 
   document.getElementById("view-gradcam-btn").addEventListener("click", () => goToPage("gradcam"));
   document.getElementById("generate-report-btn").addEventListener("click", () => goToPage("report"));
+}
+
+function metaVerdictClass(verdict) {
+  const v = (verdict || "").toLowerCase();
+  if (v.includes("ai")) return "fake";
+  if (v.includes("real") || v.includes("photograph")) return "real";
+  return "uncertain";
+}
+
+function metaPanelHtml(a) {
+  const m = a.meta;
+  if (!m) return "";
+  const md = (m.signals && m.signals.metadata) || {};
+  const wm = (m.signals && m.signals.watermark) || {};
+  const freq = (m.signals && m.signals.frequency) || {};
+  const noise = (m.signals && m.signals.noise) || {};
+  const ela = (m.signals && m.signals.ela) || {};
+
+  const flags = [];
+  if (wm.found) flags.push(`<span class="badge badge-meta-fake">&#9888; Watermark: ${wm.label || wm.message}</span>`);
+  if (md.c2pa && md.c2pa.length) flags.push(`<span class="badge badge-meta">&#128278; C2PA</span>`);
+  if (md.synthetic_source_tag) flags.push(`<span class="badge badge-meta-fake">&#9888; Synthetic source tag</span>`);
+  if (md.camera_markers && md.camera_markers.length) flags.push(`<span class="badge badge-meta-real">&#128247; Camera metadata</span>`);
+  if (md.has_gps) flags.push(`<span class="badge badge-meta-real">&#128506; GPS</span>`);
+  if (md.has_datetime) flags.push(`<span class="badge badge-meta-real">&#128337; Timestamp</span>`);
+  if (md.png_text_keys && md.png_text_keys.length) flags.push(`<span class="badge badge-meta">&#128221; PNG text chunks</span>`);
+
+  const signalTiles = [
+    ["AI SCORE", m.ai_score != null ? `${(m.ai_score * 100).toFixed(1)}%` : "—"],
+    ["HF ENERGY", freq.high_frequency_ratio != null ? freq.high_frequency_ratio.toFixed(3) : "—"],
+    ["SHOT-NOISE CORR", noise.shot_noise_correlation != null ? noise.shot_noise_correlation.toFixed(3) : "—"],
+    ["DOUBLE JPEG", freq.double_jpeg_score != null ? freq.double_jpeg_score.toFixed(2) : "—"],
+    ["NOISE LEVEL", noise.noise_level != null ? noise.noise_level.toFixed(2) : "—"],
+    ["ELA SPREAD", ela.ela_block_cv != null ? ela.ela_block_cv.toFixed(3) : "—"],
+  ].map(([k, v]) => `
+    <div class="meta-signal-tile">
+      <div class="metric-tile-label">${k}</div>
+      <div class="meta-signal-value">${v}</div>
+    </div>`).join("");
+
+  const evidence = (m.evidence && m.evidence.length)
+    ? m.evidence.map((e) => `<li>${e}</li>`).join("")
+    : `<li style="color:var(--muted);">No strong forensic signals detected by the meta-detector.</li>`;
+
+  const warnings = (m.warnings && m.warnings.length)
+    ? `<div class="meta-warnings">${m.warnings.map((w) => `<div>&#9888; ${w}</div>`).join("")}</div>` : "";
+
+  return `
+    <h2 style="font-size:1rem; letter-spacing:0.05em; margin:26px 0 14px;">FORENSIC SCAN &mdash; META DETECTOR</h2>
+    <div class="meta-panel">
+      <div class="meta-panel-top">
+        <div class="verdict-box ${metaVerdictClass(m.verdict)}" style="padding:18px 22px; flex:1;">
+          <div class="verdict-icon">${metaVerdictClass(m.verdict) === "real" ? "&#9989;" : "&#128269;"}</div>
+          <div>
+            <div class="verdict-label" style="font-size:1.05rem;">${m.verdict}</div>
+            <div class="verdict-conf" style="font-size:1.5rem;">${m.ai_score != null ? (m.ai_score * 100).toFixed(1) : "—"}%</div>
+            <div class="verdict-conf-label">Meta-Detector AI Score</div>
+          </div>
+        </div>
+        <div class="meta-panel-notes">
+          <div class="info-panel-title">DETECTED SIGNALS</div>
+          <div class="meta-flags">${flags.length ? flags.join("") : `<span style="color:var(--muted); font-size:0.85rem;">No notable markers detected</span>`}</div>
+          ${warnings}
+        </div>
+      </div>
+      <div class="meta-signal-grid">${signalTiles}</div>
+      <div class="meta-evidence">
+        <div class="info-panel-title">EVIDENCE</div>
+        <ul>${evidence}</ul>
+      </div>
+    </div>
+  `;
 }
 
 /* ===================== Grad-CAM page ===================== */
@@ -582,8 +657,35 @@ function renderReportPage() {
         <p style="font-size:0.82rem; color:var(--muted); margin-top:12px; margin-bottom:0;">The Grad-CAM visualization highlights regions that received stronger activation during the model's prediction — this shows model attention, not definitive proof of manipulation or authenticity.</p>
       </div>
 
+      ${a.meta ? `
       <div class="report-section">
-        <div class="report-section-title"><span class="report-section-num">6</span> FINAL ASSESSMENT</div>
+        <div class="report-section-title"><span class="report-section-num">6</span> FORENSIC SCAN (META DETECTOR)</div>
+        ${(() => {
+          const m = a.meta;
+          const md = (m.signals && m.signals.metadata) || {};
+          const wm = (m.signals && m.signals.watermark) || {};
+          const flags = [];
+          if (wm.found) flags.push(`Invisible watermark: ${wm.label || wm.message}${wm.method ? " (" + wm.method + ")" : ""}`);
+          if (md.c2pa && md.c2pa.length) flags.push(`C2PA / Content Credentials (${md.c2pa.length})`);
+          if (md.synthetic_source_tag) flags.push("digitalSourceType marks image as synthetic (AI)");
+          if (md.camera_markers && md.camera_markers.length) flags.push(`Camera metadata: ${md.camera_markers[0]}`);
+          const evidence = (m.evidence && m.evidence.length) ? m.evidence : ["No strong forensic signals detected."];
+          return `
+            <div class="report-kv"><span class="k">Meta Verdict</span><span>${m.verdict}</span></div>
+            <div class="report-kv"><span class="k">AI Score</span><span>${m.ai_score != null ? (m.ai_score * 100).toFixed(1) + "%" : "—"}</span></div>
+            <div class="report-kv"><span class="k">Confidence</span><span>${m.confidence != null ? (m.confidence * 100).toFixed(1) + "%" : "—"}</span></div>
+            ${flags.length ? `<div class="report-kv"><span class="k">Signals</span><span>${flags.join("; ")}</span></div>` : ""}
+            <ul style="font-size:0.82rem; color:var(--muted); margin:10px 0 0 0; padding-left:20px;">
+              ${evidence.map((e) => `<li style="margin-bottom:4px;">${e}</li>`).join("")}
+            </ul>
+            <p style="font-size:0.78rem; color:var(--muted); margin-top:12px; margin-bottom:0;">The meta-detector analyzes metadata, invisible watermarks, spectral content, sensor-noise statistics and double-JPEG artifacts — evidence independent of the neural model's learned features.</p>
+          `;
+        })()}
+      </div>
+      ` : ""}
+
+      <div class="report-section">
+        <div class="report-section-title"><span class="report-section-num">7</span> FINAL ASSESSMENT</div>
         <div class="final-assessment">
           <div class="verdict-icon ${isReal ? "" : ""}" style="color:${isReal ? "var(--real)" : "var(--fake)"};">${isReal ? "&#9989;" : "&#9888;&#65039;"}</div>
           <div>
@@ -596,7 +698,7 @@ function renderReportPage() {
       </div>
 
       <div class="report-section">
-        <div class="report-section-title"><span class="report-section-num">7</span> DISCLAIMER</div>
+        <div class="report-section-title"><span class="report-section-num">8</span> DISCLAIMER</div>
         <div class="disclaimer-box">This report represents the output of an AI-based image authenticity detection model and should be interpreted as an analytical assessment rather than definitive proof of image manipulation or authenticity. It does not constitute a certified, legally admissible forensic conclusion.</div>
       </div>
     </div>
