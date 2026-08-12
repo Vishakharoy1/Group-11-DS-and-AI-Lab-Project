@@ -29,12 +29,14 @@ Two models exist:
 
 | Role | Checkpoint | Training notebook | Status |
 |---|---|---|---|
-| Main Model | `mobilenetv3_noaug.pth` | `final-mobilenet (1).ipynb` (ablation run without the augmentation pipeline) | Trained |
+| Main Model — Model 1 (default) | `mobilenetv3_noaug.pth` | `final-mobilenet (1).ipynb` (ablation run without the augmentation pipeline) | Trained |
+| Main Model — Model 2 (toggle) | `mobilenetv3_best.pth` | `final-mobilenet (1).ipynb` (3-stage, CelebA-HD corrected) | Trained |
 | Cross-Domain Model | `mobilenetv3_cross_domain.pth` | `cross-domain.ipynb` | Trained |
 
-The primary/best-performing checkpoint from the main training run is
-`mobilenetv3_best.pth` (3-stage, CelebA-HD corrected) — see Section 4
-below for why the web app's "Main Model" page is wired to `noaug`
+The Main Model page has a **Model 1 / Model 2 toggle** — Model 1
+(`noaug`) is the default on page load, Model 2 switches live to `best`,
+no code change or restart needed. See Section 8 below for the full
+detail and why `noaug` (not `best`) is the default.
 specifically rather than `best`.
 
 ---
@@ -365,9 +367,12 @@ Plain HTML/CSS/JS (no build step, no framework) in
 A single-page app: one `index.html` with 5 `<section class="page">`
 blocks, toggled via JS (`goToPage(key)`), not full page reloads:
 
-1. **Main Model** — upload, analyze, result card, "View Grad-CAM" /
-   "Generate Forensic Report" buttons (enabled only after a successful
-   analysis)
+1. **Main Model** — a **Model 1 / Model 2 toggle** (`noaug` / `best`,
+   Model 1 selected by default on load), upload, analyze, result card,
+   "View Grad-CAM" / "Generate Forensic Report" buttons (enabled only
+   after a successful analysis). Switching the toggle re-checks that
+   checkpoint's availability and clears any in-progress upload/result for
+   a fresh start (`initMainModelToggle()` in `app.js`).
 2. **Cross-Domain Model** — same structure, different model/copy
 3. **Grad-CAM** — original image vs. an adjustable-intensity overlay
    (Original/Heatmap/Overlay mode toggle + a real intensity slider —
@@ -454,25 +459,35 @@ re-fetching from the server.
 
 ---
 
-## 8. Model Wiring — Why "Main Model" ≠ `best`
+## 8. Model Wiring — Main Model's Model 1 / Model 2 Toggle
 
-This is a deliberate, explicit product decision, not an oversight:
-
-- **Main Model page → `noaug` checkpoint** (`/predict?model=noaug`)
+- **Main Model page → a live toggle**: **Model 1** = `noaug` checkpoint
+  (`/predict?model=noaug`, selected by default on page load), **Model 2**
+  = `best` checkpoint (`/predict?model=best`). Switching is instant, no
+  restart or code change required — implemented in `app.js` via
+  `mainPageModelKey` (module-level state) and `initMainModelToggle()`,
+  which updates `#page-main`'s `data-model-key`/`data-model-label`
+  attributes, re-runs `updateModelStatus()` for the newly selected
+  checkpoint, and clears any in-progress upload/result so switching
+  models mid-session always starts fresh.
 - **Cross-Domain Model page → `cross_domain` checkpoint**
-  (`/predict?model=cross_domain`)
+  (`/predict?model=cross_domain`, no toggle — single model).
 
-`mobilenetv3_best.pth` (the 3-stage, CelebA-corrected checkpoint that
-`doc/Milestone-5/Milestone5.md` evaluates in depth) is **not** what the
-"Main Model" page currently calls — `noaug` is. If you're trying to
-reproduce the specific accuracy numbers from the Milestone 5 report using
-the live web app's Main Model page, you'll get different results than
-the report describes, because they're different checkpoints. This was a
-deliberate rewiring during the frontend rebuild; if you want the app's
-"Main Model" to actually serve `best`, that's a one-line change in
-`app.js` (`data-model-key="noaug"` → `data-model-key="best"` on the
-`#page-main` element in `index.html`, and the corresponding
-`setupUploadWidget`/`runAnalysis` call site).
+**Why the default is `noaug`, not `best`:** this was a deliberate choice
+made during the frontend rebuild, not an oversight — `noaug` was kept as
+the default for continuity with an earlier UI iteration. If you're
+reproducing the specific accuracy numbers from
+`doc/Milestone-5/Milestone5.md` (which evaluates `mobilenetv3_best.pth`
+in depth) using the live web app, switch to **Model 2** first — Model 1
+(`noaug`) has a measured, reproducible bias problem: run against the 26
+real images in `Test Sample/Test_real_vs_Fake/real/`, Model 1 correctly
+identified only **38.5%** as Real, vs. **73.1%** for Model 2. This isn't
+a bug in the toggle — it's `noaug`'s own trained behavior (it was an
+augmentation-ablation run, never intended to be the primary model). If
+you want to change the *default* selected on page load, that's a
+one-line change: the `active` class and `data-main-model` on the
+Model 1/Model 2 buttons in `index.html`, plus `mainPageModelKey`'s
+initial value in `app.js`.
 
 ---
 
