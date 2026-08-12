@@ -161,8 +161,20 @@ export (`report.py`'s `build_docx()`).
 `scipy` and `invisible-watermark` were added for the forensic
 meta-detector (`meta_detector.py`, Section 6.10) — `scipy` is a hard
 requirement (imported unconditionally for FFT/median-filter operations),
-`invisible-watermark` degrades gracefully if missing (watermark scanning
-just reports itself unavailable rather than crashing the server).
+`invisible-watermark` degrades gracefully if unavailable (watermark
+scanning just reports itself unavailable rather than crashing the
+server) — **and "unavailable" includes installed-but-broken, not just
+missing**: `invisible-watermark` pulls in `cv2` as a transitive
+dependency, and on this project's Windows 11 N development machine, `pip
+install invisible-watermark` succeeds but `import imwatermark` still
+fails at runtime (`cv2`'s DLL load failure — the exact same Media
+Foundation root cause as `retina-face`/`opencv-python` below, confirmed
+by testing `/predict` directly: it returns a normal 200 with a valid
+`meta_detector` result, just with watermark scanning silently disabled).
+No action needed on Windows N specifically — this is expected, not a
+setup mistake — but don't be surprised if watermark evidence never shows
+up in the Forensic Scan panel on this kind of machine even with the
+package installed.
 
 `retina-face`/`opencv-python` are commented out by default — the app
 runs fine without them (falls back to center-crop face alignment); see
@@ -189,7 +201,37 @@ Expected filenames — see `config.py`'s `CHECKPOINTS` dict (Section 6.2):
 fatal — check `GET /health`'s `loaded_models` field to see what actually
 loaded.
 
-### 4.4 Run the app
+### 4.4 Pre-flight checklist — before you run
+
+Confirm all of these before `uvicorn app.main:app`, so a failure at
+startup or on first `/predict` call isn't a surprise:
+
+- [ ] **Python 3.10+** and the venv from 4.1 is activated.
+- [ ] `pip install -r requirements.txt` completed (4.2) — this alone
+  installs `fastapi`, `pillow`, `numpy`, `scipy`, `matplotlib`,
+  `pydantic`, `python-multipart`, `python-docx`, `invisible-watermark`.
+- [ ] `torch`/`torchvision` installed **separately** via the CPU-only
+  index command in 4.2 — `pip install -r requirements.txt` alone is not
+  enough for these two.
+- [ ] **`python-docx` specifically confirmed importable** — `report.py`
+  imports it at module load time, and `main.py` imports `report.py` at
+  startup, so a missing `python-docx` doesn't degrade one feature, it
+  crashes the entire server on boot. Quick check:
+  `python -c "import docx"` before starting.
+- [ ] At least `mobilenetv3_noaug.pth` and `mobilenetv3_cross_domain.pth`
+  are in `webapp/output/` (4.3) — otherwise Model 1 and the Cross-Domain
+  page have nothing to predict with. `mobilenetv3_best.pth` is needed too
+  if you plan to use Model 2 or `/report`.
+- [ ] **On Windows 11 N specifically**: expect `invisible-watermark` and
+  `retina-face`/`opencv-python` to fail at import time even if `pip
+  install` succeeded for them — this is expected (Section 9.1), not a
+  broken setup, and both degrade gracefully rather than crashing the
+  server. Don't spend time debugging this unless you actually need real
+  face detection or watermark scanning to work.
+
+None of the above needs a GPU — the app runs CPU-only by default.
+
+### 4.5 Run the app
 
 From inside `webapp/backend/`:
 
@@ -582,23 +624,31 @@ initial value in `app.js`.
 
 ## 9. Implementation Notes / Known Issues
 
-### 9.1 Face detection broken on Windows 11 N
+### 9.1 Face detection broken on Windows 11 N (and now watermark scanning too)
 
 **Symptom:** `/health` reports `"face_alignment": "center_crop_fallback"`
 even with `retina-face`/`opencv-python` installed; every request silently
-uses a center-square crop instead of real face detection.
+uses a center-square crop instead of real face detection. **As of the
+meta-detector integration (Section 6.10), the same root cause also
+silently disables invisible-watermark scanning** — `invisible-watermark`
+depends on `cv2` too, so it hits the identical DLL failure even though
+it's a required (not commented-out) dependency; see 4.2 for the
+confirmed behavior.
 
 **Root cause:** Windows 11 **N edition** ships without the Windows Media
 Foundation DLLs (`MFPlat.DLL`, `MF.dll`, `MFReadWrite.dll`). OpenCV's
 Windows wheels link against Media Foundation even for pure image
-operations, so `cv2` (and anything built on it, including `retina-face`)
-fails to load its face-detection functionality on this edition until
-that's fixed — confirmed via PE import-table analysis (`pefile`), not
-guessed.
+operations, so `cv2` (and anything built on it, including `retina-face`
+**and `invisible-watermark`**) fails to load its functionality on this
+edition until that's fixed — confirmed via PE import-table analysis
+(`pefile`) for the original face-detection case, and via a direct live
+`/predict` test for the watermark case; neither is guessed.
 
 **Fix:** install the official *Media Feature Pack for Windows 11 N* from
 Microsoft, reboot, then reinstall `opencv-python-headless` and restart
-the server.
+the server — this should resolve both the face-detection and the
+watermark-scanning symptoms at once, since they share the same root
+cause.
 
 **Practical workaround until then:** upload images already cropped close
 to the face (like the sample images in `Test Sample/`) — the center-crop
