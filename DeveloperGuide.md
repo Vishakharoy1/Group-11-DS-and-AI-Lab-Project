@@ -62,6 +62,7 @@ Group-11-DS-and-AI-Lab-Project/
 │   │   │   ├── preprocessing.py   # Face crop/align + inference transform
 │   │   │   ├── gradcam.py         # Grad-CAM implementation
 │   │   │   ├── manipulations.py   # 11 robustness-test image manipulations
+│   │   │   ├── meta_detector.py   # Forensic meta-detector (metadata/watermark/pixel forensics)
 │   │   │   ├── report.py          # HTML + .docx forensic report builders
 │   │   │   ├── results.py         # Pre-computed training-artifact loader
 │   │   │   ├── schemas.py         # Pydantic request/response models
@@ -134,10 +135,12 @@ fastapi>=0.139
 uvicorn[standard]>=0.50
 pillow>=12.0
 numpy
+scipy
 matplotlib
 pydantic>=2.0
 python-multipart
 python-docx
+invisible-watermark
 
 torch
 torchvision
@@ -154,6 +157,12 @@ specifically want GPU inference locally.
 
 `python-docx` was added specifically for the `.docx` forensic-report
 export (`report.py`'s `build_docx()`).
+
+`scipy` and `invisible-watermark` were added for the forensic
+meta-detector (`meta_detector.py`, Section 6.10) — `scipy` is a hard
+requirement (imported unconditionally for FFT/median-filter operations),
+`invisible-watermark` degrades gracefully if missing (watermark scanning
+just reports itself unavailable rather than crashing the server).
 
 `retina-face`/`opencv-python` are commented out by default — the app
 runs fine without them (falls back to center-crop face alignment); see
@@ -246,7 +255,7 @@ FastAPI app in `webapp/backend/app/`. Every file's actual role:
 | Route | Method | Purpose |
 |---|---|---|
 | `/health` | GET | Which checkpoints loaded, which face-alignment method is active |
-| `/predict` | POST | `?model=` (default `best`) + image file → prediction + Grad-CAM heatmap/overlay (base64 PNGs) |
+| `/predict` | POST | `?model=` (default `best`) + image file → prediction + Grad-CAM heatmap/overlay (base64 PNGs) + a `meta_detector` forensic scan result (see 6.10) |
 | `/report` | POST | Same inputs as `/predict`, returns a standalone printable HTML forensic report instead of JSON (legacy — the current frontend renders its own Report page client-side; see 7.4) |
 | `/report/docx` | POST | Accepts already-computed analysis data as JSON, returns a real `.docx` file (`report.build_docx()`) |
 | `/robustness` | POST | Runs all 11 manipulations (`manipulations.py`) through the `manipulations` checkpoint |
@@ -346,7 +355,10 @@ Two builders:
 
 Pydantic models for every route's I/O, including `DocxReportRequest` —
 the JSON shape the frontend posts to `/report/docx` (analysis ID,
-timestamps, file metadata, prediction, both base64 images).
+timestamps, file metadata, prediction, both base64 images) — and
+`MetaDetectorResponse` (verdict, ai_score, edit_score, confidence,
+signals dict, evidence list, warnings list), embedded in every
+`PredictResponse` as `meta_detector` (see 6.10).
 
 ### 6.9 `results.py`
 
@@ -354,6 +366,79 @@ Loads whatever pre-computed CSVs/sample images/Grad-CAM gallery images
 exist in `RESULTS_DIR` and assembles the `/api/training-results`
 response — purely reads static training-notebook output, no live
 inference.
+
+### 6.10 `meta_detector.py` — forensic meta-detector
+
+A second, independent detection signal that runs **alongside** (not
+instead of) the MobileNetV3 CNN on every `/predict` call, added after
+the initial 5-page rebuild. Consolidates three classes of forensic
+evidence used by large-platform detectors, entirely in metadata/pixel
+statistics — no training data or checkpoint of its own required for its
+core signals:
+
+1. **Metadata & industry standards** (`analyze_metadata()`) — scans
+   Exif/XMP/PNG text chunks and raw file bytes for generator signatures
+   (`AI_SOFTWARE_PATTERNS`: Midjourney, Stable Diffusion, DALL-E, Adobe
+   Firefly, ComfyUI, 20+ others), camera-make markers, and C2PA/Content
+   Credentials provenance claims. C2PA presence alone is *not* treated as
+   AI evidence (camera makers sign genuine photos with it too) — only a
+   `digitalSourceType=trainedAlgorithmicMedia` claim or a known
+   invisible-watermark byte signature counts as hard evidence.
+2. **Invisible watermark scanning** (`scan_watermarks()`) — wraps the
+   `invisible-watermark` library to decode Stable Diffusion 1.x/SDXL/SD3
+   watermark payloads. Only an exact match against a known message
+   (`KNOWN_MESSAGES`) counts as a detection, to avoid false positives from
+   decoder noise.
+3. **Pixel-level forensics** — four independent statistical signals, all
+   pure NumPy/SciPy (no ML model):
+   - `high_frequency_ratio()` / `spectral_flatness()` / `periodic_peak_score()` —
+     FFT-based: real camera sensor noise adds high-frequency energy that
+     clean AI renders lack; sharp periodic spectral peaks suggest
+     generative upscaling or latent watermarking.
+   - `shot_noise_correlation()` — real sensor noise (Poisson/shot noise)
+     correlates with local brightness; AI-generated pixels typically
+     don't.
+   - `double_jpeg_score()` — 8×8 DCT-grid blockiness analysis to detect
+     recompression (a re-saved image, evidence of *some* processing
+     pipeline having touched it).
+   - `ela_statistics()` — Error Level Analysis: re-saves at fixed JPEG
+     quality (85) and measures regional inconsistency in the difference,
+     which flags locally-edited/painted regions.
+
+All signals are combined into a single `ai_score` (0–1) and `edit_score`
+(0–1) by `detect_image()` (the module's main entry point), with hard
+metadata/watermark evidence dominating the score when present, and a
+human-readable `evidence` list explaining *why* (e.g. "Noise is not
+coupled to brightness", "Re-compressed (double JPEG)").
+
+**Optional CNN ensemble, currently unused in this app:** the module also
+defines `predict_ai_probability()`/`predict_mobilenet_probability()` —
+two additional classifiers (a ResNet-18 and a second MobileNetV3) that
+would blend into the final score if their checkpoints
+(`models/ai_detector.pth`, `mobilenetv3_test.pth`) existed. **Neither
+file is part of this repo**, and `main.py` calls `detect_image(path,
+use_cnn=False)` explicitly — so this ensemble path is present in the
+code but inert in the deployed app. `cnn_available()`/`mobilenet_available()`
+just check for the files and return `False` either way here.
+
+**Integration point** (`main.py`): `/predict` writes the raw uploaded
+bytes to a temp file (`_run_meta_detector()`) — the forensic checks need
+the original file bytes (for metadata/watermark), not the re-encoded PIL
+image the CNN path uses — runs `detect_image()`, and returns the result
+as `meta_detector` in the `PredictResponse` (`MetaDetectorResponse` in
+`schemas.py`). The frontend renders this as a "Forensic Scan — Meta
+Detector" panel below the main result card (`metaPanelHtml()` in
+`app.js`): a verdict box, detected-signal badges (watermark, C2PA, camera
+metadata, GPS, timestamp), 6 signal-value tiles, and the evidence list —
+plus a matching section in the on-screen Forensic Report. The meta
+verdict is persisted into `analysisHistory` alongside the CNN prediction
+(see 7.3).
+
+**New dependencies**: `scipy` (required — the module imports it
+unconditionally for FFT/median-filter operations) and
+`invisible-watermark` (soft dependency — `scan_watermarks()` degrades
+gracefully with an `"invisible-watermark not installed"` message in its
+result if missing, rather than crashing).
 
 ---
 
@@ -379,10 +464,14 @@ blocks, toggled via JS (`goToPage(key)`), not full page reloads:
    implemented by stacking the actual heatmap image over the original at
    a CSS `opacity` tied to the slider value, not a fixed pre-blended
    image)
-4. **Forensic Report** — full 7-section document view, rendered
+4. **Forensic Report** — full 8-section document view (Case Info, Image
+   Info, Model Info, Inference Preprocessing, Explainability/Grad-CAM,
+   Forensic Scan/Meta Detector, Final Assessment, Disclaimer), rendered
    client-side from the same analysis data (not fetched from `/report`);
    Download dropdown offers PDF (browser print) and Word (`.docx`, via
-   `POST /report/docx`)
+   `POST /report/docx` — note: the `.docx` export currently does **not**
+   include the Forensic Scan section, only the on-screen/PDF report does;
+   see 6.7/6.10)
 5. **History** — every analysis run this session (persisted, see 7.3),
    with search/filter, a table, and a right-side timeline panel grouped
    by date
