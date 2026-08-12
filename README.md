@@ -74,9 +74,12 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-Then open `http://127.0.0.1:8000` in a browser. Full details — model
-loading, endpoints (`/predict`, `/robustness`, `/compare`, `/report`),
-and troubleshooting — are in `webapp/backend/README.md`.
+Then open `http://127.0.0.1:8000` in a browser — a 5-page app (Main
+Model, Cross-Domain Model, Grad-CAM, Forensic Report, History). Full
+details — model loading, endpoints (`/predict`, `/robustness`,
+`/compare`, `/report`, `/report/docx`), and troubleshooting — are in
+`webapp/backend/README.md`; a full code/config walkthrough is in
+`DeveloperGuide.md`.
 
 ### 4. Train or reproduce a model
 
@@ -384,8 +387,9 @@ Milestone 1's original role assignments are in
 ## Documentation
 
 - **Start here:** `doc/Milestone-5/Milestone5.md` — full evaluation report (dataset, metrics, quantitative results, error analysis, robustness, explainability, limitations, deployment readiness)
+- **Full developer/setup/code reference:** `DeveloperGuide.md`
 - Training notebooks: this file, "Training Notebooks — Usage Instructions" above
-- Web app: `webapp/backend/README.md`
+- Web app quick reference: `webapp/backend/README.md`
 - Team contribution trackers: `doc/Milestone-{1..5}/Team-Contribution-Tracker.md`
 - Earlier milestone reports: `doc/Milestone-{1,2,3,4}/`
 

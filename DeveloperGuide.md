@@ -6,18 +6,9 @@ running the local web application, every backend/frontend file and what
 it does, configuration options, the API surface, and implementation
 notes that aren't obvious from the code alone.
 
-> **Branch note (important):** the model training and dataset material
-> below applies to both `main` and `vishakha`. The **web application**
-> described in this guide — the 5-page "Face Forensics" UI (Main Model /
-> Cross-Domain Model / Grad-CAM / Forensic Report / History / User
-> Guide), the forensic-report PDF/Word export, and the model-to-role
-> wiring in "Web Application → Model Wiring" below — is the version on
-> the **`vishakha`** branch. `main`'s `webapp/` folder currently holds an
-> earlier iteration of the frontend (fewer pages, different model
-> naming). To run the exact app this guide documents:
-> `git checkout vishakha` before starting the server. This note exists so
-> the guide doesn't silently describe code that isn't where you're
-> standing.
+Everything in this guide describes the current state of the **`main`**
+branch — no other branch is required to reproduce what's documented
+here.
 
 ---
 
@@ -111,7 +102,6 @@ Group-11-DS-and-AI-Lab-Project/
 ```bash
 git clone https://github.com/Vishakharoy1/Group-11-DS-and-AI-Lab-Project.git
 cd Group-11-DS-and-AI-Lab-Project
-git checkout vishakha   # the branch with the current web app (see branch note above)
 
 python -m venv .venv
 ```
@@ -563,8 +553,6 @@ either way from anything else in this repo.
 
 - **Full evaluation results**: `doc/Milestone-5/Milestone5.md`
 - **Training notebook cell-by-cell walkthrough**: root `README.md`
-- **Web app quick reference**: `webapp/backend/README.md` (currently
-  describes the `main`-branch frontend; this guide's Section 7 describes
-  the `vishakha`-branch frontend — see the branch note at the top)
+- **Web app quick reference**: `webapp/backend/README.md`
 - **Known open items / future work**: `doc/Milestone-5/Milestone5.md`
   Section 8, and the "Known Open Items" section of the root `README.md`
