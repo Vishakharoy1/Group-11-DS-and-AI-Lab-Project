@@ -132,10 +132,10 @@ code { font-family: 'Courier New', monospace; }
 
 .model-toggle { display: inline-flex; gap: 4px; border: 1px solid var(--border); border-radius: 8px; padding: 3px; background: var(--card); }
 .model-toggle-btn {
-  border: none; background: none; font-family: inherit; font-size: 0.82rem; font-weight: bold;
-  padding: 7px 16px; border-radius: 6px; cursor: pointer; color: var(--muted);
+  border: none; background: none; font-family: inherit; font-size: 0.82rem;
+  padding: 6px 12px; border-radius: 6px; cursor: pointer; color: var(--muted);
 }
-.model-toggle-btn.active { background: var(--primary); color: #fff; }
+.model-toggle-btn.active { background: var(--primary); color: #fff; font-weight: bold; }
 .page-desc { color: var(--muted); margin: 0 0 12px 0; max-width: 640px; }
 
 .model-status { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }
