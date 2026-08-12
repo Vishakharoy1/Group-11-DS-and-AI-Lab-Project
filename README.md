@@ -98,7 +98,72 @@ The final framework combines:
 - **MobileNetV3-Large backbone** (ImageNet-pretrained, depthwise-separable convolutions, Squeeze-and-Excitation, Hardswish activations) — 4,204,594 total parameters.
 - **Three-stage transfer learning**: Stage 1 (frozen backbone, classifier head only) → Stage 2 (last 25% of backbone unfrozen) → Stage 3 (full unfreeze + CelebA-HD real photos, added specifically to fix a shortcut-learning failure mode identified in Milestone 5 — see `doc/Milestone-5/Milestone5.md`).
 - **Grad-CAM explainability**, highlighting the facial regions driving each prediction.
-- **Automated forensic report generation** (`POST /report` in the local web app) — prediction, confidence, Grad-CAM evidence, and known reliability limitations compiled into one printable document.
+- **Automated forensic report generation** — prediction, confidence, Grad-CAM evidence, and known reliability limitations compiled into a printable document, downloadable as PDF or a real Word (`.docx`) file.
+
+---
+
+## Web Application
+
+A 5-page local web app (`webapp/backend/`, FastAPI + static HTML/JS, no
+build step) for interactively testing the trained checkpoints — see
+`webapp/backend/README.md` for setup/run instructions and the API
+reference, `DeveloperGuide.md` for the full file-by-file implementation
+walkthrough. What each page actually does:
+
+### 1. Main Model
+
+Upload a face image, click Analyze, get a Real/AI-Generated verdict with
+a confidence score. Powered by **`mobilenetv3_noaug.pth`** — note this is
+a deliberate choice, *not* `mobilenetv3_best.pth` (the checkpoint
+`doc/Milestone-5/Milestone5.md` evaluates in depth); see
+`DeveloperGuide.md` Section 8 for why, and how to repoint it if you want
+"Main Model" to serve `best` instead. Shows AI/Real probability, model
+info, and an Analysis ID — then unlocks the Grad-CAM and Forensic Report
+actions for that result.
+
+### 2. Cross-Domain Model
+
+Same upload → analyze → result flow, powered by **`mobilenetv3_cross_domain.pth`**
+— trained on general, non-face images across multiple domains (Nano
+Banana, CIFAKE, CrossDomain, Places365, Artifact; see Training Notebooks
+§2.1) rather than the face-specific FFHQ/Stable Diffusion/CelebA data the
+Main Model uses. Intended for images outside the core face domain, or as
+a second opinion with a differently-trained model.
+
+### 3. Grad-CAM
+
+Visual explainability for whichever image was most recently analyzed on
+either model page above: the original image next to an adjustable
+heatmap overlay. Three modes (Original / Heatmap / Overlay) plus a real
+intensity slider — the slider actually re-blends the real Grad-CAM
+heatmap over the original image via CSS opacity, it isn't a
+pre-rendered/fixed image. Empty state with a "Go to Main Model" link if
+nothing's been analyzed yet.
+
+### 4. Forensic Report
+
+A full document-style report for the most recent analysis: case info
+(Analysis ID, timestamp, filename), image info (resolution, size,
+format), model info (which checkpoint, prediction, confidence), which
+inference-time preprocessing steps were actually applied (vs. which
+augmentations were only used during training — kept clearly separate, not
+conflated), the Grad-CAM evidence, a final assessment, and a disclaimer.
+Download as **PDF** (browser print) or a real **`.docx`** file (server-
+generated via `POST /report/docx`, `python-docx`).
+
+### 5. History
+
+Every analysis run this browser session — table view (search by Analysis
+ID/filename, filter by model/result) plus a right-hand timeline grouped
+by date. Persisted to `localStorage` so it survives a page reload (there
+is **no backend database** — clearing browser data or switching browsers
+starts it empty). Capped at 15 entries. Each row has a "View Details"
+action that reloads that historical result into the Grad-CAM/Report
+pages. Failed analyses are logged too, with the real error message shown
+inline.
+
+Plus a static **User Guide** page (how to use each of the above, aimed at
+a non-technical user).
 
 ---
 
@@ -110,7 +175,19 @@ project and the local web app:
 | Notebook | Produces | Status |
 |---|---|---|
 | `final-mobilenet (1).ipynb` | `mobilenetv3_best.pth` — the main face-authenticity model | Complete, fully trained |
-| `cross-domain.ipynb` | `mobilenetv3_cross_domain.pth` — a separate model for non-face/general images | Not yet run to completion (dataset paths only verified, training never executed) |
+| `cross-domain.ipynb` | `mobilenetv3_cross_domain.pth` — a separate model for non-face/general images | **Complete, fully trained** — `mobilenetv3_cross_domain.pth` is live in the web app's Cross-Domain Model page and verified working (see note below) |
+
+> **Note on `cross-domain.ipynb`'s status:** the checkpoint itself is
+> real, trained, and confirmed working (loaded by the app, verified with
+> real predictions). However, the copy of this notebook checked into this
+> repo still only shows output through the dataset-path-verification
+> cell (2b) — the full training run that actually produced the working
+> checkpoint was completed separately, and that run's own cell outputs
+> (final dataset composition actually used, per-domain accuracy) weren't
+> captured back into the notebook file here. Section 2 below documents
+> the *intended* recipe (which datasets to attach, cell order) rather
+> than a verified record of the specific run that produced the deployed
+> checkpoint.
 
 ### 1. `final-mobilenet (1).ipynb` — the main face model
 
@@ -196,9 +273,9 @@ was obtained).
 
 ### 2. `cross-domain.ipynb` — the general/non-face model
 
-**Status: not yet run to completion.** Only the dataset-path-check cell
-has ever produced output; no training has actually run. Attaching
-datasets and running this notebook is still an open task.
+**Status: the checkpoint is trained and deployed** (see the note in the
+table above) — the instructions below are the intended recipe for
+reproducing it from scratch, not a description of an untrained notebook.
 
 #### 2.1 Attaching datasets on Kaggle
 
@@ -211,9 +288,8 @@ datasets and running this notebook is still an open task.
 | Artifact | `awsaf49/artifact-dataset` | Fake — AI-generated scenes (DALL-E, Stable Diffusion, Midjourney), capped at 8,000 |
 
 Run **Cell 2b (Verify all dataset paths)** first after attaching — it
-prints which paths actually resolve. As of the last check, only the
-first three datasets above were confirmed attached; Places365 and
-Artifact still need to be attached before a full run.
+prints which paths actually resolve, so you can confirm all five before
+committing to a full run.
 
 #### 2.2 Running the notebook — cell order
 
@@ -239,10 +315,6 @@ face cropping — it trains directly on whole images, since it's meant for
 general (non-face) content.
 
 #### 2.3 Reproducing results
-
-Not yet reproducible end-to-end — Places365 and Artifact still need to
-be attached, and the full training run (Cells 3–12) has never been
-executed. Once run:
 
 1. Attach all five datasets (2.1 above), confirm with Cell 2b.
 2. **Restart & Run All.**
@@ -277,7 +349,7 @@ the full evaluation of `mobilenetv3_best.pth` (Sections 2–9).
 | FFHQ (via `philosopher0808/real-vs-ai-generated-faces-dataset`) | Real faces (Stages 1–2) | 70,000 available, 15,000 sampled |
 | Stable Diffusion Face Dataset | Fake/AI-generated faces | 9,001 |
 | CelebA-HD | Additional real faces (Stage 3 only — fixes shortcut learning) | 8,000 |
-| Nano Banana 2.0 / CIFAKE / CrossDomain / Places365 / Artifact | Cross-domain model training (`cross-domain.ipynb`, not yet completed) | see Training Notebooks §2.1 |
+| Nano Banana 2.0 / CIFAKE / CrossDomain / Places365 / Artifact | Cross-domain model training (`cross-domain.ipynb`) | see Training Notebooks §2.1 |
 
 *(Milestone 1's originally proposed benchmark datasets — FaceForensics++,
 Celeb-DF, DFDC, WildDeepfake — were never used; the datasets above are
@@ -316,7 +388,7 @@ including what was root-caused, what was fixed, and what's still open.
 Group-11-DS-and-AI-Lab-Project/
 |
 ├── final-mobilenet (1).ipynb      # Main face model training notebook
-├── cross-domain.ipynb             # Cross-domain model (not yet trained)
+├── cross-domain.ipynb             # Cross-domain model training notebook
 ├── README.md                      # This file
 |
 ├── images/
@@ -397,7 +469,10 @@ Milestone 1's original role assignments are in
 
 ## Known Open Items / Opportunities for Improvement
 
-From Milestone 5's Actionable Insights (`doc/Milestone-5/Milestone5.md`, Section 8):
+From Milestone 5's Actionable Insights (`doc/Milestone-5/Milestone5.md`,
+Section 8 — written before `cross-domain.ipynb`'s training run
+completed, so its "complete cross-domain training" item below is now
+done; `Milestone5.md` itself hasn't been re-updated to reflect that):
 
 **Short-term (no retraining required):**
 - Recalibrate the deployed decision threshold (currently plain 50% argmax) to reduce the false-positive rate on real photos.
