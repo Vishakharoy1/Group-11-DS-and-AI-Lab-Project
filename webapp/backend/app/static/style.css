@@ -129,6 +129,13 @@ code { font-family: 'Courier New', monospace; }
 .badge { font-size: 0.68rem; letter-spacing: 0.06em; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
 .badge-primary { background: var(--soft-beige); color: var(--dark-brown); }
 .badge-cross { background: var(--real-bg); color: var(--real); }
+
+.model-toggle { display: inline-flex; gap: 4px; border: 1px solid var(--border); border-radius: 8px; padding: 3px; background: var(--card); }
+.model-toggle-btn {
+  border: none; background: none; font-family: inherit; font-size: 0.82rem; font-weight: bold;
+  padding: 7px 16px; border-radius: 6px; cursor: pointer; color: var(--muted);
+}
+.model-toggle-btn.active { background: var(--primary); color: #fff; }
 .page-desc { color: var(--muted); margin: 0 0 12px 0; max-width: 640px; }
 
 .model-status { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }

@@ -69,14 +69,16 @@
     </div>
 
     <!-- ============== PAGE 1: Main Model ============== -->
-    <section class="page active" id="page-main" data-model-key="noaug" data-model-label="Main Model">
+    <section class="page active" id="page-main" data-model-key="noaug" data-model-label="Model 1 (No-Augmentation)">
       <div class="page-header">
         <h1>AI FACE AUTHENTICITY ANALYSIS</h1>
         <div class="page-subtitle-row">
-          <span class="model-name">Main Model</span>
-          <span class="badge badge-primary">PRIMARY MODEL</span>
+          <div class="model-toggle" id="main-model-toggle">
+            <button type="button" class="model-toggle-btn active" data-main-model="noaug" data-main-label="Model 1 (No-Augmentation)">Model 1</button>
+            <button type="button" class="model-toggle-btn" data-main-model="best" data-main-label="Model 2 (Best)">Model 2</button>
+          </div>
         </div>
-        <p class="page-desc">Analyze an image using the primary face authenticity detection model.</p>
+        <p class="page-desc">Analyze an image using the selected face authenticity detection model.</p>
         <div class="model-status" id="status-main">
           <span class="status-dot"></span> Checking model status…
         </div>
