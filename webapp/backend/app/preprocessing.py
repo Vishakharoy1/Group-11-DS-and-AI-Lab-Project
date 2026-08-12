@@ -25,14 +25,6 @@ except ImportError:
         "for real face alignment."
     )
 
-try:
-    import cv2
-
-    CV2_AVAILABLE = True
-except ImportError:
-    CV2_AVAILABLE = False
-
-
 FACE_PADDING = 0.20
 
 val_transform = transforms.Compose(
@@ -60,11 +52,12 @@ def crop_and_align_face(image_pil: Image.Image, padding: float = FACE_PADDING) -
     "center_crop_fallback" so callers/UI can show which path was used."""
     if RETINA_AVAILABLE:
         try:
-            if CV2_AVAILABLE:
-                img_bgr = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
-                faces = RetinaFace.detect_faces(img_bgr)
-            else:
-                faces = RetinaFace.detect_faces(np.array(image_pil))
+            # RetinaFace expects RGB, matching PIL's native channel order -
+            # do NOT convert to BGR here (a prior version did via cv2, which
+            # silently made every detection fail: detect_faces() returned an
+            # empty dict instead of raising, so it fell through to the
+            # center-crop fallback below with no error logged at all).
+            faces = RetinaFace.detect_faces(np.array(image_pil))
 
             if isinstance(faces, dict) and len(faces) > 0:
                 largest_face = max(

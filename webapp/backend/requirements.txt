@@ -17,5 +17,14 @@ torchvision
 # Optional - real face alignment instead of center-crop fallback.
 # Needs internet + a working TensorFlow install; skip if you're fine with
 # the center-crop fallback for local testing.
+#
+# On Windows: do NOT just uncomment these two lines and pip install -r
+# this file - `retina-face` depends on full `opencv-python`, which
+# conflicts with `opencv-python-headless` above and breaks on Windows N
+# editions (missing Media Foundation DLLs). Install manually instead -
+# see DeveloperGuide.md Section 9.1 for the verified working recipe:
+#   pip install opencv-python-headless
+#   pip install --no-deps retina-face
+#   pip install gdown Pillow tensorflow
 # retina-face
 # opencv-python

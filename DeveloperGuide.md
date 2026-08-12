@@ -164,17 +164,17 @@ requirement (imported unconditionally for FFT/median-filter operations),
 `invisible-watermark` degrades gracefully if unavailable (watermark
 scanning just reports itself unavailable rather than crashing the
 server) — **and "unavailable" includes installed-but-broken, not just
-missing**: `invisible-watermark` pulls in `cv2` as a transitive
-dependency, and on this project's Windows 11 N development machine, `pip
-install invisible-watermark` succeeds but `import imwatermark` still
-fails at runtime (`cv2`'s DLL load failure — the exact same Media
-Foundation root cause as `retina-face`/`opencv-python` below, confirmed
-by testing `/predict` directly: it returns a normal 200 with a valid
-`meta_detector` result, just with watermark scanning silently disabled).
-No action needed on Windows N specifically — this is expected, not a
-setup mistake — but don't be surprised if watermark evidence never shows
-up in the Forensic Scan panel on this kind of machine even with the
-package installed.
+missing**: `invisible-watermark` declares full `opencv-python` as its own
+dependency (`pip show invisible-watermark`), which fails to import on
+Windows 11 N (`cv2`'s DLL load failure — the exact same Media Foundation
+issue as `retina-face`/`opencv-python` below). **A real fix exists and is
+verified working, no Media Feature Pack needed** — see Section 9.1's
+`opencv-python-headless` recipe. Without that fix applied, the app
+degrades gracefully rather than crashing (confirmed by testing `/predict`
+directly: it returns a normal 200 with a valid `meta_detector` result,
+just with watermark scanning silently disabled) — so this is only worth
+fixing if you actually need watermark detection to work, not a blocker
+for running the app at all.
 
 `retina-face`/`opencv-python` are commented out by default — the app
 runs fine without them (falls back to center-crop face alignment); see
@@ -644,16 +644,57 @@ edition until that's fixed — confirmed via PE import-table analysis
 (`pefile`) for the original face-detection case, and via a direct live
 `/predict` test for the watermark case; neither is guessed.
 
-**Fix:** install the official *Media Feature Pack for Windows 11 N* from
-Microsoft, reboot, then reinstall `opencv-python-headless` and restart
-the server — this should resolve both the face-detection and the
-watermark-scanning symptoms at once, since they share the same root
-cause.
+**Real fix found and verified — no Media Feature Pack / reboot needed.**
+`opencv-python-headless` (the no-GUI, no-video-capture build) does **not**
+hit the Media Foundation dependency at all — only the full
+`opencv-python` package does. The problem is that **both**
+`retina-face` and `invisible-watermark` declare full `opencv-python` as
+their own dependency (`pip show invisible-watermark` / `pip show
+retina-face` both list it under `Requires:`) — so a plain `pip install -r
+requirements.txt` on Windows will pull in the broken full `opencv-python`
+regardless of which package triggered it, and having both `opencv-python`
+and `opencv-python-headless` installed corrupts the working `cv2` install
+(they share the same `cv2/` folder in site-packages). The fix is a
+repair step, not a one-time install order trick — safe to re-run any
+time you suspect this has happened again after installing/upgrading a
+package:
 
-**Practical workaround until then:** upload images already cropped close
-to the face (like the sample images in `Test Sample/`) — the center-crop
-fallback lands correctly on those. Full photos with background/off-center
-faces get mis-cropped under the fallback and may predict incorrectly.
+```bash
+pip uninstall -y opencv-python opencv-python-headless
+pip install opencv-python-headless
+pip install --no-deps retina-face   # --no-deps is essential - skips retina-face's own opencv-python dependency
+pip install gdown Pillow tensorflow  # retina-face's other real dependencies, installed manually since --no-deps skipped all of them
+```
+
+If you only need `invisible-watermark` (not `retina-face`), the same
+`opencv-python-headless`-first, no-broken-package-after principle applies
+— just make sure nothing reinstalls full `opencv-python` afterward; if in
+doubt, re-run `pip uninstall -y opencv-python` and confirm with `pip list
+| grep opencv` that only `-headless` remains.
+
+Verified end-to-end on this Windows 11 N machine (no Media Feature Pack
+installed): `cv2` imports and runs real operations, `RetinaFace.detect_faces()`
+successfully detects faces on real images, `/health` reports
+`"face_alignment": "retinaface"`, and a real `/predict` call returns
+`"face_alignment_used": "retinaface"` with a genuinely face-aligned crop
+(confirmed by a shifted, more accurate confidence score vs. the same
+image under center-crop).
+
+**A second, previously-hidden bug was found once this was fixed**: the
+old `crop_and_align_face()` converted the image to BGR via `cv2.cvtColor`
+before calling `RetinaFace.detect_faces()`. RetinaFace actually expects
+RGB (PIL's native order) — the BGR conversion caused every detection to
+silently return zero faces (not an exception, so nothing was logged),
+falling through to the center-crop fallback on *every* request even once
+`retina-face` was importable. This was invisible for the whole project
+until now because `retina-face` had never successfully imported before,
+so this code path was never reached. Fixed by removing the BGR
+conversion entirely — `preprocessing.py` no longer imports `cv2` at all.
+
+**If you don't want to bother with any of this:** the old workaround
+still applies — upload images already cropped close to the face (like
+the sample images in `Test Sample/`) — the center-crop fallback lands
+correctly on those regardless of which face-detection path is active.
 
 ### 9.2 Checkpoint file-size discrepancy
 
