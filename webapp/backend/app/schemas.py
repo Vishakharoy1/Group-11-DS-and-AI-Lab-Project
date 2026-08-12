@@ -15,11 +15,24 @@ class PredictionResult(BaseModel):
     fake_pct: float
 
 
+class MetaDetectorResponse(BaseModel):
+    """Output of the forensic meta-detector (metadata / watermark /
+    spectral / sensor-noise analysis) run alongside the CNN model."""
+    verdict: str
+    ai_score: float
+    edit_score: float
+    confidence: float
+    signals: dict
+    evidence: list[str]
+    warnings: list[str]
+
+
 class PredictResponse(BaseModel):
     prediction: PredictionResult
     gradcam_heatmap: str  # base64 PNG
     gradcam_overlay: str  # base64 PNG
     face_alignment_used: str
+    meta_detector: MetaDetectorResponse
 
 
 class RobustnessRow(BaseModel):

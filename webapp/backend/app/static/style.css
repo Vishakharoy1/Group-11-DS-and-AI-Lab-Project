@@ -228,6 +228,27 @@ code { font-family: 'Courier New', monospace; }
 .action-row { display: flex; gap: 12px; margin-top: 18px; }
 .action-row .btn { flex: 1; }
 
+/* ===================== Meta-detector forensics panel ===================== */
+.meta-panel { border: 1px solid var(--border); border-radius: 12px; padding: 20px; background: var(--card); }
+.meta-panel-top { display: flex; gap: 16px; align-items: stretch; }
+.meta-panel-top .verdict-box { margin: 0; }
+.meta-panel-notes { flex: 1; border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+.verdict-box.uncertain { background: var(--card-2); border-color: var(--border); }
+.verdict-box.uncertain .verdict-label, .verdict-box.uncertain .verdict-conf { color: var(--muted); }
+.meta-flags { display: flex; flex-wrap: wrap; gap: 6px; }
+.badge-meta { background: var(--soft-beige); color: var(--dark-brown); }
+.badge-meta-real { background: var(--real-bg); color: var(--real); }
+.badge-meta-fake { background: var(--fake-bg); color: var(--fake); }
+.meta-warnings { margin-top: 10px; font-size: 0.78rem; color: var(--fake); }
+.meta-signal-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 16px 0; }
+.meta-signal-tile { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--card-2); }
+.meta-signal-value { font-size: 1.05rem; font-weight: bold; }
+.meta-evidence ul { margin: 6px 0 0 0; padding-left: 20px; font-size: 0.85rem; line-height: 1.6; }
+@media (max-width: 900px) {
+  .meta-panel-top { flex-direction: column; }
+  .meta-signal-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
 /* ===================== Grad-CAM page ===================== */
 .gradcam-meta-bar { display: flex; gap: 24px; border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px; background: var(--card); margin-bottom: 20px; flex-wrap: wrap; }
 .gradcam-meta-item .k { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em; }

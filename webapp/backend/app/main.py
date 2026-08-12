@@ -8,6 +8,8 @@ from inside the backend/ directory.
 import base64
 import io
 import logging
+import os
+import tempfile
 
 import torch
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -15,12 +17,13 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
-from . import config, gradcam, manipulations, preprocessing, report, results
+from . import config, gradcam, manipulations, meta_detector, preprocessing, report, results
 from .model import ModelRegistry
 from .schemas import (
     CompareResponse,
     DocxReportRequest,
     HealthResponse,
+    MetaDetectorResponse,
     PredictionResult,
     PredictResponse,
     RobustnessResponse,
@@ -49,7 +52,7 @@ def on_startup():
         )
 
 
-async def _load_upload_image(file: UploadFile) -> Image.Image:
+async def _load_upload_image(file: UploadFile) -> tuple[Image.Image, bytes]:
     if file.content_type not in config.ALLOWED_CONTENT_TYPES:
         raise HTTPException(400, f"Unsupported file type: {file.content_type}")
 
@@ -58,9 +61,22 @@ async def _load_upload_image(file: UploadFile) -> Image.Image:
         raise HTTPException(400, "File too large (max 10 MB).")
 
     try:
-        return Image.open(io.BytesIO(data)).convert("RGB")
+        return Image.open(io.BytesIO(data)).convert("RGB"), data
     except Exception:
         raise HTTPException(400, "Could not decode file as an image.")
+
+
+def _run_meta_detector(data: bytes, suffix: str = "") -> dict:
+    """Runs the forensic meta-detector on the raw uploaded bytes (metadata /
+    watermark / spectral / sensor-noise forensics need the original file,
+    not the re-encoded PIL image)."""
+    fd, path = tempfile.mkstemp(suffix=suffix)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+        return meta_detector.detect_image(path, use_cnn=False).to_dict()
+    finally:
+        os.unlink(path)
 
 
 def _require_model(name: str = "best"):
@@ -98,16 +114,18 @@ async def predict(model: str = "best", file: UploadFile = File(...)):
     (no-augmentation comparison model), or "tuned" (swept-hparams model),
     whichever are actually loaded. Defaults to "best"."""
     model_obj = _require_model(model)
-    image = await _load_upload_image(file)
+    image, data = await _load_upload_image(file)
 
     cropped, method = preprocessing.crop_and_align_face(image)
     result = gradcam.gradcam_overlay(model_obj, cropped, preprocessing.val_transform, registry.device)
+    meta = _run_meta_detector(data, os.path.splitext(file.filename or "")[1])
 
     return PredictResponse(
         prediction=PredictionResult(**result["prediction"]),
         gradcam_heatmap=result["heatmap_b64"],
         gradcam_overlay=result["overlay_b64"],
         face_alignment_used=method,
+        meta_detector=MetaDetectorResponse(**meta),
     )
 
 
@@ -118,7 +136,7 @@ async def generate_report(model: str = "best", file: UploadFile = File(...)):
     instead of JSON."""
     model_obj = _require_model(model)
     filename = file.filename or "uploaded_image"
-    image = await _load_upload_image(file)
+    image, _data = await _load_upload_image(file)
 
     cropped, method = preprocessing.crop_and_align_face(image)
     result = gradcam.gradcam_overlay(model_obj, cropped, preprocessing.val_transform, registry.device)
@@ -176,7 +194,7 @@ async def robustness(file: UploadFile = File(...)):
     # Uses the "manipulations" checkpoint - trained specifically to stay
     # robust under these 11 corruptions - instead of "best".
     model = _require_model("manipulations")
-    image = await _load_upload_image(file)
+    image, _data = await _load_upload_image(file)
     cropped, _method = preprocessing.crop_and_align_face(image)
 
     rows: list[RobustnessRow] = []
@@ -226,7 +244,7 @@ async def compare(mode: str, file: UploadFile = File(...)):
             reason=f"Checkpoint '{missing}' is not loaded - train/save it and restart the server.",
         )
 
-    image = await _load_upload_image(file)
+    image, _data = await _load_upload_image(file)
     cropped, _method = preprocessing.crop_and_align_face(image)
 
     label_a_res, real_a, fake_a = _predict_pct(model_a, cropped, preprocessing.val_transform)
