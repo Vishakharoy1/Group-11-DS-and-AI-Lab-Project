@@ -72,19 +72,21 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 
 | Service | Usage | Terms |
 |---|---|---|
+| **Render** | **Production web app** at [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com) — FastAPI + Docker deploy from `main` | [render.com/terms](https://render.com/terms) |
 | Google Colab / Kaggle GPU | Model training | Platform-specific ToS |
-| Hugging Face Hub / Spaces | Public demo at [somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) | [huggingface.co/terms-of-service](https://huggingface.co/terms-of-service) |
-| OpenAI / Gemini | Not used in local FastAPI app | N/A for core deployment |
+| Hugging Face Hub / Spaces | Optional Gradio demo at [somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) (not the primary live deployment) | [huggingface.co/terms-of-service](https://huggingface.co/terms-of-service) |
+| OpenAI / Gemini | Not used in deployed app | N/A for core deployment |
 
 ---
 
 ## Fine-Tuned Checkpoints
 
-| Checkpoint | Training Data | License |
-|---|---|---|
-| `mobilenetv3_noaug.pth` | FFHQ + Stable Diffusion (no-augmentation ablation) | MIT (project) + dataset terms above |
-| `mobilenetv3_best.pth` | Same + CelebA-HD Stage 3 | MIT (project) + dataset terms above |
-| `mobilenetv3_cross_domain.pth` | Multi-domain synthetic corpora | MIT (project) + per-dataset terms |
+| Checkpoint | Training Data | Deployed (Render) | License |
+|---|---|---|---|
+| `mobilenetv3_noaug.pth` | FFHQ + Stable Diffusion (no-augmentation ablation) | ✅ Main Model (default) | MIT (project) + dataset terms above |
+| `mobilenetv3_cross_domain.pth` | Multi-domain synthetic corpora | ✅ Cross-Domain Model | MIT (project) + per-dataset terms |
+| `mobilenetv3_best.pth` | Same + CelebA-HD Stage 3 | ❌ Local dev only (RAM limit on Render) | MIT (project) + dataset terms above |
+| `mobilenetv3_manipulations.pth` | Robustness training (11 corruptions) | ❌ Local dev only | MIT (project) + dataset terms above |
 
 Based on **MobileNetV3-Large** pre-trained weights (torchvision, BSD-style).
 

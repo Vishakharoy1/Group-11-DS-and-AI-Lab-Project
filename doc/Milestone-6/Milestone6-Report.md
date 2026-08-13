@@ -492,7 +492,8 @@ curl -X POST "http://localhost:8000/predict?model=noaug" \
 | FFHQ dataset | FFHQ License (research use) |
 | Stable Diffusion Face Dataset | Kaggle dataset terms |
 | MobileNetV3-Large (torchvision) | BSD-style |
-| Hugging Face Spaces hosting | [HF Terms of Service](https://huggingface.co/terms-of-service) |
+| Render hosting | [Render Terms of Service](https://render.com/terms) |
+| Hugging Face Spaces (optional demo) | [HF Terms of Service](https://huggingface.co/terms-of-service) |
 
 ---
 
