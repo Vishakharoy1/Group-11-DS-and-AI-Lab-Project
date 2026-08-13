@@ -1,0 +1,19 @@
+fastapi>=0.139
+uvicorn[standard]>=0.50
+pillow>=12.0
+numpy
+scipy
+matplotlib
+pydantic>=2.0
+python-multipart
+python-docx
+
+# torch and torchvision are installed separately in the Dockerfile
+# with the CPU-only index to keep the image small:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# Optional - real face alignment instead of center-crop fallback.
+# Not included on Render (adds TensorFlow + heavy deps, too large for
+# the free tier). The app falls back to center-crop automatically.
+# retina-face
+# opencv-python

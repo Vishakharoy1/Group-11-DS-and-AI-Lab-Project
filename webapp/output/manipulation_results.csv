@@ -1,0 +1,12 @@
+Manipulation,Accuracy (%),Delta vs Original (pp)
+original,74.0,0.0
+green_tint,72.33,-1.67
+blue_tint,76.0,2.0
+brightness,60.0,-14.0
+contrast,55.67,-18.33
+gaussian_blur,62.0,-12.0
+motion_blur,64.67,-9.33
+jpeg,64.0,-10.0
+resize,62.33,-11.67
+crop,67.67,-6.33
+noise,85.0,11.0

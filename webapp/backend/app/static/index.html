@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Face Forensics — AI Authenticity</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ===================== Sidebar ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 48 48" width="30" height="30" fill="none">
+          <path d="M24 4 L42 12 V24 C42 34 34 42 24 44 C14 42 6 34 6 24 V12 Z" stroke="currentColor" stroke-width="2"/>
+          <circle cx="24" cy="20" r="6" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M14 34 C14 27 33 27 34 34" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <div class="logo-title">FACE FORENSICS</div>
+        <div class="logo-subtitle">AI AUTHENTICITY</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-page="main">
+        <span class="nav-icon">&#8962;</span> Main Model
+      </button>
+      <button class="nav-item" data-page="crossdomain">
+        <span class="nav-icon">&#127760;</span> Cross-Domain Model
+      </button>
+      <button class="nav-item" data-page="gradcam">
+        <span class="nav-icon">&#8857;</span> Grad-CAM
+      </button>
+      <button class="nav-item" data-page="report">
+        <span class="nav-icon">&#128196;</span> Forensic Report
+      </button>
+      <button class="nav-item" data-page="history">
+        <span class="nav-icon">&#8986;</span> History
+      </button>
+      <button class="nav-item" data-page="guide">
+        <span class="nav-icon">&#63;</span> User Guide
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-box">
+        <span class="status-dot"></span>
+        <div>
+          <div class="status-title" id="sidebar-status-title">System Ready</div>
+          <div class="status-sub" id="sidebar-status-sub">All systems operational</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== Main content ===================== -->
+  <main class="main-content">
+
+    <div class="topbar">
+      <div class="theme-toggle">
+        <button class="theme-btn" data-theme-choice="light">&#9728; Light</button>
+        <button class="theme-btn" data-theme-choice="dark">&#9790; Dark</button>
+      </div>
+    </div>
+
+    <!-- ============== PAGE 1: Main Model ============== -->
+    <section class="page active" id="page-main" data-model-key="noaug" data-model-label="Model 1 (No-Augmentation)">
+      <div class="page-header">
+        <h1>AI FACE AUTHENTICITY ANALYSIS</h1>
+        <div class="page-subtitle-row">
+          <div class="model-toggle" id="main-model-toggle">
+            <button type="button" class="model-toggle-btn active" data-main-model="noaug" data-main-label="Model 1 (No-Augmentation)">Model 1</button>
+            <button type="button" class="model-toggle-btn" data-main-model="best" data-main-label="Model 2 (Best)">Model 2</button>
+          </div>
+        </div>
+        <p class="page-desc">Analyze an image using the selected face authenticity detection model.</p>
+        <div class="model-status" id="status-main">
+          <span class="status-dot"></span> Checking model status…
+        </div>
+      </div>
+
+      <div class="analysis-body" data-page-body="main"></div>
+    </section>
+
+    <!-- ============== PAGE 2: Cross-Domain Model ============== -->
+    <section class="page" id="page-crossdomain" data-model-key="cross_domain" data-model-label="Cross-Domain Model">
+      <div class="page-header">
+        <h1>CROSS-DOMAIN AUTHENTICITY ANALYSIS</h1>
+        <div class="page-subtitle-row">
+          <span class="model-name">Cross-Domain Model</span>
+          <span class="badge badge-cross">CROSS-DOMAIN MODEL</span>
+        </div>
+        <p class="page-desc">Evaluate the image using the model designed to generalize across different image domains and generation sources.</p>
+        <div class="model-status" id="status-crossdomain">
+          <span class="status-dot"></span> Checking model status…
+        </div>
+      </div>
+
+      <div class="analysis-body" data-page-body="crossdomain"></div>
+    </section>
+
+    <!-- ============== PAGE 3: Grad-CAM ============== -->
+    <section class="page" id="page-gradcam">
+      <div class="page-header">
+        <h1>GRAD-CAM EXPLAINABILITY</h1>
+        <p class="page-desc">Visualize the image regions that contributed most strongly to the model's prediction.</p>
+      </div>
+      <div id="gradcam-body"></div>
+    </section>
+
+    <!-- ============== PAGE 4: Forensic Report ============== -->
+    <section class="page" id="page-report">
+      <div id="report-body"></div>
+    </section>
+
+    <!-- ============== PAGE: Analysis History ============== -->
+    <section class="page" id="page-history">
+      <div id="history-body"></div>
+    </section>
+
+    <!-- ============== PAGE 5: User Guide ============== -->
+    <section class="page" id="page-guide">
+      <div class="page-header">
+        <h1>USER GUIDE</h1>
+        <p class="page-desc">Learn how to use the Face Forensics AI Authenticity system.</p>
+      </div>
+      <div id="guide-body"></div>
+    </section>
+
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
