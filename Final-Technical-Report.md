@@ -687,6 +687,21 @@ The model classified every FFHQ-like image correctly but misclassified the vast 
 
 **How It Was Addressed**: Documented as a hard operational boundary — any prediction on a non-face image is meaningless and should be treated as such. The RetinaFace face-detection step at the front of the pipeline serves as a partial gate, but its center-crop fallback means non-face images can still reach the classifier.
 
+### 10.7 Challenge 7: Unaudited Demographic & Ethical Bias
+
+**The Problem**: The current evaluation does not establish whether the detector performs equally across demographic groups. Dataset splits (FFHQ, Stable Diffusion, CelebA-HD, and the Real-Latest probe set) were never audited for skin tone, age, gender, or ethnicity balance — either at the source-dataset level or after train/val/test partitioning. Given that the project's headline failure mode (§10.1, §10.3) is a shortcut-learning problem where the model keys on *processing* artefacts (HDR tone-mapping, sharpening, saturation) rather than genuine authenticity cues, it is plausible — though currently unmeasured — that these same shortcuts could produce uneven error rates across demographic groups if camera/processing conventions correlate with any of them.
+
+**Why This Was Not Addressed**: No dataset used in this project (FFHQ, Stable Diffusion outputs, CelebA-HD) ships with verified demographic labels; only FFHQ's source documentation notes general diversity in age, ethnicity, and lighting without per-image annotations. A rigorous audit requires either verified demographic labels or a separate, carefully-validated labelling pass, which was out of scope given the M5/M6 timeline and the higher-priority shortcut-learning root-cause work.
+
+**Scope for a Future Audit** (not performed in this project):
+
+- Stratify the held-out test set and the Real-Latest probe by skin-tone group, age group, gender group, and any other reliably available demographic category.
+- For each group, report Accuracy, Precision, Recall, F1-score, false-positive rate, and false-negative rate separately — the same metrics already computed in aggregate in §9.1 and §9.4.
+- Treat this as a measurement exercise, not a presumption of bias: the goal is to determine whether meaningful performance differences exist, not to assume they do.
+- Source demographic labels from a dataset that provides them natively (rather than inferring them), to avoid introducing a second, unverified layer of bias into the audit itself.
+
+**Honest assessment**: This is a genuine limitation of the current evaluation, not a solved problem. Every accuracy figure reported in this report (§9) — including the well-documented 8.6% Real-Latest failure — is an aggregate number that could conceal unequal performance across demographic groups. Until the audit above is performed, no claim of demographic fairness (or unfairness) can honestly be made either way.
+
 ---
 
 ## 11. Explainability Framework
@@ -991,7 +1006,7 @@ Several issues in this project (RetinaFace channel-order mismatch, Keras optimiz
 
 - Compiled this Final Technical Report covering the complete M1→M6 development lifecycle.
 - Synthesised findings from all milestones into a coherent narrative: from the original ViT+FFT proposal through the MobileNetV3-Large pivot, through the shortcut-learning discovery and partial mitigation, to the deployed web application.
-- Documented all challenges (shortcut learning, preprocessing mismatch, domain shift, optimizer bug, computational constraints) and how each was addressed.
+- Documented all challenges (shortcut learning, preprocessing mismatch, domain shift, optimizer bug, computational constraints, non-face handling, and unaudited demographic/ethical bias) and how each was addressed or, where unresolved, honestly scoped for future work.
 - Provided actionable recommendations for future work, grounded in the specific failure modes discovered during evaluation.
 
 ---
