@@ -106,7 +106,7 @@ The **Main Model** is the primary model available in the application for face au
 6. Review the result.
 
 #### **Figure 1. Main Model Interface**
-![Figure 1: Main Model Interface](/images/स्क्रीनशॉट%202026-08-13%20151854.png) 
+![Figure 1: Main Model Interface](Images/main_model.png)
 The Main Model interface contains an area for uploading an image and displaying the selected image before analysis. The user can select an image from the computer using the **Browse from Computer** option.
 
 ---
@@ -124,10 +124,10 @@ The interface also provides an upload area where the user can drag and drop an i
 - **Maximum File Size:** `10 MB`
 
 #### **Figure 2. Image Upload Interface**
-![Figure 2: Image Upload Interface](/images/स्क्रीनशॉट%202026-08-13%20151938.png)
+![Figure 2: Image Upload Interface](Images/main_model1.png)
 
 After the image is uploaded, the application displays a preview and information about the selected file. The information includes:
-- **Filename:** `3.jpg`
+- **File Type:** `JPG`
 - **Resolution:** `512 × 512`
 - **File Size:** `27.7 KB`
 
@@ -149,7 +149,7 @@ If the wrong image has been selected, the user can click **Replace Image** and s
 The completed analysis provides several pieces of information.
 
 #### **Figure 3. Completed Main Model Analysis**
-![Figure 3: Completed Main Model Analysis](images/स्क्रीनशॉट%202026-08-13%20151938.png)
+![Figure 3: Completed Main Model Analysis](Images/main_model1.png)
 
 The result screen contains:
 - **Prediction:** `REAL / AUTHENTIC`
@@ -194,7 +194,7 @@ The application provides a second model called the **Cross-Domain Model**. The a
 7. Review the displayed result.
 
 #### **Figure 4. Cross-Domain Model Interface**
-![Figure 4: Cross-Domain Model Interface](images/स्क्रीनशॉट%202026-08-13%20152014.png)
+![Figure 4: Cross-Domain Model Interface](Images/cross_domain.png)
 
 The Cross-Domain Model follows the same general upload and analysis process as the Main Model. The result includes the prediction and supporting information such as confidence (`67.87%`) and probability values (`32.13%` AI vs. `67.87%` Real).
 
@@ -210,7 +210,7 @@ The application provides a **Grad-CAM** feature to help users understand the mod
 4. Review the original image and Grad-CAM visualization.
 
 #### **Figure 5. Grad-CAM Interface**
-![Figure 5: Grad-CAM Interface](images/स्क्रीनशॉट%202026-08-13%20152049.png)
+![Figure 5: Grad-CAM Interface](Images/Grad_Cam.png)
 
 The Grad-CAM page provides information such as:
 - **Analysis ID** (`FA-000127`)
@@ -248,7 +248,7 @@ The application provides a **Forensic Report** feature. The report provides stru
 4. Use the available **Download Report** option if a copy is required.
 
 #### **Figure 6. Forensic Report**
-![Figure 6: Forensic Report](images/स्क्रीनशॉट%202026-08-13%20152152.png)
+![Figure 6: Forensic Report](Images/Forensic_Analysis.png)
 
 ---
 
@@ -300,7 +300,7 @@ This allows the user to retain a copy of the analysis information for record kee
 The application provides an **Analysis History** page allowing users to view previously performed analyses.
 
 #### **Figure 7. Analysis History**
-![Figure 7: Analysis History](images/स्क्रीनशॉट%202026-08-13%20152245.png)
+![Figure 7: Analysis History](Images/History.png)
 
 The History page displays information such as Analysis ID, Date & Time, Image thumbnail, Model, Prediction, Confidence, and Status.
 
@@ -345,7 +345,7 @@ This avoids the need to repeat an analysis simply to access previously generated
 The application contains a built-in **User Guide** section accessible directly from the sidebar menu.
 
 #### **Figure 8. Application User Guide**
-![Figure 8: Application User Guide](images/स्क्रीनशॉट%202026-08-13%20152315.png)
+![Figure 8: Application User Guide](Images/User_Guide.png)
 
 The built-in User Guide explains:
 - What the system does
