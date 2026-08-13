@@ -360,7 +360,7 @@ To stay within the 512 MB RAM limit:
 
 | Excluded | Size Impact | Mitigation |
 |---|---|---|
-| `mobilenetv3_cross_domain.pth` | +45 MB RAM | Cross-Domain page shows "model not available" |
+| `mobilenetv3_best.pth` | +17 MB RAM (third model would exceed limit) | Model 2 toggle uses `cross_domain` instead; `best` not shipped |
 | `mobilenetv3_manipulations.pth` | +45 MB RAM | Robustness page shows "model not available" |
 | `mobilenetv3_tuned.pth` | — | Comparison mode shows "checkpoint not loaded" |
 | `retina-face` + TensorFlow | +500 MB disk/RAM | Falls back to center-crop (works for cropped face photos) |
@@ -422,7 +422,7 @@ uvicorn app.main:app --port 8000
 
 ```bash
 curl http://localhost:10000/health
-# {"status":"ok","loaded_models":["best","noaug"],"face_alignment":"center_crop_fallback"}
+# {"status":"ok","loaded_models":["noaug","cross_domain"],"face_alignment":"center_crop_fallback"}
 ```
 
 ### Test Prediction
@@ -443,7 +443,7 @@ curl -X POST "http://localhost:10000/predict?model=noaug" \
 | "center_crop_fallback" in `/health` | `retina-face` not installed (expected on Render) | Upload pre-cropped face images for best accuracy |
 | Build fails with `libgl1-mesa-glx` error | Old Debian package name | Fixed in latest commit — use `libgl1` instead |
 | Build exceeds 15 min timeout | PyTorch wheel download is slow | Retry — Render caches Docker layers after first successful build |
-| RAM exceeded / OOM kill | Too many models loaded | Only deploy `noaug` + `best` (current config) |
+| RAM exceeded / OOM kill | Too many models loaded | Only deploy `noaug` + `cross_domain` (current config) |
 
 ---
 
