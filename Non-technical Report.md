@@ -226,3 +226,21 @@ The system provides a complete user-facing workflow:
 $$	\text{Image Upload} \longrightarrow 	\text{Authenticity Analysis} \longrightarrow 	\text{Prediction} \longrightarrow 	\text{Explanation} \longrightarrow 	\text{Forensic Report} \longrightarrow 	\text{History}$$
 
 By presenting the results through a simple interface, the project makes deep learning-based authenticity analysis more accessible to users without requiring them to understand the underlying technical processes.
+
+---
+
+## Team Declaration
+
+We certify that all team members have actively contributed to the preparation of this document. Each member has reviewed the contents, understands the work presented, and agrees with the submitted report.
+
+**Project:** Deep Learning-Based Human Face Authenticity Detection  
+**Team:** Group 11 — Vishakha · Rohit · Aman · Raunak · Somendu  
+**Course:** DS & AI Lab Project
+
+| Team Member | Role | Signature |
+| --- | --- | --- |
+| Vishakha | Pipeline & Presentation Lead | Vishakha |
+| Rohit | Training Stability Lead | Rohit |
+| Aman | Preprocessing & Transfer Learning Lead | Aman |
+| Raunak | Dataset & Bias Analysis Lead | Raunak |
+| Somendu | Explainability & Optimisation Lead | Somendu |

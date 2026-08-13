@@ -259,3 +259,21 @@ Therefore, the most valuable next experiment is:
 > **Train a new MobileNetV3-Large model using a substantially more diverse Real class, targeted HDR/sharpening augmentations, and hard-negative mining, then evaluate it on a completely unseen modern real-photo dataset and unseen AI generators.**
 
 If this experiment substantially reduces the current false-positive rate while preserving strong fake-image recall, it would provide stronger evidence that the model is learning facial authenticity features rather than merely learning dataset-specific visual statistics.
+
+---
+
+## Team Declaration
+
+We certify that all team members have actively contributed to the preparation of this document. Each member has reviewed the contents, understands the work presented, and agrees with the submitted report.
+
+**Project:** Deep Learning-Based Human Face Authenticity Detection  
+**Team:** Group 11 — Vishakha · Rohit · Aman · Raunak · Somendu  
+**Course:** DS & AI Lab Project
+
+| Team Member | Role | Signature |
+| --- | --- | --- |
+| Vishakha | Pipeline & Presentation Lead | Vishakha |
+| Rohit | Training Stability Lead | Rohit |
+| Aman | Preprocessing & Transfer Learning Lead | Aman |
+| Raunak | Dataset & Bias Analysis Lead | Raunak |
+| Somendu | Explainability & Optimisation Lead | Somendu |

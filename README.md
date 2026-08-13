@@ -521,4 +521,22 @@ done; `Milestone5.md` itself hasn't been re-updated to reflect that):
 
 ## License
 
-License information will be added in upcoming milestones.
+See `doc/Milestone-6/licenses.md` for MIT license and dataset terms.
+
+---
+
+## Team Declaration
+
+We certify that all team members have actively contributed to the preparation of this document. Each member has reviewed the contents, understands the work presented, and agrees with the submitted report.
+
+**Project:** Deep Learning-Based Human Face Authenticity Detection  
+**Team:** Group 11 — Vishakha · Rohit · Aman · Raunak · Somendu  
+**Course:** DS & AI Lab Project
+
+| Team Member | Role | Signature |
+| --- | --- | --- |
+| Vishakha | Pipeline & Presentation Lead | Vishakha |
+| Rohit | Training Stability Lead | Rohit |
+| Aman | Preprocessing & Transfer Learning Lead | Aman |
+| Raunak | Dataset & Bias Analysis Lead | Raunak |
+| Somendu | Explainability & Optimisation Lead | Somendu |

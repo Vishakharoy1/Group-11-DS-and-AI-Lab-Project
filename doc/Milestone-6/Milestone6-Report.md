@@ -26,7 +26,7 @@
 
 Milestone 6 transforms our deep learning face-authenticity detection project from a research prototype into a deployed, documented, and reproducible system. This report covers three key deliverables:
 
-1. **Deployment** — Hugging Face Space (Gradio), optional Docker Space (FastAPI + custom frontend), and local FastAPI web application
+1. **Deployment** — production web app on Render, Hugging Face Space (Gradio), optional Docker Space, and local FastAPI
 2. **Comprehensive Documentation** — technical, user-facing, and API documentation
 3. **Final Project Summary** — academic-style coverage of training, evaluation, explainability, and known limitations
 
@@ -38,8 +38,9 @@ Milestone 6 transforms our deep learning face-authenticity detection project fro
 
 | Component | Technology | Platform | Access |
 |---|---|---|---|
+| **Production Web Application** | FastAPI + Uvicorn + Static HTML/JS | **Render** | **[group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/)** |
 | Deepfake Detector (Gradio demo) | Gradio SDK + PyTorch | Hugging Face Spaces | [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) |
-| Custom Web Application | FastAPI + Uvicorn + Static HTML/JS | Local / Docker Space | `http://localhost:8000` or HF Docker port `7860` |
+| Custom Web Application (local) | FastAPI + Uvicorn + Static HTML/JS | Local / Docker | `http://localhost:8000` or HF Docker port `7860` |
 | Trained Checkpoints (weights) | PyTorch `.pth` state dicts | `webapp/output/` (Git LFS on HF) | **`mobilenetv3_noaug.pth`** (Main Model), **`mobilenetv3_cross_domain.pth`** (Cross-Domain) |
 | Training Notebooks | PyTorch + Kaggle GPU | Repository | `final-mobilenet (1).ipynb`, `cross-domain.ipynb` |
 
@@ -73,6 +74,7 @@ flowchart TB
         Logits --> Verdict["Verdict Banner + Confidence"]
         Overlay --> WebUI["FastAPI Static Frontend (5 pages)"]
         Verdict --> GradioUI["Hugging Face Gradio Space"]
+        WebUI --> RenderUI["Render Production Deploy"]
         WebUI --> Report["Forensic HTML / DOCX Report"]
     end
 ```
@@ -100,7 +102,9 @@ uvicorn app.main:app --port 8000
 # Open: http://localhost:8000
 ```
 
-**Public demo (no install):** [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection)
+**Production deployment (recommended):** [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/) — live Face Forensics web app with custom upload, Main Model (`noaug`), and Cross-Domain Model. No installation required.
+
+**Public Gradio demo (alternative):** [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection)
 
 ### Deploy Custom Frontend to Hugging Face (Docker SDK)
 
@@ -369,6 +373,8 @@ $$w_{i,j}^k = \text{ReLU}\left(\frac{\partial Y^c}{\partial A_{i,j}^k}\right), \
 
 ### B.7 Deployment Details
 
+**Production URL (Render):** [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/)
+
 | Endpoint | Method | Description |
 |---|---|---|
 | `/health` | GET | Loaded models + face alignment method |
@@ -378,7 +384,7 @@ $$w_{i,j}^k = \text{ReLU}\left(\frac{\partial Y^c}{\partial A_{i,j}^k}\right), \
 | `/report` | POST | Printable HTML forensic report |
 | `/api/training-results` | GET | Pre-computed CSV/PNG evaluation artifacts |
 
-**Swagger UI:** `http://localhost:8000/docs`
+**Swagger UI:** `http://localhost:8000/docs` (local) · `https://group-11-ds-and-ai-lab-project.onrender.com/docs` (Render)
 
 ### B.8 System Design Considerations
 
@@ -419,9 +425,11 @@ Upload a portrait photograph and receive:
 
 ### C.2 How to Launch
 
-See §1.3. Open `http://localhost:8000` — navigate via sidebar: Main Model, Cross-Domain, Manipulation Robustness, Model Comparison, Training Results, Forensic Report.
+**Production (Render):** Open [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/) in any browser — upload a face image on the Main Model or Cross-Domain Model page and click Analyze.
 
-### C.3 Hugging Face Space
+**Local development:** See §1.3. Open `http://localhost:8000` — navigate via sidebar: Main Model, Cross-Domain, Manipulation Robustness, Model Comparison, Training Results, Forensic Report.
+
+### C.3 Hugging Face Space (Gradio alternative)
 
 Open [somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) — no API key or installation required. Cold start may take 30–60 seconds.
 
@@ -442,6 +450,7 @@ Open [somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/de
 | Slow `/predict` (~2–3 s) | Normal — Grad-CAM backward pass dominates |
 | Wrong predictions on full photos | Upload pre-cropped face images if RetinaFace unavailable |
 | HF Space "Building" | Wait 1–2 min for Docker cold start |
+| Render cold start / slow first load | Free tier may spin down after idle — first request can take 30–60 s |
 
 ---
 
@@ -533,7 +542,7 @@ Use this checklist when assembling or updating `doc/Milestone-6/`:
 | 6 | Cross-domain failure analysis | M5 §5 (Real-Latest 8.6%) |
 | 7 | Grad-CAM (deployed) + Layer-CAM roadmap | `gradcam.py` + §B.6 |
 | 8 | API endpoint documentation | `webapp/backend/app/main.py`, `/docs` Swagger |
-| 9 | HF Space URL + Docker deploy guide | `somendu007/deepfake-detection` + §1.3 Dockerfile |
+| 9 | Render + HF Space + Docker deploy | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) + §1.3 |
 | 10 | UI screenshots | `Images/main_model.png`, `Grad_Cam.png`, etc. |
 | 11 | Individual contributions | `doc/Milestone-6/Team-Contribution-Tracker.md` |
 | 12 | Licensing & dataset citations | **`doc/Milestone-6/licenses.md`**, M2 report |
@@ -549,14 +558,30 @@ Use this checklist when assembling or updating `doc/Milestone-6/`:
 | Frontend screenshots | `Images/main_model.png`, etc. | User documentation |
 | **Dockerfile** | **`/Dockerfile`** (repo root) | HF Docker Space / container deploy |
 | **Licenses** | **`doc/Milestone-6/licenses.md`** | Consolidated licensing |
-| Gradio demo | HF Space `somendu007/deepfake-detection` | Public zero-setup demo |
+| **Production deploy (Render)** | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) | Live custom frontend |
+| Gradio demo | HF Space `somendu007/deepfake-detection` | Alternative public demo |
 
 ## External Links to Record
 
 - GitHub: `https://github.com/Vishakharoy1/Group-11-DS-and-AI-Lab-Project`
+- **Production deployment (Render):** `https://group-11-ds-and-ai-lab-project.onrender.com/`
 - Hugging Face Space: `https://huggingface.co/spaces/somendu007/deepfake-detection`
 - Hugging Face model (if published): team member Hub profile
 
 ---
 
-*End of Milestone 6 Report — Group 11, DS & AI Lab Project, August 2026*
+## Team Declaration
+
+We certify that all team members have actively contributed to the preparation of this document. Each member has reviewed the contents, understands the work presented, and agrees with the submitted report.
+
+**Project:** Deep Learning-Based Human Face Authenticity Detection  
+**Team:** Group 11 — Vishakha · Rohit · Aman · Raunak · Somendu  
+**Course:** DS & AI Lab Project
+
+| Team Member | Role | Signature |
+| --- | --- | --- |
+| Vishakha | Pipeline & Presentation Lead | Vishakha |
+| Rohit | Training Stability Lead | Rohit |
+| Aman | Preprocessing & Transfer Learning Lead | Aman |
+| Raunak | Dataset & Bias Analysis Lead | Raunak |
+| Somendu | Explainability & Optimisation Lead | Somendu |
