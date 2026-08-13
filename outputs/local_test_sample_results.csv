@@ -1,0 +1,14 @@
+Metric,Value
+Accuracy,62.00%
+ROC-AUC,0.5856
+Average Precision (PR-AUC),0.6612
+Real_Precision,0.5938
+Real_Recall,0.7600
+Fake_Precision,0.6667
+Fake_Recall,0.4800
+N_Real,25
+N_Fake,25
+TN (Real->Real),19
+FP (Real->Fake),6
+FN (Fake->Real),13
+TP (Fake->Fake),12

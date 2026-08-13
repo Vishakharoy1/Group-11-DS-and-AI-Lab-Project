@@ -1,0 +1,11 @@
+image,description,prediction,real_pct,fake_pct,confidence
+coins,Object (coins),Real,95.09,4.91,95.09
+coffee,Object (coffee cup),Fake,17.16,82.84,82.84
+chelsea,Animal (cat),Fake,46.31,53.69,53.69
+rocket,Object (rocket launch),Fake,3.27,96.73,96.73
+horse,"Animal (horse, line art)",Real,100.0,0.0,100.0
+brick,Texture (brick wall),Real,61.27,38.73,61.27
+grass,Landscape/texture (grass),Fake,0.45,99.55,99.55
+checkerboard,Synthetic pattern (checkerboard),Real,89.32,10.68,89.32
+moon,Landscape (moon surface),Fake,9.3,90.7,90.7
+hubble_deep_field,Landscape/space (galaxy field),Fake,2.47,97.53,97.53

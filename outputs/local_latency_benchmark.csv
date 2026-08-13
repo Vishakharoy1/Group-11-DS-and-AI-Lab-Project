@@ -1,0 +1,2 @@
+Device,N_images,mean_ms,std_ms,min_ms,max_ms,throughput_img_per_sec
+CPU,100,15.528,2.000,13.305,22.452,64.40
