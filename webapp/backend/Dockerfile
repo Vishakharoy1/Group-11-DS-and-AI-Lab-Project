@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install system dependencies for Pillow / scipy / matplotlib
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 libgl1-mesa-glx libjpeg62-turbo-dev zlib1g-dev \
+    libglib2.0-0 libgl1 libjpeg62-turbo-dev zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies (CPU-only PyTorch via extra index)
