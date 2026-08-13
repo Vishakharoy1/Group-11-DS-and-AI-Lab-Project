@@ -54,7 +54,7 @@ the browser.
 │                       │  Model Registry               │   │
 │                       │  ┌─────────────────────────┐  │   │
 │                       │  │ mobilenetv3_noaug.pth    │  │   │
-│                       │  │ mobilenetv3_best.pth     │  │   │
+│                       │  │ mobilenetv3_cross_domain  │  │   │
 │                       │  └─────────────────────────┘  │   │
 │                       │  + Forensic Meta-Detector     │   │
 │                       │  (metadata/spectral/noise/ELA)│   │
@@ -124,7 +124,7 @@ render-deploy/
     │
     └── output/
         ├── mobilenetv3_noaug.pth      # Primary model checkpoint (45 MB, LFS)
-        ├── mobilenetv3_best.pth       # Best model checkpoint (16 MB, LFS)
+        ├── mobilenetv3_cross_domain.pth # Cross-domain model checkpoint (45 MB, LFS)
         ├── *.csv                      # Pre-computed evaluation metrics
         └── *.png                      # Grad-CAM gallery + sample grids
 ```
@@ -153,8 +153,8 @@ model.classifier = nn.Sequential(
 | Checkpoint | Size | Role | Deployed? |
 |---|---|---|---|
 | `mobilenetv3_noaug.pth` | 45 MB | **Primary model** — no-augmentation baseline, default for all endpoints | ✅ Yes |
-| `mobilenetv3_best.pth` | 16 MB | Best model — 3-stage fine-tuned with CelebA-HD | ✅ Yes |
-| `mobilenetv3_cross_domain.pth` | 45 MB | Cross-domain (non-face images) | ❌ Not deployed (RAM limit) |
+| `mobilenetv3_cross_domain.pth` | 45 MB | Cross-domain model (trained on general/non-face images across multiple domains) | ✅ Yes |
+| `mobilenetv3_best.pth` | 16 MB | Best model — 3-stage fine-tuned with CelebA-HD | ❌ Not deployed (RAM limit) |
 | `mobilenetv3_manipulations.pth` | 45 MB | Robustness-trained (11 corruptions) | ❌ Not deployed (RAM limit) |
 | `mobilenetv3_tuned.pth` | — | Swept hyperparameters variant | ❌ Not deployed |
 
@@ -280,11 +280,11 @@ webapp/output/*.pth filter=lfs diff=lfs merge=lfs -text
 ```
 
 **Why LFS?**
-- `mobilenetv3_noaug.pth` is 45 MB, `mobilenetv3_best.pth` is 16 MB — too large
+- `mobilenetv3_noaug.pth` is 45 MB, `mobilenetv3_cross_domain.pth` is 45 MB — too large
   for regular Git (GitHub's hard limit is 100 MB per file).
 - Render natively supports Git LFS during builds — it automatically pulls LFS
   objects when cloning the repo.
-- Total LFS usage: **~61 MB** of GitHub's 1 GB free LFS quota.
+- Total LFS usage: **~90 MB** of GitHub's 1 GB free LFS quota.
 
 ### Build Pipeline
 
@@ -308,7 +308,7 @@ What happens when you push to `render-deploy`:
 5. FastAPI startup event:
    │  ├─ ModelRegistry scans /app/output/ for .pth files
    │  ├─ Loads mobilenetv3_noaug.pth → model.eval()
-   │  ├─ Loads mobilenetv3_best.pth → model.eval()
+   │  ├─ Loads mobilenetv3_cross_domain.pth → model.eval()
    │  └─ Mounts static files + results assets
    │
 6. Service is live ✅
@@ -325,7 +325,7 @@ use Render's Docker layer cache and are faster.
 
 | Resource | Free Tier Limit | Our Usage | Status |
 |---|---|---|---|
-| **RAM** | 512 MB | ~300 MB (PyTorch + 2 models loaded) | ✅ Within limit |
+| **RAM** | 512 MB | ~310 MB (PyTorch + 2 models loaded) | ✅ Within limit |
 | **CPU** | 0.1 vCPU (shared) | Single-threaded inference, ~1–3s per prediction | ✅ Acceptable |
 | **Disk** | Ephemeral (no persistent storage) | ~61 MB checkpoints baked into image | ✅ No disk needed |
 | **Bandwidth** | 100 GB/month | Minimal (JSON responses, base64 images) | ✅ Well within |
@@ -343,7 +343,7 @@ Cold start timeline:
   ~10s  — Docker container boots, Python process starts
   ~20s  — PyTorch loads, ModelRegistry begins loading checkpoints
   ~40s  — mobilenetv3_noaug.pth loaded into memory (45 MB)
-  ~45s  — mobilenetv3_best.pth loaded (16 MB)
+  ~45s  — mobilenetv3_cross_domain.pth loaded (45 MB)
   ~50s  — Uvicorn ready, request served
 ```
 
