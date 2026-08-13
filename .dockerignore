@@ -1,0 +1,12 @@
+.git
+.gitignore
+.claude
+.cursor
+**/__pycache__
+**/*.pyc
+.venv
+venv
+Test Sample
+doc
+Images
+outputs

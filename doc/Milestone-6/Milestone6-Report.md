@@ -40,7 +40,7 @@ Milestone 6 transforms our deep learning face-authenticity detection project fro
 |---|---|---|---|
 | Deepfake Detector (Gradio demo) | Gradio SDK + PyTorch | Hugging Face Spaces | [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) |
 | Custom Web Application | FastAPI + Uvicorn + Static HTML/JS | Local / Docker Space | `http://localhost:8000` or HF Docker port `7860` |
-| Trained Checkpoints (weights) | PyTorch `.pth` state dicts | `webapp/output/` (Git LFS on HF) | `mobilenetv3_best.pth`, `mobilenetv3_noaug.pth`, etc. |
+| Trained Checkpoints (weights) | PyTorch `.pth` state dicts | `webapp/output/` (Git LFS on HF) | **`mobilenetv3_noaug.pth`** (Main Model), **`mobilenetv3_cross_domain.pth`** (Cross-Domain) |
 | Training Notebooks | PyTorch + Kaggle GPU | Repository | `final-mobilenet (1).ipynb`, `cross-domain.ipynb` |
 
 ## 1.2 Deployment Architecture
@@ -104,26 +104,14 @@ uvicorn app.main:app --port 8000
 
 ### Deploy Custom Frontend to Hugging Face (Docker SDK)
 
+A root **`Dockerfile`** is committed at the repository root (port **7860**).
 To host the **actual HTML/JS frontend** (not Gradio) on Hugging Face Spaces:
 
 1. Create a new Space with SDK = **Docker**, hardware = **CPU basic (free)**.
-2. Use a root `Dockerfile` exposing port **7860**:
+2. Use the committed root **`Dockerfile`** (exposes port **7860**):
 
 ```dockerfile
-FROM python:3.11-slim
-ENV PYTHONUNBUFFERED=1 PORT=7860
-WORKDIR /code
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential curl \
-    && rm -rf /var/lib/apt/lists/*
-COPY webapp/backend/requirements.txt /code/requirements.txt
-RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir -r /code/requirements.txt
-COPY webapp/backend /code/webapp/backend
-COPY webapp/output /code/webapp/output
-ENV CHECKPOINT_DIR=/code/webapp/output RESULTS_DIR=/code/webapp/output
-WORKDIR /code/webapp/backend
-EXPOSE 7860
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# See /Dockerfile in repo root — full file committed for HF Docker Spaces.
 ```
 
 3. Track large checkpoints with Git LFS: `git lfs track "*.pth"`.
@@ -232,9 +220,47 @@ Checkpoint saved as `mobilenetv3_best.pth` (~17 MB).
 
 ### B.5 Evaluation Summary
 
-#### B.5.1 Primary Model — `mobilenetv3_best.pth` (Stage 3, held-out test set)
+> **Deployed vs. research checkpoints:** The web app exposes two models — **Main Model (`mobilenetv3_noaug.pth`, default)** and **Cross-Domain Model (`mobilenetv3_cross_domain.pth`)**. All M6 ROC/PR/confusion plots in `Images/` are for **`noaug`**, matching the deployed Main Model. The 3-stage **`mobilenetv3_best.pth`** checkpoint (from `final-mobilenet (1).ipynb`) is documented in Milestone 5 for academic comparison (99.63% in-distribution accuracy).
 
-Classification report on the **2,401-image held-out test set** (`doc/Milestone-5/Milestone5.md` Section 4.2):
+#### B.5.1 Primary Deployed Model — `mobilenetv3_noaug.pth` (held-out test set, 2,401 images)
+
+The Main Model page defaults to **`noaug`** (`webapp/backend/app/static/app.js`: `mainPageModelKey = "noaug"`). M6 evaluation curves in `Images/` were generated on the full held-out test set for this checkpoint.
+
+**Confusion matrix — mobilenetv3_noaug:**
+
+![Confusion matrix — mobilenetv3_noaug (deployed Main Model)](../../Images/Confusion_matrix.jpeg)
+
+| Cell | Count | Meaning |
+|---|---:|---|
+| True Real → Pred Real | 1,404 | Correctly identified authentic faces |
+| True Real → Pred Fake | 96 | False alarms on real images |
+| True Fake → Pred Real | 0 | Missed fakes (zero false negatives) |
+| True Fake → Pred Fake | 901 | Correctly identified synthetic faces |
+| **Accuracy** | **95.98%** | (1,404 + 901) / 2,401 |
+
+**ROC Curve — mobilenetv3_noaug:**
+
+![ROC curve — mobilenetv3_noaug (deployed Main Model)](../../Images/Roc_curve.jpeg)
+
+| Class | ROC-AUC |
+|---|---:|
+| Real | **0.9997** |
+| Fake | **0.9994** |
+
+**Precision-Recall Curve — mobilenetv3_noaug:**
+
+![Precision-Recall curve — mobilenetv3_noaug (deployed Main Model)](../../Images/Precision_recal_curve.jpeg)
+
+| Class | Average Precision (AP) |
+|---|---:|
+| Real | **0.9998** |
+| Fake | **0.9984** |
+
+**Interpretation:** The deployed Main Model achieves **100% fake recall** (zero missed fakes) with ROC-AUC > 0.99 on the in-distribution held-out set. The trade-off is **96 false positives** on real images (visible in the confusion matrix).
+
+#### B.5.2 Research Checkpoint — `mobilenetv3_best.pth` (3-stage + CelebA-HD, M5 evaluation)
+
+Trained via `final-mobilenet (1).ipynb` (Stage 1 frozen → Stage 2 partial unfreeze → Stage 3 full + CelebA-HD). Documented in depth in `doc/Milestone-5/Milestone5.md` §4.2 — **not the default deployed Main Model**, but the primary academic evaluation target for shortcut-learning analysis.
 
 ```
               precision    recall  f1-score   support
@@ -245,79 +271,34 @@ Classification report on the **2,401-image held-out test set** (`doc/Milestone-5
 
 | Metric | Value |
 |---|---:|
-| Test Accuracy | **99.63%** (2,392 / 2,401 correct) |
-| Real Precision / Recall | 0.9993 / 0.9947 |
-| Fake Precision / Recall | 0.9912 / 0.9989 |
-| Macro F1 | 0.9960 |
+| Test Accuracy | **99.63%** (2,392 / 2,401) |
 | Misclassifications | 8 Real→Fake, 1 Fake→Real |
 
-**Confusion matrix (mobilenetv3_best, held-out test set):**
+![Confusion matrix — mobilenetv3_best (M5 held-out test set)](../../doc/Milestone-5/images/confusion_matrix_best_model.png)
 
-![Confusion matrix — mobilenetv3_best (held-out test set)](../../doc/Milestone-5/images/confusion_matrix_best_model.png)
+#### B.5.3 Cross-Domain Model — `mobilenetv3_cross_domain.pth`
 
-**How to read this matrix:** Rows are the true label, columns are the predicted label. The bright cell (1,492) shows Real images correctly classified as Real. Only **9 total errors** occur on the in-distribution test set — demonstrating strong discrimination within the training distribution. However, this matrix alone cannot reveal domain-shift failures documented in Section B.5.3.
+Trained via `cross-domain.ipynb` on multi-domain synthetic corpora. Powers the **Cross-Domain Model** page in the web app. Checkpoint: `webapp/output/mobilenetv3_cross_domain.pth`.
 
-#### B.5.2 Full Test-Set Curves — `mobilenetv3_noaug.pth` (M6 regenerated metrics)
+#### B.5.4 Domain-Shift Probe — Where Models Fail (Real-Latest)
 
-For Milestone 6, Rohit regenerated **ROC, Precision-Recall, and confusion matrix plots on the full 2,401-image held-out test set** for the no-augmentation checkpoint (`mobilenetv3_noaug.pth`). These are stored in the repository `Images/` folder.
-
-**Confusion matrix — mobilenetv3_noaug (2,401 images):**
-
-![Confusion matrix — mobilenetv3_noaug (full held-out test set)](../../Images/Confusion_matrix.jpeg)
-
-| Cell | Count | Meaning |
-|---|---:|---|
-| True Real → Pred Real | 1,404 | Correctly identified authentic faces |
-| True Real → Pred Fake | 96 | False alarms on real images |
-| True Fake → Pred Real | 0 | Missed fakes (zero false negatives) |
-| True Fake → Pred Fake | 901 | Correctly identified synthetic faces |
-| **Accuracy** | **95.98%** | (1,404 + 901) / 2,401 |
-
-**Interpretation:** The no-augmentation model achieves **100% fake recall** (zero missed fakes) but at the cost of **96 false positives** on real images — a precision/recall trade-off visible only when examining the full confusion matrix, not headline accuracy alone.
-
-**ROC Curve — mobilenetv3_noaug:**
-
-![ROC curve — mobilenetv3_noaug (full held-out test set)](../../Images/Roc_curve.jpeg)
-
-| Class | ROC-AUC | Interpretation |
-|---|---:|---|
-| Real | **0.9997** | Near-perfect ranking of authentic faces across all thresholds |
-| Fake | **0.9994** | Near-perfect ranking of synthetic faces across all thresholds |
-
-**What ROC-AUC means:** The Area Under the ROC Curve measures threshold-independent ranking ability — how well the model separates Real from Fake regardless of the 50% default cutoff. Values above 0.99 indicate excellent probabilistic separation on the **in-distribution held-out set**. The diagonal dashed line represents random guessing (AUC = 0.50).
-
-**Precision-Recall Curve — mobilenetv3_noaug:**
-
-![Precision-Recall curve — mobilenetv3_noaug (full held-out test set)](../../Images/Precision_recal_curve.jpeg)
-
-| Class | Average Precision (AP) | Interpretation |
-|---|---:|---|
-| Real | **0.9998** | Maintains near-perfect precision across recall levels |
-| Fake | **0.9984** | Strong precision even as recall approaches 1.0 |
-
-**What PR-AUC / AP means:** Average Precision summarizes the precision-recall trade-off, especially informative for imbalanced classes. Both curves hug the top-right corner (precision ≈ 1.0 until recall ≈ 0.99), confirming strong in-distribution performance before the sharp drop at maximum recall.
-
-#### B.5.3 Cross-Domain Probe — Where the Model Fails
-
-| Probe Set | Images | Accuracy | Key Finding |
+| Probe Set | Images | Accuracy (best checkpoint) | Key Finding |
 |---|---:|---:|---|
-| Held-out test (in-distribution) | 2,401 | 99.63% | Strong baseline |
+| Held-out test — **noaug** (deployed) | 2,401 | 95.98% | 100% fake recall; 96 real false alarms |
+| Held-out test — **best** (M5 research) | 2,401 | 99.63% | Strong in-distribution baseline |
 | Real-Latest (smartphone photos) | 70 | **8.6%** | Shortcut learning on HDR/sharpening |
 | Local Test Sample (supplementary) | 50 | 62.0% | ROC-AUC = 0.5856 (domain-shifted) |
 
-**Critical insight:** High in-distribution metrics (99.63% accuracy, ROC-AUC > 0.99) do **not** translate to real-world reliability on modern smartphone photographs. The dominant failure mode is **false alarms** — genuine photos classified as fake due to post-processing artifacts.
+**Critical insight:** Even strong in-distribution metrics do **not** translate to real-world reliability on modern smartphone photographs. The Real-Latest probe (8.6%) applies to the **`best`** checkpoint evaluated in M5; treat any high headline accuracy with caution.
 
-#### B.5.4 Evaluation Metrics Summary Table
+#### B.5.5 Evaluation Metrics Summary
 
-| Metric | mobilenetv3_best (held-out) | mobilenetv3_noaug (held-out curves) | Real-Latest probe |
+| Metric | **noaug (deployed Main)** | best (M5 research) | Real-Latest |
 |---|---|---|---|
-| Accuracy | 99.63% | 95.98% | 8.6% |
-| Real Precision | 0.9993 | — | — |
-| Fake Recall | 0.9989 | 1.0000 (0 FN) | — |
-| ROC-AUC (Real) | Not plotted | 0.9997 | — |
-| ROC-AUC (Fake) | Not plotted | 0.9994 | — |
-| PR-AUC (Real) | Not plotted | 0.9998 | — |
-| PR-AUC (Fake) | Not plotted | 0.9984 | — |
+| Accuracy | 95.98% | 99.63% | 8.6% |
+| Fake Recall | 1.0000 (0 FN) | 0.9989 | — |
+| ROC-AUC (Real / Fake) | 0.9997 / 0.9994 | Not plotted | — |
+| PR-AUC (Real / Fake) | 0.9998 / 0.9984 | Not plotted | — |
 
 ### B.6 Explainability & Grad-CAM Development
 
@@ -355,9 +336,9 @@ overlay = Image.blend(display_img, heatmap_img, alpha=0.45)
 | Uniform alpha = 0.45 | Dims non-saliency regions with dark blue background clutter |
 | Hardswish + SE saturation | Gradients can vanish in MobileNetV3's final blocks |
 
-#### B.6.3 Layer-CAM Upgrade Roadmap (Somendu — M6 Development)
+#### B.6.3 Layer-CAM Research & Upgrade Roadmap
 
-The following upgrades were designed and documented for the next production iteration:
+The **deployed** backend (`webapp/backend/app/gradcam.py`) runs **standard Grad-CAM** today. The following **Layer-CAM** enhancements were researched and documented for a future production upgrade (Somendu — M6):
 
 **Layer-CAM (Jiang et al., 2021)** — element-wise spatial weighting without GAP:
 
@@ -380,10 +361,10 @@ $$w_{i,j}^k = \text{ReLU}\left(\frac{\partial Y^c}{\partial A_{i,j}^k}\right), \
 
 | Feature | Status |
 |---|---|
-| Grad-CAM on `features[-1]` (jet, α=0.45) | ✅ Deployed in `gradcam.py` |
-| Layer-CAM element-wise weighting | 📋 Designed; integration pending |
-| Multi-layer fusion (11 + -1) | 📋 Designed; integration pending |
-| Turbo colormap + adaptive alpha | 📋 Designed; integration pending |
+| Grad-CAM on `features[-1]` (jet, α=0.45) | ✅ **Deployed** in `gradcam.py` |
+| Layer-CAM element-wise weighting | 📋 Researched & documented; not yet in `gradcam.py` |
+| Multi-layer fusion (11 + -1) | 📋 Researched & documented |
+| Turbo colormap + adaptive alpha | 📋 Researched & documented |
 | On-demand Grad-CAM (latency fix) | 📋 Planned — separate UI trigger |
 
 ### B.7 Deployment Details
@@ -486,7 +467,9 @@ curl -X POST "http://localhost:8000/predict?model=best" \
 
 ---
 
-## E. Licensing
+## E. Licensing and Dataset References
+
+**Full consolidated document:** [`doc/Milestone-6/licenses.md`](licenses.md)
 
 | Asset | License |
 |---|---|
@@ -504,11 +487,11 @@ curl -X POST "http://localhost:8000/predict?model=best" \
 |---|---|
 | Real-Latest probe collapse (8.6%) | **High** |
 | Grad-CAM latency on every `/predict` | Medium |
-| Layer-CAM upgrade not yet in production `gradcam.py` | Medium |
+| Layer-CAM (researched, not yet coded in `gradcam.py`) | Medium |
 | Demographic bias never audited | Medium |
 | GPU latency not directly measured | Low |
 
-See `future_work.md` (on `main-cleanup` branch) for the full 15-section prioritized roadmap.
+See `future_work.md` in the repo root for the full prioritized roadmap.
 
 ---
 
@@ -545,28 +528,28 @@ Use this checklist when assembling or updating `doc/Milestone-6/`:
 | 1 | Deployment table + architecture diagram | §1 above; `webapp/backend/` |
 | 2 | Local run instructions | `README.md`, `webapp/backend/README.md` |
 | 3 | Training config (3-stage pipeline) | `final-mobilenet (1).ipynb`, `doc/Milestone-5/Milestone5.md` |
-| 4 | Held-out test metrics (best model) | M5 Section 4.2 + `confusion_matrix_best_model.png` |
-| 5 | Full test-set curves (noaug module) | `Images/Confusion_matrix.jpeg`, `Roc_curve.jpeg`, `Precision_recal_curve.jpeg` |
-| 6 | Cross-domain failure analysis | M5 Section 5 (Real-Latest 8.6%) |
-| 7 | Grad-CAM implementation + Layer-CAM roadmap | `webapp/backend/app/gradcam.py` + research notes |
+| 4 | Held-out test metrics (**noaug** — deployed) | `Images/*.jpeg` + §B.5.1 |
+| 5 | Held-out test metrics (**best** — M5 research) | M5 §4.2 + `confusion_matrix_best_model.png` |
+| 6 | Cross-domain failure analysis | M5 §5 (Real-Latest 8.6%) |
+| 7 | Grad-CAM (deployed) + Layer-CAM roadmap | `gradcam.py` + §B.6 |
 | 8 | API endpoint documentation | `webapp/backend/app/main.py`, `/docs` Swagger |
 | 9 | HF Space URL + Docker deploy guide | `somendu007/deepfake-detection` + §1.3 Dockerfile |
 | 10 | UI screenshots | `Images/main_model.png`, `Grad_Cam.png`, etc. |
 | 11 | Individual contributions | `doc/Milestone-6/Team-Contribution-Tracker.md` |
-| 12 | Licensing & dataset citations | M1/M2 reports, dataset READMEs |
+| 12 | Licensing & dataset citations | **`doc/Milestone-6/licenses.md`**, M2 report |
 
 ## Required Files & Artifacts
 
 | Artifact | Location | Purpose |
 |---|---|---|
 | Model checkpoints | `webapp/output/*.pth` | Inference + deployment |
-| Confusion matrix (best) | `doc/Milestone-5/images/confusion_matrix_best_model.png` | 99.63% accuracy visualization |
-| Confusion matrix (noaug, full set) | `Images/Confusion_matrix.jpeg` | M6 regenerated full-test evaluation |
-| ROC curve (full set) | `Images/Roc_curve.jpeg` | Threshold-independent ranking |
-| PR curve (full set) | `Images/Precision_recal_curve.jpeg` | Precision-recall trade-off |
-| Frontend screenshots | `Images/main_model.png`, `main_model1.png` | User documentation |
-| Dockerfile (optional HF Docker deploy) | repo root (to be added) | Custom frontend on HF Spaces |
-| Gradio `app.py` (HF Gradio deploy) | repo root (on deployment branch) | Public Gradio demo |
+| Training notebooks | `final-mobilenet (1).ipynb`, `cross-domain.ipynb` | Reproducible training |
+| Confusion / ROC / PR (**noaug**, deployed) | `Images/*.jpeg` | Main Model M6 evaluation |
+| Confusion matrix (**best**, M5) | `doc/Milestone-5/images/confusion_matrix_best_model.png` | Research checkpoint |
+| Frontend screenshots | `Images/main_model.png`, etc. | User documentation |
+| **Dockerfile** | **`/Dockerfile`** (repo root) | HF Docker Space / container deploy |
+| **Licenses** | **`doc/Milestone-6/licenses.md`** | Consolidated licensing |
+| Gradio demo | HF Space `somendu007/deepfake-detection` | Public zero-setup demo |
 
 ## External Links to Record
 

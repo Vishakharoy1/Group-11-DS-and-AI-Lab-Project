@@ -81,6 +81,23 @@ details — model loading, endpoints (`/predict`, `/robustness`,
 `webapp/backend/README.md`; a full code/config walkthrough is in
 `DeveloperGuide.md`.
 
+### Deployed demo (Hugging Face Spaces)
+
+Public Gradio demo (no local setup):  
+**https://huggingface.co/spaces/somendu007/deepfake-detection**
+
+### Docker deployment (custom frontend)
+
+Root `Dockerfile` + `.dockerignore` ship the FastAPI app and checkpoints
+(HF Docker Spaces port **7860**, or any container host):
+
+```bash
+docker build -t deepfake-detector .
+docker run -p 7860:7860 deepfake-detector
+```
+
+See `doc/Milestone-6/Milestone6-Report.md` §1.3. Licenses: `doc/Milestone-6/licenses.md`.
+
 ### 4. Train or reproduce a model
 
 See **Training Notebooks** below — this covers attaching datasets on
@@ -174,10 +191,15 @@ a non-technical user).
 Two Kaggle notebooks produce the checkpoints used throughout this
 project and the local web app:
 
-| Notebook | Produces | Status |
+| Notebook | Produces | Role in project |
 |---|---|---|
-| `final-mobilenet (1).ipynb` | `mobilenetv3_best.pth` — the main face-authenticity model | Complete, fully trained |
-| `cross-domain.ipynb` | `mobilenetv3_cross_domain.pth` — a separate model for non-face/general images | **Complete, fully trained** — `mobilenetv3_cross_domain.pth` is live in the web app's Cross-Domain Model page and verified working (see note below) |
+| `final-mobilenet (1).ipynb` | `mobilenetv3_best.pth` (3-stage + CelebA-HD) and `mobilenetv3_noaug.pth` (no-augmentation ablation from the same pipeline) | **Training source** — M5 evaluates `best`; **web app Main Model uses `noaug` by default** (see Web Application §1) |
+| `cross-domain.ipynb` | `mobilenetv3_cross_domain.pth` | **Cross-Domain Model page** — multi-domain synthetic/non-face training |
+
+**Also in repo:** `ds-ai-deepfake-detection (6).ipynb` (earlier end-to-end
+exploration notebook) and `end-to-end-pipeline.ipynb` (pipeline prototype).
+These are supplementary; the authoritative training paths are the two
+notebooks above.
 
 > **Note on `cross-domain.ipynb`'s status:** the checkpoint itself is
 > real, trained, and confirmed working (loaded by the app, verified with
@@ -389,12 +411,17 @@ including what was root-caused, what was fixed, and what's still open.
 ```text
 Group-11-DS-and-AI-Lab-Project/
 |
-├── final-mobilenet (1).ipynb      # Main face model training notebook
-├── cross-domain.ipynb             # Cross-domain model training notebook
+├── Dockerfile                     # HF Docker Space / container deploy (port 7860)
+├── final-mobilenet (1).ipynb      # Face model training (best + noaug checkpoints)
+├── cross-domain.ipynb             # Cross-domain model training
+├── ds-ai-deepfake-detection (6).ipynb   # Supplementary exploration notebook
+├── end-to-end-pipeline.ipynb      # Pipeline prototype
 ├── README.md                      # This file
 |
 ├── images/
 │   └── mobilenetv3_pipeline_v3.png
+|
+├── Images/                        # M6 UI screenshots + evaluation curves (noaug)
 |
 ├── webapp/
 │   ├── backend/                   # FastAPI app + static frontend (README.md inside)
@@ -405,8 +432,9 @@ Group-11-DS-and-AI-Lab-Project/
 ├── outputs/                       # Local verification scripts + their results (see below)
 |
 └── doc/
-    ├── Milestone-1/ .. Milestone-5/
+    ├── Milestone-1/ .. Milestone-6/
     │   ├── *-Report.md
+    │   ├── licenses.md            # M6 consolidated licensing (Milestone-6/)
     │   └── Team-Contribution-Tracker.md
     └── Milestone-5/
         ├── Milestone5.md          # Full evaluation report (start here)
@@ -465,7 +493,8 @@ Milestone 1's original role assignments are in
 - Training notebooks: this file, "Training Notebooks — Usage Instructions" above
 - Web app quick reference: `webapp/backend/README.md`
 - Team contribution trackers: `doc/Milestone-{1..5}/Team-Contribution-Tracker.md`
-- Earlier milestone reports: `doc/Milestone-{1,2,3,4}/`
+- **Milestone 6 deployment report:** `doc/Milestone-6/Milestone6-Report.md`
+- **Licensing:** `doc/Milestone-6/licenses.md`
 
 ---
 
@@ -486,7 +515,7 @@ done; `Milestone5.md` itself hasn't been re-updated to reflect that):
 - Targeted HDR/sharpening-simulation augmentation — the existing `ChannelShift` augmentation is already applied but doesn't address the actual failure mode.
 - Expand the Real class beyond FFHQ + CelebA-HD with more capture devices/eras.
 - Hard-negative mining using the actual misclassified Real-Latest images.
-- Complete `cross-domain.ipynb` training — this unblocks three separate open items at once (Section 2.3, part of Section 4.2's ROC-AUC gap, and the out-of-distribution test on the cross-domain model).
+- Run ROC-AUC/PR curves for `mobilenetv3_best.pth` on the full held-out set (curves in `Images/` cover the deployed **`noaug`** checkpoint).
 
 ---
 
