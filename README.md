@@ -1,4 +1,17 @@
+---
+title: Deepfake Face Authenticity & Layer-CAM Detector
+emoji: 🔍
+colorFrom: red
+colorTo: yellow
+sdk: gradio
+sdk_version: 6.24.0
+app_file: app.py
+pinned: false
+license: mit
+---
+
 # Deep Learning-Based Human Face Authenticity Detection
+
 
 Detect authentic vs AI-generated/manipulated human faces in images and videos using a hybrid deep learning pipeline (EfficientNet-B4 + Vision Transformer), robust preprocessing, and explainable AI (Grad-CAM).
 

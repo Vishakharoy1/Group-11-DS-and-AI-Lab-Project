@@ -49,7 +49,10 @@ class ModelRegistry:
                 continue
             try:
                 model = build_model()
-                checkpoint = torch.load(path, map_location=self.device)
+                try:
+                    checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+                except TypeError:
+                    checkpoint = torch.load(path, map_location=self.device)
                 state_dict = checkpoint["model_state_dict"] if "model_state_dict" in checkpoint else checkpoint
                 model.load_state_dict(state_dict)
                 model.to(self.device)
