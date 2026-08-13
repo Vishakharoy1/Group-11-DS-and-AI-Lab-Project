@@ -1,0 +1,11 @@
+# Production Render image: only ship the two deployed checkpoints (~90 MB).
+# Other .pth files stay in the repo for local dev but are excluded from Docker.
+output/mobilenetv3_best.pth
+output/mobilenetv3_best1.pth
+output/mobilenetv3_manipulations.pth
+output/mobilenetv3_tuned.pth
+
+# Dev / cache noise
+**/__pycache__
+**/*.pyc
+backend/server.log

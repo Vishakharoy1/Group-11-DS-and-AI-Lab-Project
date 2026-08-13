@@ -26,7 +26,7 @@
 
 Milestone 6 transforms our deep learning face-authenticity detection project from a research prototype into a deployed, documented, and reproducible system. This report covers three key deliverables:
 
-1. **Deployment** — production web app on Render, Hugging Face Space (Gradio), optional Docker Space, and local FastAPI
+1. **Deployment** — production on Render from **`main`** (Docker, 2 models), optional HF Gradio demo, local FastAPI
 2. **Comprehensive Documentation** — technical, user-facing, and API documentation
 3. **Final Project Summary** — academic-style coverage of training, evaluation, explainability, and known limitations
 
@@ -38,11 +38,12 @@ Milestone 6 transforms our deep learning face-authenticity detection project fro
 
 | Component | Technology | Platform | Access |
 |---|---|---|---|
-| **Production Web Application** | FastAPI + Uvicorn + Static HTML/JS | **Render** | **[group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/)** |
+| **Production Web Application** | FastAPI + Docker + Uvicorn | **Render** (branch **`main`**) | **[group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/)** |
+| Deployed checkpoints | PyTorch `.pth` via Git LFS | Baked into Docker image | **`mobilenetv3_noaug.pth`** (Main), **`mobilenetv3_cross_domain.pth`** (Cross-Domain) |
 | Deepfake Detector (Gradio demo) | Gradio SDK + PyTorch | Hugging Face Spaces | [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) |
-| Custom Web Application (local) | FastAPI + Uvicorn + Static HTML/JS | Local / Docker | `http://localhost:8000` or HF Docker port `7860` |
-| Trained Checkpoints (weights) | PyTorch `.pth` state dicts | `webapp/output/` (Git LFS on HF) | **`mobilenetv3_noaug.pth`** (Main Model), **`mobilenetv3_cross_domain.pth`** (Cross-Domain) |
-| Training Notebooks | PyTorch + Kaggle GPU | Repository | `final-mobilenet (1).ipynb`, `cross-domain.ipynb` |
+| Full development app | FastAPI + static HTML/JS | Local (`main` branch) | `http://localhost:8000` |
+| Training Notebooks | PyTorch + Kaggle GPU | `main` branch | `final-mobilenet (1).ipynb`, `cross-domain.ipynb` |
+| Simple deploy guide | Markdown | `main` branch | **`READMEdeployment.md`** |
 
 ## 1.2 Deployment Architecture
 
@@ -57,15 +58,13 @@ flowchart TB
 
     subgraph Engine ["2. Inference & Forensics Core"]
         E --> F["Model Selector"]
-        F --> M1["Main Model (mobilenetv3_best — 3-stage)"]
-        F --> M2["No-Aug Model (mobilenetv3_noaug)"]
-        F --> M3["Cross-Domain Model"]
-        F --> M4["Manipulation Robustness Model"]
-        M1 & M2 & M3 & M4 --> Logits["Softmax → Real / Fake + Confidence %"]
+        F --> M2["No-Aug Model (mobilenetv3_noaug) — Main"]
+        F --> M3["Cross-Domain Model (mobilenetv3_cross_domain)"]
+        M2 & M3 --> Logits["Softmax → Real / Fake + Confidence %"]
     end
 
     subgraph XAI ["3. Explainability Engine (Grad-CAM)"]
-        M1 & M2 -. "Backward hook on features[-1]" .-> GAP["Global Average Pooling of gradients"]
+        M2 & M3 -. "Backward hook on features[-1]" .-> GAP["Global Average Pooling of gradients"]
         GAP --> Heatmap["Jet Colormap Saliency Map"]
         Heatmap --> Overlay["Alpha=0.45 Composite Overlay"]
     end
@@ -102,24 +101,31 @@ uvicorn app.main:app --port 8000
 # Open: http://localhost:8000
 ```
 
-**Production deployment (recommended):** [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/) — live Face Forensics web app with custom upload, Main Model (`noaug`), and Cross-Domain Model. No installation required.
+**Production deployment (recommended):** [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/) — built from **`main`** via `render.yaml` + `webapp/backend/Dockerfile`. Docker ships **`noaug`** + **`cross_domain`** only (`webapp/.dockerignore` excludes other checkpoints). See **`READMEdeployment.md`**.
 
 **Public Gradio demo (alternative):** [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection)
 
-### Deploy Custom Frontend to Hugging Face (Docker SDK)
+### Production deployment on Render (`main` branch)
 
-A root **`Dockerfile`** is committed at the repository root (port **7860**).
-To host the **actual HTML/JS frontend** (not Gradio) on Hugging Face Spaces:
+| File | Purpose |
+|---|---|
+| `render.yaml` | Render Blueprint — Docker web service, branch `main` |
+| `webapp/backend/Dockerfile` | `python:3.11-slim`, CPU PyTorch, port **10000** |
+| `webapp/backend/requirements-docker.txt` | Python deps for Docker build |
+| `webapp/.dockerignore` | Excludes `best` / `manipulations` / `tuned` from production image |
+| `.gitattributes` | Git LFS for `webapp/output/*.pth` |
 
-1. Create a new Space with SDK = **Docker**, hardware = **CPU basic (free)**.
-2. Use the committed root **`Dockerfile`** (exposes port **7860**):
+**Build flow:** push to `main` → Render clones repo → Docker build (2 models
+only) → loads checkpoints at startup → live on port 10000.
 
-```dockerfile
-# See /Dockerfile in repo root — full file committed for HF Docker Spaces.
-```
+**Not in production image** (RAM): `mobilenetv3_best.pth`,
+`mobilenetv3_manipulations.pth`. Full local dev can load all checkpoints
+from `webapp/output/`.
 
-3. Track large checkpoints with Git LFS: `git lfs track "*.pth"`.
-4. Push to the Space remote: `git push hf main`.
+### Optional: Hugging Face Docker (root Dockerfile, port 7860)
+
+Root **`Dockerfile`** on `main` targets HF Docker Spaces — **not** the
+primary Render setup. Production uses **`webapp/backend/Dockerfile`**.
 
 ## 1.4 Inputs and Outputs
 
@@ -129,7 +135,7 @@ To host the **actual HTML/JS frontend** (not Gradio) on Hugging Face Spaces:
 |---|---|
 | Custom Upload | Drag-and-drop face image (JPEG, PNG, WebP; max 10 MB) |
 | Preset Examples | Built-in sample Real / Fake / Cross-domain images |
-| Model Selection | Main Model toggle (`best` vs `noaug`), Cross-Domain, Manipulation Robustness |
+| Model Selection | Main Model (`noaug` on production; Model 1/2 toggle locally with `best`), Cross-Domain |
 
 ### Web-App Outputs
 
@@ -378,7 +384,7 @@ $$w_{i,j}^k = \text{ReLU}\left(\frac{\partial Y^c}{\partial A_{i,j}^k}\right), \
 | Endpoint | Method | Description |
 |---|---|---|
 | `/health` | GET | Loaded models + face alignment method |
-| `/predict?model=best` | POST | Classification + Grad-CAM + JSON response |
+| `/predict?model=noaug` | POST | Classification + Grad-CAM + JSON response (default `noaug`) |
 | `/robustness` | POST | 11 manipulation modes via `manipulations` checkpoint |
 | `/compare?mode=augmentation` | POST | Side-by-side `best` vs `noaug` |
 | `/report` | POST | Printable HTML forensic report |
@@ -459,7 +465,7 @@ Open [somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/de
 ### POST `/predict`
 
 ```bash
-curl -X POST "http://localhost:8000/predict?model=best" \
+curl -X POST "http://localhost:8000/predict?model=noaug" \
   -F "file=@face.jpg"
 ```
 
@@ -542,7 +548,7 @@ Use this checklist when assembling or updating `doc/Milestone-6/`:
 | 6 | Cross-domain failure analysis | M5 §5 (Real-Latest 8.6%) |
 | 7 | Grad-CAM (deployed) + Layer-CAM roadmap | `gradcam.py` + §B.6 |
 | 8 | API endpoint documentation | `webapp/backend/app/main.py`, `/docs` Swagger |
-| 9 | Render + HF Space + Docker deploy | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) + §1.3 |
+| 9 | Render deploy from `main` + optional HF Gradio | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) + **`READMEdeployment.md`** |
 | 10 | UI screenshots | `Images/main_model.png`, `Grad_Cam.png`, etc. |
 | 11 | Individual contributions | `doc/Milestone-6/Team-Contribution-Tracker.md` |
 | 12 | Licensing & dataset citations | **`doc/Milestone-6/licenses.md`**, M2 report |
@@ -558,7 +564,8 @@ Use this checklist when assembling or updating `doc/Milestone-6/`:
 | Frontend screenshots | `Images/main_model.png`, etc. | User documentation |
 | **Dockerfile** | **`/Dockerfile`** (repo root) | HF Docker Space / container deploy |
 | **Licenses** | **`doc/Milestone-6/licenses.md`** | Consolidated licensing |
-| **Production deploy (Render)** | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) | Live custom frontend |
+| **Production deploy (Render)** | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) | `main` + `render.yaml` + `webapp/backend/Dockerfile` |
+| **Simple deploy guide** | **`READMEdeployment.md`** | Quick reference on `main` |
 | Gradio demo | HF Space `somendu007/deepfake-detection` | Alternative public demo |
 
 ## External Links to Record

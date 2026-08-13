@@ -67,4 +67,5 @@ class ModelRegistry:
         return sorted(self.models.keys())
 
     def is_ready(self) -> bool:
-        return "best" in self.models
+        """True if at least one checkpoint loaded (production may ship noaug only)."""
+        return len(self.models) > 0

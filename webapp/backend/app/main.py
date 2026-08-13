@@ -44,7 +44,7 @@ def on_startup():
     registry = ModelRegistry()
     if not registry.is_ready():
         logger.warning(
-            "No 'best' checkpoint loaded from %s - /predict, /robustness and "
+            "No checkpoints loaded from %s - /predict, /robustness and "
             "/compare will return errors until a checkpoint is placed there "
             "(or CHECKPOINT_DIR is pointed at the right folder) and the "
             "server is restarted.",
@@ -79,7 +79,7 @@ def _run_meta_detector(data: bytes, suffix: str = "") -> dict:
         os.unlink(path)
 
 
-def _require_model(name: str = "best"):
+def _require_model(name: str = "noaug"):
     if registry is None or registry.get(name) is None:
         raise HTTPException(
             503,
@@ -109,10 +109,10 @@ def health():
 
 
 @app.post("/predict", response_model=PredictResponse)
-async def predict(model: str = "best", file: UploadFile = File(...)):
-    """model: which loaded checkpoint to run - "best" (main), "noaug"
-    (no-augmentation comparison model), or "tuned" (swept-hparams model),
-    whichever are actually loaded. Defaults to "best"."""
+async def predict(model: str = "noaug", file: UploadFile = File(...)):
+    """model: which loaded checkpoint to run - "noaug" (default/main),
+    "best", "cross_domain", or "tuned", whichever are actually loaded.
+    Defaults to "noaug"."""
     model_obj = _require_model(model)
     image, data = await _load_upload_image(file)
 
@@ -130,7 +130,7 @@ async def predict(model: str = "best", file: UploadFile = File(...)):
 
 
 @app.post("/report", response_class=HTMLResponse)
-async def generate_report(model: str = "best", file: UploadFile = File(...)):
+async def generate_report(model: str = "noaug", file: UploadFile = File(...)):
     """Runs the same prediction + Grad-CAM pipeline as /predict, then
     renders the result as a standalone printable HTML forensic report
     instead of JSON."""
@@ -145,7 +145,7 @@ async def generate_report(model: str = "best", file: UploadFile = File(...)):
     cropped.resize((config.IMG_SIZE, config.IMG_SIZE)).save(input_buf, format="PNG")
     input_b64 = base64.b64encode(input_buf.getvalue()).decode("ascii")
 
-    checkpoint_filename = config.CHECKPOINTS.get(model, config.CHECKPOINTS["best"]).name
+    checkpoint_filename = config.CHECKPOINTS.get(model, config.CHECKPOINTS["noaug"]).name
 
     html = report.build_report_html(
         input_image_b64=input_b64,

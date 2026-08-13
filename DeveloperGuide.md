@@ -6,9 +6,9 @@ running the local web application, every backend/frontend file and what
 it does, configuration options, the API surface, and implementation
 notes that aren't obvious from the code alone.
 
-Everything in this guide describes the current state of the **`main`**
-branch — no other branch is required to reproduce what's documented
-here.
+Everything in this guide describes the **`main`** branch. Production
+Render deployment uses the same branch with a slim Docker build — see
+**`READMEdeployment.md`** and §11 below.
 
 ---
 
@@ -46,15 +46,21 @@ specifically rather than `best`.
 ```text
 Group-11-DS-and-AI-Lab-Project/
 ├── final-mobilenet (1).ipynb      # Main face-model training notebook
-├── cross-domain.ipynb             # Cross-domain (non-face) model training notebook
-├── README.md                      # Project overview, quick start, notebook walkthrough
+├── cross-domain.ipynb             # Cross-domain model training notebook
+├── README.md                      # Project overview, quick start
+├── READMEdeployment.md            # Render deployment guide (simple)
+├── render.yaml                    # Render Blueprint (production)
 ├── DeveloperGuide.md              # This file
 │
 ├── images/
 │   └── mobilenetv3_pipeline_v3.png
 │
 ├── webapp/
+│   ├── .dockerignore              # Excludes extra checkpoints from prod image
 │   ├── backend/
+│   │   ├── Dockerfile             # Render production Docker build
+│   │   ├── requirements.txt       # Local dev dependencies
+│   │   ├── requirements-docker.txt
 │   │   ├── app/
 │   │   │   ├── main.py            # FastAPI routes
 │   │   │   ├── model.py           # Architecture + checkpoint registry
@@ -744,8 +750,38 @@ either way from anything else in this repo.
 
 ---
 
-## 11. Where to Go Next
+## 11. Production Deployment (Render)
 
+Production is deployed from **`main`** via Docker on Render.
+
+| Item | Value |
+|---|---|
+| **Live URL** | https://group-11-ds-and-ai-lab-project.onrender.com |
+| **Branch** | `main` (auto-deploy on push) |
+| **Build** | `webapp/backend/Dockerfile`, context `webapp/` |
+| **Config** | `render.yaml` (repo root) |
+| **Port** | 10000 |
+| **Models in production image** | `mobilenetv3_noaug.pth`, `mobilenetv3_cross_domain.pth` |
+| **Docker slimming** | `webapp/.dockerignore` excludes other `.pth` files from the image |
+
+### Production vs full local dev
+
+| Feature | Production (Render Docker) | Local (`uvicorn`, all checkpoints) |
+|---|---|---|
+| Main Model default | `noaug` | `noaug` (Model 2 toggle → `cross_domain`) |
+| Cross-Domain page | ✅ | ✅ if checkpoint present |
+| Manipulation Robustness | ❌ not in image | ✅ if `manipulations.pth` present |
+| Model Comparison | ❌ not in image | ✅ if `best`/`tuned` present |
+| RetinaFace | ❌ center-crop fallback | Optional |
+| RAM | ~310 MB (512 MB limit) | Depends on loaded checkpoints |
+
+To update production: push to **`main`**. See **`READMEdeployment.md`**.
+
+---
+
+## 12. Where to Go Next
+
+- **Deployment (simple)**: `READMEdeployment.md`
 - **Full evaluation results**: `doc/Milestone-5/Milestone5.md`
 - **Training notebook cell-by-cell walkthrough**: root `README.md`
 - **Web app quick reference**: `webapp/backend/README.md`

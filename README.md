@@ -81,22 +81,35 @@ details — model loading, endpoints (`/predict`, `/robustness`,
 `webapp/backend/README.md`; a full code/config walkthrough is in
 `DeveloperGuide.md`.
 
-### Deployed demo (Hugging Face Spaces)
+### Production deployment (Render)
 
-Public Gradio demo (no local setup):  
+**Live app:** https://group-11-ds-and-ai-lab-project.onrender.com
+
+Built from **`main`** using `render.yaml`, `webapp/backend/Dockerfile`, and
+`webapp/.dockerignore` (ships **`noaug`** + **`cross_domain`** only).
+Guide: **`READMEdeployment.md`**. Full M6 report:
+`doc/Milestone-6/Milestone6-Report.md`.
+
+### Optional: Hugging Face Gradio demo
+
+Public Gradio demo:  
 **https://huggingface.co/spaces/somendu007/deepfake-detection**
 
-### Docker deployment (custom frontend)
-
-Root `Dockerfile` + `.dockerignore` ship the FastAPI app and checkpoints
-(HF Docker Spaces port **7860**, or any container host):
+### Optional: Docker (HF Spaces — root Dockerfile, port 7860)
 
 ```bash
 docker build -t deepfake-detector .
 docker run -p 7860:7860 deepfake-detector
 ```
 
-See `doc/Milestone-6/Milestone6-Report.md` §1.3. Licenses: `doc/Milestone-6/licenses.md`.
+**Production-equivalent Docker** (matches Render):
+
+```bash
+docker build -t face-forensics -f webapp/backend/Dockerfile webapp/
+docker run -p 10000:10000 face-forensics
+```
+
+See `READMEdeployment.md`. Licenses: `doc/Milestone-6/licenses.md`.
 
 ### 4. Train or reproduce a model
 
@@ -494,6 +507,7 @@ Milestone 1's original role assignments are in
 - Web app quick reference: `webapp/backend/README.md`
 - Team contribution trackers: `doc/Milestone-{1..5}/Team-Contribution-Tracker.md`
 - **Milestone 6 deployment report:** `doc/Milestone-6/Milestone6-Report.md`
+- **Simple deployment guide:** `READMEdeployment.md` (Render from `main`)
 - **Licensing:** `doc/Milestone-6/licenses.md`
 
 ---

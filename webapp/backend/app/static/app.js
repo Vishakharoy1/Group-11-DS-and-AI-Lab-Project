@@ -75,7 +75,7 @@ function goToPage(pageKey) {
 }
 
 /* ===================== Health check ===================== */
-let mainPageModelKey = "noaug"; // toggled between "noaug" (Model 1) and "best" (Model 2)
+let mainPageModelKey = "noaug"; // Model 1 = noaug, Model 2 = cross_domain (production)
 
 async function checkHealth() {
   try {

@@ -81,6 +81,24 @@ A new user can perform an image analysis without needing to interact directly wi
 ---
 
 ## 4. Getting Started
+
+### 4.1 Using the live application (recommended)
+
+Open the deployed app in any web browser:
+
+**https://group-11-ds-and-ai-lab-project.onrender.com**
+
+No installation is required. On the free hosting tier, the first visit
+after a period of inactivity may take **30–60 seconds** while the server
+starts — this is normal. Refresh if the page seems stuck.
+
+The live site includes **Main Model** and **Cross-Domain Model** pages.
+Advanced pages (Manipulation Robustness, Model Comparison) require extra
+model files and are only available when running the app locally — see
+`READMEdeployment.md`.
+
+### 4.2 Navigating the application
+
 When the application is opened, the main navigation menu is available on the left side. The navigation menu allows the user to move between the different sections of the application.
 
 The application provides two main choices for image analysis:

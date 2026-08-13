@@ -168,15 +168,21 @@ To establish a fair comparison baseline, the project adopted **DeepfakeBench** �
 
 ### 4.2 Model Checkpoint Registry
 
-The deployed system supports multiple checkpoints managed by a `ModelRegistry`:
+The system supports multiple checkpoints managed by a `ModelRegistry`.
+**Production (Render)** loads only two; **local development (`main`)**
+can load all available files from `webapp/output/`.
 
-| Checkpoint | Role | Training Source |
-|---|---|---|
-| `mobilenetv3_best.pth` | Primary production model (3-stage, CelebA-HD corrected) | `final-mobilenet (1).ipynb` |
-| `mobilenetv3_noaug.pth` | Augmentation ablation comparison | Same notebook, no augmentation |
-| `mobilenetv3_cross_domain.pth` | Cross-domain (non-face, multi-domain) evaluation | `cross-domain.ipynb` |
-| `mobilenetv3_manipulations.pth` | Manipulation robustness testing | Specialised training run |
-| `mobilenetv3_tuned.pth` | Hyperparameter sweep comparison | Hyperparameter experiment |
+| Checkpoint | Role | Training Source | Production (Render) |
+|---|---|---|---|
+| `mobilenetv3_noaug.pth` | Main Model default — no-augmentation baseline | `final-mobilenet (1).ipynb` | ✅ Deployed |
+| `mobilenetv3_cross_domain.pth` | Cross-domain (non-face, multi-domain) evaluation | `cross-domain.ipynb` | ✅ Deployed |
+| `mobilenetv3_best.pth` | 3-stage CelebA-HD corrected model (Model 2 toggle) | `final-mobilenet (1).ipynb` | ❌ Not deployed (RAM) |
+| `mobilenetv3_manipulations.pth` | Manipulation robustness testing | Specialised training run | ❌ Not deployed (RAM) |
+| `mobilenetv3_tuned.pth` | Hyperparameter sweep comparison | Hyperparameter experiment | ❌ Not deployed (RAM) |
+
+Production URL: **https://group-11-ds-and-ai-lab-project.onrender.com**  
+Deployed from Git branch **`main`** via Docker on Render free tier
+(512 MB RAM; 2-model image via `webapp/.dockerignore`). See `READMEdeployment.md`.
 
 ### 4.3 API Endpoints
 
@@ -786,6 +792,27 @@ webapp/backend/
 - **Preprocessing pipeline consistency**: The deployed `val_transform` is an exact port of the training notebook's transform, verified by direct code comparison.
 - **Image validation**: Uploads are validated for content type (JPEG, PNG, WebP, BMP), file size (max 10 MB), and decodability before processing.
 - **Forensic meta-detector**: Analyses raw uploaded bytes for EXIF metadata, invisible watermarks, spectral anomalies, and sensor-noise forensics — information that can complement the CNN-based prediction.
+
+### 12.5 Production Deployment (Render)
+
+| Component | Configuration |
+|---|---|
+| **Platform** | Render — free-tier web service |
+| **Live URL** | https://group-11-ds-and-ai-lab-project.onrender.com |
+| **Source branch** | **`main`** |
+| **Build** | Docker — `webapp/backend/Dockerfile`, context `./webapp` |
+| **Infrastructure** | `render.yaml` (Render Blueprint) |
+| **Models in image** | `mobilenetv3_noaug.pth` + `mobilenetv3_cross_domain.pth` |
+| **Slimming** | `webapp/.dockerignore` excludes other checkpoints from Docker |
+| **Default API model** | `noaug` |
+| **Port** | 10000 |
+| **Cold start** | ~30–60 s on free tier after idle spin-down |
+
+The production Docker image deliberately excludes `mobilenetv3_best.pth`,
+`mobilenetv3_manipulations.pth`, and RetinaFace/TensorFlow to stay
+within Render's **512 MB RAM** limit (~310 MB with two models loaded).
+
+Full deployment instructions: **`READMEdeployment.md`**.
 
 ---
 

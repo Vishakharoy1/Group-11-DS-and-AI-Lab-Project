@@ -60,6 +60,16 @@ The Cross-Domain Model is provided as an additional analysis option and is descr
 
 The two options allow the user to perform authenticity analysis through the same application interface.
 
+### 4.3 Where to use the application
+
+The application is available online at:
+
+**https://group-11-ds-and-ai-lab-project.onrender.com**
+
+Users can open this link in a web browser and begin uploading images immediately. No software installation is required. The hosted version includes the **Main Model** and **Cross-Domain Model** for everyday analysis.
+
+Developers who need the full feature set (including additional model comparison tools) can run the application locally — instructions are in `READMEdeployment.md` and `DeveloperGuide.md`.
+
 ---
 
 ## 5. How the System Works from a User's Perspective

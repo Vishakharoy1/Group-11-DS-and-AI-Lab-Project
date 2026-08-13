@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: face-forensics
+    runtime: docker
+    dockerfilePath: ./webapp/backend/Dockerfile
+    dockerContext: ./webapp
+    plan: free
+    branch: main
+    envVars:
+      - key: CHECKPOINT_DIR
+        value: /app/output
+      - key: RESULTS_DIR
+        value: /app/output
