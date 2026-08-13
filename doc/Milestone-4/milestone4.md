@@ -1013,3 +1013,17 @@ Although the proposed model achieved excellent performance, several enhancements
 
 ## 9.6 Overall Conclusion
 The training process demonstrated that the combination of MobileNetV3-Large, transfer learning, robust preprocessing, data augmentation, and carefully optimized hyperparameters provides an effective solution for deepfake face detection. The model achieved high classification accuracy while maintaining computational efficiency, making it suitable for practical deployment. Although computational limitations and extensive hyperparameter tuning presented challenges during development, the resulting model exhibited strong generalization performance and provides a solid foundation for future research and real-world applications.
+
+---
+
+## Team Declaration
+
+We certify that all team members have actively contributed to the preparation of Milestone 4. Each member has reviewed the contents of the document, understands the work presented throughout the MobileNetV3 enhancement, evaluation, explainability, and documentation phases, and agrees with the submitted report.
+
+| Team Member | Role | Signature |
+| --- | --- | --- |
+| Vishakha | MobileNetV3 Training Pipeline, Inference Pipeline & Presentation Lead | Vishakha |
+| Rohit | Hyperparameter Optimization Lead | Rohit |
+| Aman | Robustness Testing & Documentation Lead | Aman |
+| Raunak | Cross-Domain Evaluation & Operational Boundary Analysis Lead | Raunak |
+| Somendu | Explainability & Grad-CAM Visualization Lead | Somendu |

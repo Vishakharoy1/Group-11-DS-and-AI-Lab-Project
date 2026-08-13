@@ -345,8 +345,8 @@ We certify that all team members have actively contributed to the preparation of
 
 | Team Member | Role | Signature |
 | --- | --- | --- |
-| **Rohit** | Dual-Stream Architecture Development & FFT Forensic Extraction | <img src="../../signatures/Rohit.jpeg" alt="Rohit Signature" width="140"> |
-| **Raunak** | Spatial Baseline Testing & Notebook Verification | <img src="../../signatures/raunak.jpeg" alt="Raunak Signature" width="140"> |
-| **Vishakha** | Data Sourcing, Preprocessing Verification & Validation Checks | <img src="../../signatures/Sign-Vishakha.jpeg" alt="Vishakha Signature" width="140"> |
-| **Aman** | Pipeline Optimization, Evaluation Scripting & Dataloader Hardware Integration | <img src="../../signatures/Aman.jpeg" alt="Aman Signature" width="140"> |
-| **Somendu** | Hyperparameter Search, Experiment Tracking & Diagram Visualization | <img src="../../signatures/Somendu.jpeg" alt="Somendu Signature" width="140"> |
+| **Rohit** | Dual-Stream Architecture Development & FFT Forensic Extraction | Rohit |
+| **Raunak** | Spatial Baseline Testing & Notebook Verification | Raunak |
+| **Vishakha** | Data Sourcing, Preprocessing Verification & Validation Checks | Vishakha |
+| **Aman** | Pipeline Optimization, Evaluation Scripting & Dataloader Hardware Integration | Aman |
+| **Somendu** | Hyperparameter Search, Experiment Tracking & Diagram Visualization | Somendu |

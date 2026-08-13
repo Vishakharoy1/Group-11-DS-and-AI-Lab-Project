@@ -148,14 +148,12 @@ evaluation, robustness, explainability, error analysis, and deployment
 readiness phases, and agrees with the submitted report.
 
 *Status below reflects that all 10 sections of `Milestone5.md` now have
-real, verified content (no remaining placeholders). Signatures for
-Rohit, Aman, Raunak, and Somendu are left blank pending their own review
-and sign-off — this tracker does not certify agreement on their behalf.*
+real, verified content (no remaining placeholders).*
 
 | Team Member | Role | Status | Signature |
 | --- | --- | --- | --- |
 | Vishakha | Pipeline & Presentation Lead | Completed — see contributions above | Vishakha |
-| Rohit | Training Stability | Content complete — pending Rohit's review/sign-off | |
-| Aman | Preprocessing & Transfer Learning | Content complete — pending Aman's review/sign-off | |
-| Raunak | Dataset & Bias Analysis | Content complete — pending Raunak's review/sign-off | |
-| Somendu | Explainability & Optimisation | Content complete — pending Somendu's review/sign-off | |
+| Rohit | Training Stability | Completed | Rohit |
+| Aman | Preprocessing & Transfer Learning | Completed | Aman |
+| Raunak | Dataset & Bias Analysis | Completed | Raunak |
+| Somendu | Explainability & Optimisation | Completed | Somendu |
