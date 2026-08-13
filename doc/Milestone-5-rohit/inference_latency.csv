@@ -1,3 +1,0 @@
-Device,mean_ms,std_ms,min_ms,max_ms
-MPS_GPU,4.791,0.467,4.317,6.397
-CPU,137.151,3.414,132.503,159.561
