@@ -1,0 +1,579 @@
+# DSAI PROJECT — MILESTONE 6
+
+## Deployment & Documentation
+
+**Project:** Deep Learning-Based Human Face Authenticity Detection & Explainability System
+
+**Team:** Group 11 — Vishakha · Rohit · Aman · Raunak · Somendu
+
+**Course:** DS & AI Lab Project
+
+**Submission Date:** August 2026
+
+---
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Deployment](#1-deployment)
+3. [Comprehensive Documentation](#2-comprehensive-documentation)
+4. [Individual Contributions](#3-individual-contributions)
+5. [Appendix — Data Required for This Report](#appendix--data-required-for-this-report)
+
+---
+
+# Overview
+
+Milestone 6 transforms our deep learning face-authenticity detection project from a research prototype into a deployed, documented, and reproducible system. This report covers three key deliverables:
+
+1. **Deployment** — Hugging Face Space (Gradio), optional Docker Space (FastAPI + custom frontend), and local FastAPI web application
+2. **Comprehensive Documentation** — technical, user-facing, and API documentation
+3. **Final Project Summary** — academic-style coverage of training, evaluation, explainability, and known limitations
+
+---
+
+# 1. Deployment
+
+## 1.1 What Is Deployed
+
+| Component | Technology | Platform | Access |
+|---|---|---|---|
+| Deepfake Detector (Gradio demo) | Gradio SDK + PyTorch | Hugging Face Spaces | [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) |
+| Custom Web Application | FastAPI + Uvicorn + Static HTML/JS | Local / Docker Space | `http://localhost:8000` or HF Docker port `7860` |
+| Trained Checkpoints (weights) | PyTorch `.pth` state dicts | `webapp/output/` (Git LFS on HF) | `mobilenetv3_best.pth`, `mobilenetv3_noaug.pth`, etc. |
+| Training Notebooks | PyTorch + Kaggle GPU | Repository | `final-mobilenet (1).ipynb`, `cross-domain.ipynb` |
+
+## 1.2 Deployment Architecture
+
+```mermaid
+flowchart TB
+    subgraph Ingestion ["1. Input Ingestion & Face Preprocessing"]
+        A["User Image Upload (JPEG / PNG / WebP)"] --> B{"RetinaFace Detection"}
+        B -- "Face Detected" --> C["Bounding Box Crop & Alignment"]
+        B -- "Fallback" --> D["Center-Crop Resize (224×224)"]
+        C & D --> E["ImageNet Normalization"]
+    end
+
+    subgraph Engine ["2. Inference & Forensics Core"]
+        E --> F["Model Selector"]
+        F --> M1["Main Model (mobilenetv3_best — 3-stage)"]
+        F --> M2["No-Aug Model (mobilenetv3_noaug)"]
+        F --> M3["Cross-Domain Model"]
+        F --> M4["Manipulation Robustness Model"]
+        M1 & M2 & M3 & M4 --> Logits["Softmax → Real / Fake + Confidence %"]
+    end
+
+    subgraph XAI ["3. Explainability Engine (Grad-CAM)"]
+        M1 & M2 -. "Backward hook on features[-1]" .-> GAP["Global Average Pooling of gradients"]
+        GAP --> Heatmap["Jet Colormap Saliency Map"]
+        Heatmap --> Overlay["Alpha=0.45 Composite Overlay"]
+    end
+
+    subgraph UI ["4. User Interfaces"]
+        Logits --> Verdict["Verdict Banner + Confidence"]
+        Overlay --> WebUI["FastAPI Static Frontend (5 pages)"]
+        Verdict --> GradioUI["Hugging Face Gradio Space"]
+        WebUI --> Report["Forensic HTML / DOCX Report"]
+    end
+```
+
+## 1.3 How to Run Locally
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/Vishakharoy1/Group-11-DS-and-AI-Lab-Project.git
+cd Group-11-DS-and-AI-Lab-Project
+
+# 2. Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate          # Windows: .\.venv\Scripts\Activate.ps1
+
+# 3. Install dependencies
+cd webapp/backend
+pip install -r requirements.txt
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# 4. Ensure checkpoints exist in webapp/output/
+
+# 5. Start the FastAPI server
+uvicorn app.main:app --port 8000
+# Open: http://localhost:8000
+```
+
+**Public demo (no install):** [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection)
+
+### Deploy Custom Frontend to Hugging Face (Docker SDK)
+
+To host the **actual HTML/JS frontend** (not Gradio) on Hugging Face Spaces:
+
+1. Create a new Space with SDK = **Docker**, hardware = **CPU basic (free)**.
+2. Use a root `Dockerfile` exposing port **7860**:
+
+```dockerfile
+FROM python:3.11-slim
+ENV PYTHONUNBUFFERED=1 PORT=7860
+WORKDIR /code
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential curl \
+    && rm -rf /var/lib/apt/lists/*
+COPY webapp/backend/requirements.txt /code/requirements.txt
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r /code/requirements.txt
+COPY webapp/backend /code/webapp/backend
+COPY webapp/output /code/webapp/output
+ENV CHECKPOINT_DIR=/code/webapp/output RESULTS_DIR=/code/webapp/output
+WORKDIR /code/webapp/backend
+EXPOSE 7860
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+```
+
+3. Track large checkpoints with Git LFS: `git lfs track "*.pth"`.
+4. Push to the Space remote: `git push hf main`.
+
+## 1.4 Inputs and Outputs
+
+### Web-App Inputs
+
+| Input Type | Description |
+|---|---|
+| Custom Upload | Drag-and-drop face image (JPEG, PNG, WebP; max 10 MB) |
+| Preset Examples | Built-in sample Real / Fake / Cross-domain images |
+| Model Selection | Main Model toggle (`best` vs `noaug`), Cross-Domain, Manipulation Robustness |
+
+### Web-App Outputs
+
+- **Verdict & Confidence:** REAL or FAKE with split confidence percentages
+- **Grad-CAM Heatmap & Overlay:** Saliency visualization on the cropped 224×224 face
+- **Forensic Report:** Printable HTML and downloadable `.docx` case report
+- **Analysis History:** Last 15 analyses persisted in browser `localStorage`
+
+![Main Model page — deployed frontend](../../Images/main_model.png)
+
+---
+
+# 2. Comprehensive Documentation
+
+## A. Overview — Problem Statement and Architecture
+
+### Problem Statement
+
+Generative AI produces synthetic facial images that are visually indistinguishable from authentic photographs. Deep learning detectors often learn **shortcut features** — HDR tone-mapping, saturation, sharpening, or dataset-specific compression — rather than true forgery artifacts. Our system addresses this with a **MobileNetV3-Large** classifier trained via three-stage transfer learning, **Grad-CAM explainability**, multi-checkpoint evaluation, and an honest cross-domain probe documenting where the model fails.
+
+### Final System Architecture
+
+**Layer 1 — MobileNetV3-Large Classifier (4.2M params)**
+Three-stage progressive unfreezing: frozen backbone → partial unfreeze (blocks 12–16) → full unfreeze with CelebA-HD real photos added in Stage 3.
+
+**Layer 2 — Explainability Engine (Grad-CAM)**
+Standard Grad-CAM on `model.features[-1]` with backward hooks, GAP weighting, jet colormap, and 0.45 alpha overlay. See [Section B.6](#b6-explainability--grad-cam-development) for the Layer-CAM upgrade roadmap.
+
+**Layer 3 — User Interfaces**
+- **FastAPI Web App:** Multi-page static frontend (Main Model, Cross-Domain, Manipulation Robustness, Model Comparison, Training Results, Forensic Report)
+- **Hugging Face Gradio Space:** Public zero-setup demo
+
+### Key Design Decisions
+
+| Decision | Rationale |
+|---|---|
+| MobileNetV3-Large over EfficientNet-B2 / Dual-Stream Fusion | Best OOD generalization at 4.2M params vs. 7.8M–40.7M alternatives (Milestone 3 bake-off) |
+| Three-stage transfer learning + CelebA-HD | Counter shortcut learning on HD real smartphone photos |
+| RetinaFace + center-crop fallback | Matches training preprocessing when detection available; degrades gracefully on CPU-only Windows N |
+| Grad-CAM on `features[-1]` | Immediate saliency without retraining; runs on every `/predict` call today |
+| Multiple checkpoint roles | Separates in-domain accuracy, cross-domain probes, manipulation robustness, and ablation |
+| Honest dual reporting | 99.63% in-distribution accuracy coexists with 8.6% Real-Latest probe accuracy |
+
+---
+
+## B. Technical Documentation
+
+### B.1 Environment Setup
+
+| Requirement | Value |
+|---|---|
+| Python | 3.11+ |
+| PyTorch | CPU wheels (`whl/cpu`) or CUDA if GPU available |
+| RAM | 16 GB minimum for local multi-checkpoint loading |
+| OS | Linux (recommended for Docker/HF), Windows, macOS |
+
+**Core dependencies:** `torch`, `torchvision`, `fastapi`, `uvicorn`, `pillow`, `numpy`, `matplotlib`, `pydantic`, `python-docx`, `python-multipart`
+
+Install: `pip install -r webapp/backend/requirements.txt`
+
+### B.2 Data Pipeline
+
+| Dataset | Role | Approx. Count |
+|---|---|---|
+| FFHQ | Real training faces | ~15,000 used |
+| Stable Diffusion Face Dataset | Fake training faces | 9,001 |
+| CelebA-HD | Stage 3 HD real photos | 8,000 added |
+| Held-out test set | Final evaluation | **2,401** (1,500 Real + 901 Fake) |
+
+**Preprocessing:** RGB conversion → RetinaFace crop (or center-crop fallback) → resize 224×224 → ImageNet normalization (`mean=[0.485,0.456,0.406]`, `std=[0.229,0.224,0.225]`).
+
+**Split:** Stratified 80/10/10 train/val/test, `random_state=42`.
+
+### B.3 Model Architecture
+
+| Component | Detail |
+|---|---|
+| Backbone | MobileNetV3-Large (ImageNet pre-trained) |
+| Head | Linear binary classifier (Real=0, Fake=1) |
+| Parameters | 4,204,594 (all trainable in Stage 3) |
+| Input size | 224 × 224 × 3 |
+
+### B.4 Training Summary
+
+| Stage | Epochs | Learning Rate | Trainable Params | Val Accuracy |
+|---|---:|---|---:|---:|
+| Stage 1 (frozen backbone) | 3 | 3×10⁻⁴ | 1,232,642 | 98.75% |
+| Stage 2 (partial unfreeze) | 7 | 1×10⁻⁵ | 3,798,226 | 99.71% |
+| Stage 3 (full + CelebA-HD) | 3 | 5×10⁻⁶ | 4,204,594 | 99.71% |
+
+Checkpoint saved as `mobilenetv3_best.pth` (~17 MB).
+
+### B.5 Evaluation Summary
+
+#### B.5.1 Primary Model — `mobilenetv3_best.pth` (Stage 3, held-out test set)
+
+Classification report on the **2,401-image held-out test set** (`doc/Milestone-5/Milestone5.md` Section 4.2):
+
+```
+              precision    recall  f1-score   support
+        Real     0.9993    0.9947    0.9970      1500
+        Fake     0.9912    0.9989    0.9950       901
+    accuracy                         0.9963      2401
+```
+
+| Metric | Value |
+|---|---:|
+| Test Accuracy | **99.63%** (2,392 / 2,401 correct) |
+| Real Precision / Recall | 0.9993 / 0.9947 |
+| Fake Precision / Recall | 0.9912 / 0.9989 |
+| Macro F1 | 0.9960 |
+| Misclassifications | 8 Real→Fake, 1 Fake→Real |
+
+**Confusion matrix (mobilenetv3_best, held-out test set):**
+
+![Confusion matrix — mobilenetv3_best (held-out test set)](../../doc/Milestone-5/images/confusion_matrix_best_model.png)
+
+**How to read this matrix:** Rows are the true label, columns are the predicted label. The bright cell (1,492) shows Real images correctly classified as Real. Only **9 total errors** occur on the in-distribution test set — demonstrating strong discrimination within the training distribution. However, this matrix alone cannot reveal domain-shift failures documented in Section B.5.3.
+
+#### B.5.2 Full Test-Set Curves — `mobilenetv3_noaug.pth` (M6 regenerated metrics)
+
+For Milestone 6, Rohit regenerated **ROC, Precision-Recall, and confusion matrix plots on the full 2,401-image held-out test set** for the no-augmentation checkpoint (`mobilenetv3_noaug.pth`). These are stored in the repository `Images/` folder.
+
+**Confusion matrix — mobilenetv3_noaug (2,401 images):**
+
+![Confusion matrix — mobilenetv3_noaug (full held-out test set)](../../Images/Confusion_matrix.jpeg)
+
+| Cell | Count | Meaning |
+|---|---:|---|
+| True Real → Pred Real | 1,404 | Correctly identified authentic faces |
+| True Real → Pred Fake | 96 | False alarms on real images |
+| True Fake → Pred Real | 0 | Missed fakes (zero false negatives) |
+| True Fake → Pred Fake | 901 | Correctly identified synthetic faces |
+| **Accuracy** | **95.98%** | (1,404 + 901) / 2,401 |
+
+**Interpretation:** The no-augmentation model achieves **100% fake recall** (zero missed fakes) but at the cost of **96 false positives** on real images — a precision/recall trade-off visible only when examining the full confusion matrix, not headline accuracy alone.
+
+**ROC Curve — mobilenetv3_noaug:**
+
+![ROC curve — mobilenetv3_noaug (full held-out test set)](../../Images/Roc_curve.jpeg)
+
+| Class | ROC-AUC | Interpretation |
+|---|---:|---|
+| Real | **0.9997** | Near-perfect ranking of authentic faces across all thresholds |
+| Fake | **0.9994** | Near-perfect ranking of synthetic faces across all thresholds |
+
+**What ROC-AUC means:** The Area Under the ROC Curve measures threshold-independent ranking ability — how well the model separates Real from Fake regardless of the 50% default cutoff. Values above 0.99 indicate excellent probabilistic separation on the **in-distribution held-out set**. The diagonal dashed line represents random guessing (AUC = 0.50).
+
+**Precision-Recall Curve — mobilenetv3_noaug:**
+
+![Precision-Recall curve — mobilenetv3_noaug (full held-out test set)](../../Images/Precision_recal_curve.jpeg)
+
+| Class | Average Precision (AP) | Interpretation |
+|---|---:|---|
+| Real | **0.9998** | Maintains near-perfect precision across recall levels |
+| Fake | **0.9984** | Strong precision even as recall approaches 1.0 |
+
+**What PR-AUC / AP means:** Average Precision summarizes the precision-recall trade-off, especially informative for imbalanced classes. Both curves hug the top-right corner (precision ≈ 1.0 until recall ≈ 0.99), confirming strong in-distribution performance before the sharp drop at maximum recall.
+
+#### B.5.3 Cross-Domain Probe — Where the Model Fails
+
+| Probe Set | Images | Accuracy | Key Finding |
+|---|---:|---:|---|
+| Held-out test (in-distribution) | 2,401 | 99.63% | Strong baseline |
+| Real-Latest (smartphone photos) | 70 | **8.6%** | Shortcut learning on HDR/sharpening |
+| Local Test Sample (supplementary) | 50 | 62.0% | ROC-AUC = 0.5856 (domain-shifted) |
+
+**Critical insight:** High in-distribution metrics (99.63% accuracy, ROC-AUC > 0.99) do **not** translate to real-world reliability on modern smartphone photographs. The dominant failure mode is **false alarms** — genuine photos classified as fake due to post-processing artifacts.
+
+#### B.5.4 Evaluation Metrics Summary Table
+
+| Metric | mobilenetv3_best (held-out) | mobilenetv3_noaug (held-out curves) | Real-Latest probe |
+|---|---|---|---|
+| Accuracy | 99.63% | 95.98% | 8.6% |
+| Real Precision | 0.9993 | — | — |
+| Fake Recall | 0.9989 | 1.0000 (0 FN) | — |
+| ROC-AUC (Real) | Not plotted | 0.9997 | — |
+| ROC-AUC (Fake) | Not plotted | 0.9994 | — |
+| PR-AUC (Real) | Not plotted | 0.9998 | — |
+| PR-AUC (Fake) | Not plotted | 0.9984 | — |
+
+### B.6 Explainability & Grad-CAM Development
+
+#### B.6.1 Current Production Implementation
+
+File: `webapp/backend/app/gradcam.py`
+
+The deployed backend implements **standard Grad-CAM (Selvaraju et al., 2017)** on the final convolutional block (`model.features[-1]`):
+
+1. **Forward pass** → softmax probabilities
+2. **Backward pass** on the predicted class score
+3. **Global Average Pooling (GAP)** of gradients across spatial dimensions to compute channel weights:
+   $$w_k^c = \frac{1}{H \times W} \sum_{i,j} \frac{\partial Y^c}{\partial A_{i,j}^k}$$
+4. **Weighted sum + ReLU** → heatmap normalized to [0, 1]
+5. **Jet colormap** + **alpha=0.45** overlay on the 224×224 input
+
+```python
+# Simplified from gradcam.py
+gc = GradCAM(model, model.features[-1])
+heatmap, explained_class, probabilities = gc(input_tensor)
+overlay = Image.blend(display_img, heatmap_img, alpha=0.45)
+```
+
+![Grad-CAM overlay — web application output](../../Images/Grad_Cam.png)
+
+**Latency impact:** MobileNetV3 forward pass ≈ **15.8 ms** (CPU); Grad-CAM backward pass ≈ **2.0 s** — explainability dominates end-to-end `/predict` latency (~2–3 s total).
+
+#### B.6.2 Diagnosed Limitations (Research Review)
+
+| Limitation | Effect on Deepfake Detection |
+|---|---|
+| GAP dilutes spatial gradients | Blending seams and micro-artifacts (< 5% of pixels) spread into broad blobs |
+| Single layer (`features[-1]`) only | Misses mid-level blending boundaries (`features[11]`) and low-level noise (`features[6]`) |
+| Jet colormap | Non-perceptually uniform — creates artificial visual boundaries |
+| Uniform alpha = 0.45 | Dims non-saliency regions with dark blue background clutter |
+| Hardswish + SE saturation | Gradients can vanish in MobileNetV3's final blocks |
+
+#### B.6.3 Layer-CAM Upgrade Roadmap (Somendu — M6 Development)
+
+The following upgrades were designed and documented for the next production iteration:
+
+**Layer-CAM (Jiang et al., 2021)** — element-wise spatial weighting without GAP:
+
+$$w_{i,j}^k = \text{ReLU}\left(\frac{\partial Y^c}{\partial A_{i,j}^k}\right), \quad M = \text{ReLU}\left(\sum_k w_{i,j}^k \cdot A_{i,j}^k\right)$$
+
+**Multi-scale fusion** across MobileNetV3 layers:
+
+| Layer | Role |
+|---|---|
+| `features[6]` | Low-level frequency / compression artifacts |
+| `features[11]` | Mid-level blending boundaries |
+| `features[-1]` | High-level semantic inconsistencies |
+
+**Visual improvements:**
+- Replace `jet` with **`turbo`** perceptually uniform colormap
+- **Adaptive alpha masking:** transparent below threshold 0.15, scaling to 0.75 at peak activation
+- Optional **confidence drop %** metric: measure how much fake probability falls when top saliency pixels are masked
+
+**Implementation status:**
+
+| Feature | Status |
+|---|---|
+| Grad-CAM on `features[-1]` (jet, α=0.45) | ✅ Deployed in `gradcam.py` |
+| Layer-CAM element-wise weighting | 📋 Designed; integration pending |
+| Multi-layer fusion (11 + -1) | 📋 Designed; integration pending |
+| Turbo colormap + adaptive alpha | 📋 Designed; integration pending |
+| On-demand Grad-CAM (latency fix) | 📋 Planned — separate UI trigger |
+
+### B.7 Deployment Details
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Loaded models + face alignment method |
+| `/predict?model=best` | POST | Classification + Grad-CAM + JSON response |
+| `/robustness` | POST | 11 manipulation modes via `manipulations` checkpoint |
+| `/compare?mode=augmentation` | POST | Side-by-side `best` vs `noaug` |
+| `/report` | POST | Printable HTML forensic report |
+| `/api/training-results` | GET | Pre-computed CSV/PNG evaluation artifacts |
+
+**Swagger UI:** `http://localhost:8000/docs`
+
+### B.8 System Design Considerations
+
+- **Graceful degradation:** Missing optional checkpoints skipped at startup; UI shows "Model not loaded"
+- **Separation of concerns:** `ModelRegistry`, `preprocessing`, `gradcam`, `report` are independent modules
+- **Client-side history:** No backend database required — last 15 analyses in `localStorage`
+- **Production path:** Gunicorn multi-worker + optional Celery queue for async Grad-CAM
+
+### B.9 Error Handling
+
+| Edge Case | Handling |
+|---|---|
+| Missing checkpoint | HTTP 503 with path hint |
+| Unsupported file type | HTTP 400 |
+| File > 10 MB | HTTP 400 |
+| No face detected | Center-crop fallback reported in response |
+| RetinaFace unavailable (Windows N) | Automatic center-crop fallback |
+
+### B.10 Reproducibility Checklist
+
+- [ ] Python 3.11 venv + `pip install -r webapp/backend/requirements.txt`
+- [ ] CPU PyTorch: `pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu`
+- [ ] Checkpoints in `webapp/output/`
+- [ ] Run `final-mobilenet (1).ipynb` on Kaggle GPU with `SEED=42`
+- [ ] Expected: ~99.63% test accuracy on 2,401-image held-out set
+- [ ] Start: `uvicorn app.main:app --port 8000`
+
+---
+
+## C. User Documentation
+
+### C.1 What the System Does
+
+Upload a portrait photograph and receive:
+- REAL or FAKE verdict with confidence percentages
+- Grad-CAM heatmap showing where the model looked
+- Downloadable forensic investigation report
+
+### C.2 How to Launch
+
+See §1.3. Open `http://localhost:8000` — navigate via sidebar: Main Model, Cross-Domain, Manipulation Robustness, Model Comparison, Training Results, Forensic Report.
+
+### C.3 Hugging Face Space
+
+Open [somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) — no API key or installation required. Cold start may take 30–60 seconds.
+
+### C.4 Example Use Cases
+
+| Scenario | Expected Result |
+|---|---|
+| Stable Diffusion face with smooth skin | 🔴 FAKE — high fake confidence, heatmap on cheek/jaw |
+| FFHQ dataset real portrait | 🟢 REAL — high real confidence |
+| Modern iPhone HDR portrait | ⚠️ Likely FAKE (false positive) — documented 8.6% Real-Latest accuracy |
+| Heavily JPEG-compressed social media photo | Use Manipulation Robustness page |
+
+### C.5 Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| `no_models_loaded` on `/health` | Place `.pth` files in `webapp/output/` and restart |
+| Slow `/predict` (~2–3 s) | Normal — Grad-CAM backward pass dominates |
+| Wrong predictions on full photos | Upload pre-cropped face images if RetinaFace unavailable |
+| HF Space "Building" | Wait 1–2 min for Docker cold start |
+
+---
+
+## D. API Documentation
+
+### POST `/predict`
+
+```bash
+curl -X POST "http://localhost:8000/predict?model=best" \
+  -F "file=@face.jpg"
+```
+
+**Response fields:** `prediction.label`, `prediction.real_pct`, `prediction.fake_pct`, `gradcam_heatmap` (base64 PNG), `gradcam_overlay` (base64 PNG), `face_alignment_used`
+
+### Error Codes
+
+| HTTP | Meaning |
+|---|---|
+| 200 | Success |
+| 400 | Invalid file type or too large |
+| 503 | Requested checkpoint not loaded |
+| 500 | Inference / Grad-CAM failure |
+
+---
+
+## E. Licensing
+
+| Asset | License |
+|---|---|
+| Project code | MIT |
+| FFHQ dataset | FFHQ License (research use) |
+| Stable Diffusion Face Dataset | Kaggle dataset terms |
+| MobileNetV3-Large (torchvision) | BSD-style |
+| Hugging Face Spaces hosting | [HF Terms of Service](https://huggingface.co/terms-of-service) |
+
+---
+
+## F. Future Work & Known Limitations
+
+| Limitation | Severity |
+|---|---|
+| Real-Latest probe collapse (8.6%) | **High** |
+| Grad-CAM latency on every `/predict` | Medium |
+| Layer-CAM upgrade not yet in production `gradcam.py` | Medium |
+| Demographic bias never audited | Medium |
+| GPU latency not directly measured | Low |
+
+See `future_work.md` (on `main-cleanup` branch) for the full 15-section prioritized roadmap.
+
+---
+
+# 3. Individual Contributions
+
+| Member | Role | Key Deliverables |
+|---|---|---|
+| **Vishakha** | Pipeline & Presentation Lead | Final presentation, deployment stability, contribution summary, Developer Guide |
+| **Rohit** | Training Stability Lead | Full 2,401-image ROC/PR/confusion plots (`Images/`), Final Technical Report, UI layout |
+| **Aman** | Preprocessing & Transfer Learning Lead | Non-Technical Report, training pipeline documentation |
+| **Raunak** | Dataset & Bias Analysis Lead | Domain-shift root cause (8.6% Real-Latest), ethical limitations |
+| **Somendu** | Explainability & Optimisation Lead | Grad-CAM/Layer-CAM research, HF Space deployment, User Guide |
+
+### Effort Distribution
+
+| Member | Focus Area |
+|---|---|
+| Vishakha | Presentation, deployment verification, Developer Guide |
+| Rohit | Full-set evaluation metrics & curves, technical report, UI |
+| Aman | Non-technical report, training documentation |
+| Raunak | Domain shift analysis, bias limitations |
+| Somendu | Explainability engine, Hugging Face Space, latency roadmap |
+
+---
+
+# Appendix — Data Required for This Report
+
+Use this checklist when assembling or updating `doc/Milestone-6/`:
+
+## Required Content Sections
+
+| # | Section | Source in Repo |
+|---|---|---|
+| 1 | Deployment table + architecture diagram | §1 above; `webapp/backend/` |
+| 2 | Local run instructions | `README.md`, `webapp/backend/README.md` |
+| 3 | Training config (3-stage pipeline) | `final-mobilenet (1).ipynb`, `doc/Milestone-5/Milestone5.md` |
+| 4 | Held-out test metrics (best model) | M5 Section 4.2 + `confusion_matrix_best_model.png` |
+| 5 | Full test-set curves (noaug module) | `Images/Confusion_matrix.jpeg`, `Roc_curve.jpeg`, `Precision_recal_curve.jpeg` |
+| 6 | Cross-domain failure analysis | M5 Section 5 (Real-Latest 8.6%) |
+| 7 | Grad-CAM implementation + Layer-CAM roadmap | `webapp/backend/app/gradcam.py` + research notes |
+| 8 | API endpoint documentation | `webapp/backend/app/main.py`, `/docs` Swagger |
+| 9 | HF Space URL + Docker deploy guide | `somendu007/deepfake-detection` + §1.3 Dockerfile |
+| 10 | UI screenshots | `Images/main_model.png`, `Grad_Cam.png`, etc. |
+| 11 | Individual contributions | `doc/Milestone-6/Team-Contribution-Tracker.md` |
+| 12 | Licensing & dataset citations | M1/M2 reports, dataset READMEs |
+
+## Required Files & Artifacts
+
+| Artifact | Location | Purpose |
+|---|---|---|
+| Model checkpoints | `webapp/output/*.pth` | Inference + deployment |
+| Confusion matrix (best) | `doc/Milestone-5/images/confusion_matrix_best_model.png` | 99.63% accuracy visualization |
+| Confusion matrix (noaug, full set) | `Images/Confusion_matrix.jpeg` | M6 regenerated full-test evaluation |
+| ROC curve (full set) | `Images/Roc_curve.jpeg` | Threshold-independent ranking |
+| PR curve (full set) | `Images/Precision_recal_curve.jpeg` | Precision-recall trade-off |
+| Frontend screenshots | `Images/main_model.png`, `main_model1.png` | User documentation |
+| Dockerfile (optional HF Docker deploy) | repo root (to be added) | Custom frontend on HF Spaces |
+| Gradio `app.py` (HF Gradio deploy) | repo root (on deployment branch) | Public Gradio demo |
+
+## External Links to Record
+
+- GitHub: `https://github.com/Vishakharoy1/Group-11-DS-and-AI-Lab-Project`
+- Hugging Face Space: `https://huggingface.co/spaces/somendu007/deepfake-detection`
+- Hugging Face model (if published): team member Hub profile
+
+---
+
+*End of Milestone 6 Report — Group 11, DS & AI Lab Project, August 2026*
