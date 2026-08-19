@@ -74,8 +74,14 @@
         <h1>AI FACE AUTHENTICITY ANALYSIS</h1>
         <div class="page-subtitle-row">
           <div class="model-toggle" id="main-model-toggle">
-            <button type="button" class="model-toggle-btn active" data-main-model="noaug" data-main-label="Model 1 (No-Augmentation)">Model 1</button>
-            <button type="button" class="model-toggle-btn" data-main-model="best" data-main-label="Model 2 (Research/Best)">Model 2</button>
+            <div class="model-toggle-item">
+              <button type="button" class="model-toggle-btn active" data-main-model="noaug" data-main-label="Model 1 (No-Augmentation)">Model 1</button>
+              <button type="button" class="model-toggle-details-link" data-details-model="noaug">View details</button>
+            </div>
+            <div class="model-toggle-item">
+              <button type="button" class="model-toggle-btn" data-main-model="best" data-main-label="Model 2 (Research/Best)">Model 2</button>
+              <button type="button" class="model-toggle-details-link" data-details-model="best">View details</button>
+            </div>
           </div>
         </div>
         <p class="page-desc">Analyze an image using the selected face authenticity detection model.</p>
@@ -133,6 +139,14 @@
     </section>
 
   </main>
+</div>
+
+<!-- ===================== Model Details Modal ===================== -->
+<div class="modal-overlay" id="model-details-modal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="model-details-heading">
+    <button type="button" class="modal-close" id="model-details-close" aria-label="Close">&times;</button>
+    <div id="model-details-content"></div>
+  </div>
 </div>
 
 <script src="app.js"></script>

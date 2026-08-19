@@ -113,6 +113,75 @@ function initMainModelToggle() {
   });
 }
 
+/* ===================== Model details modal ===================== */
+const MODEL_DETAILS = {
+  noaug: {
+    heading: "Model 1 — No-Augmentation Model",
+    subheading: "mobilenetv3_noaug.pth · Production default",
+    rows: [
+      ["Checkpoint", "mobilenetv3_noaug.pth"],
+      ["Architecture", "MobileNetV3-Large (ImageNet-pretrained backbone, custom classifier head)"],
+      ["Training strategy", "2-stage transfer learning, no data augmentation applied during training"],
+      ["Training data", "FFHQ (real) + Stable Diffusion (fake), no augmentation transforms"],
+      ["Held-out test accuracy", "95.98% (2,401 images)"],
+      ["Fake recall", "100% (0 missed fakes)"],
+      ["Real false alarms", "96 real images flagged fake"],
+      ["Deployment role", "Production default — deployed on Render. Chosen over Model 2 despite lower accuracy because it misses zero fakes, which matters more than false alarms in security-critical screening."],
+    ],
+  },
+  best: {
+    heading: "Model 2 — Research / Best Model",
+    subheading: "mobilenetv3_best.pth · Local research checkpoint",
+    rows: [
+      ["Checkpoint", "mobilenetv3_best.pth"],
+      ["Architecture", "MobileNetV3-Large (same backbone/head as Model 1)"],
+      ["Training strategy", "3-stage progressive fine-tuning (frozen backbone → partial unfreeze → full unfreeze)"],
+      ["Training data", "FFHQ (15,000 real) + Stable Diffusion (9,001 fake) + CelebA-HD (8,000 real, added in Stage 3 to fix smartphone-photo false positives)"],
+      ["Held-out test accuracy", "99.63% (2,401 images)"],
+      ["Fake recall", "99.89% (1 missed fake)"],
+      ["Real false alarms", "8 real images flagged fake"],
+      ["Deployment role", "Research/comparison checkpoint — local only, excluded from the production Docker build. Higher accuracy than Model 1, but not used as the default because it occasionally misses a fake."],
+    ],
+  },
+};
+
+function initModelDetailsModal() {
+  const overlay = document.getElementById("model-details-modal");
+  const content = document.getElementById("model-details-content");
+  const closeBtn = document.getElementById("model-details-close");
+  if (!overlay || !content || !closeBtn) return;
+
+  function openModal(modelKey) {
+    const info = MODEL_DETAILS[modelKey];
+    if (!info) return;
+    const rowsHtml = info.rows
+      .map(([label, value]) => `<tr><td>${label}</td><td>${value}</td></tr>`)
+      .join("");
+    content.innerHTML = `
+      <h2 class="modal-heading" id="model-details-heading">${info.heading}</h2>
+      <p class="modal-subheading">${info.subheading}</p>
+      <table class="modal-table">${rowsHtml}</table>
+    `;
+    overlay.classList.add("open");
+  }
+
+  function closeModal() {
+    overlay.classList.remove("open");
+  }
+
+  document.querySelectorAll(".model-toggle-details-link").forEach((link) => {
+    link.addEventListener("click", () => openModal(link.dataset.detailsModel));
+  });
+
+  closeBtn.addEventListener("click", closeModal);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.classList.contains("open")) closeModal();
+  });
+}
+
 function updateModelStatus(pageKey, modelKey, statusElId) {
   const el = document.getElementById(statusElId);
   const available = availableModels.includes(modelKey);
@@ -1140,5 +1209,6 @@ function renderGuidePage() {
 initTheme();
 initNav();
 initMainModelToggle();
+initModelDetailsModal();
 loadPersistedHistory();
 checkHealth();

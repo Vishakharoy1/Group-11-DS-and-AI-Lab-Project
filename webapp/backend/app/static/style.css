@@ -131,12 +131,43 @@ code { font-family: 'Courier New', monospace; }
 .badge-cross { background: var(--real-bg); color: var(--real); }
 
 .model-toggle { display: inline-flex; gap: 4px; border: 1px solid var(--border); border-radius: 8px; padding: 3px; background: var(--card); }
+.model-toggle-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .model-toggle-btn {
   border: none; background: none; font-family: inherit; font-size: 0.82rem; font-weight: bold;
   padding: 7px 16px; border-radius: 6px; cursor: pointer; color: var(--muted);
 }
 .model-toggle-btn.active { background: var(--primary); color: #fff; }
+.model-toggle-details-link {
+  border: none; background: none; font-family: inherit; font-size: 0.68rem;
+  color: var(--muted); text-decoration: underline; cursor: pointer; padding: 0 0 2px 0;
+}
+.model-toggle-details-link:hover { color: var(--primary); }
 .page-desc { color: var(--muted); margin: 0 0 12px 0; max-width: 640px; }
+
+/* ===================== Model details modal ===================== */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45);
+  align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: var(--shadow); padding: 26px; max-width: 520px; width: 100%;
+  max-height: 85vh; overflow-y: auto;
+}
+.modal-close {
+  position: absolute; top: 14px; right: 14px; border: none; background: none;
+  font-size: 1.3rem; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px;
+}
+.modal-close:hover { color: var(--text); }
+.modal-heading { font-size: 1.15rem; font-weight: bold; margin: 0 0 4px 0; padding-right: 24px; }
+.modal-subheading { font-size: 0.85rem; color: var(--muted); margin: 0 0 18px 0; }
+.modal-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.modal-table tr { border-bottom: 1px solid var(--border); }
+.modal-table tr:last-child { border-bottom: none; }
+.modal-table td { padding: 10px 4px; vertical-align: top; }
+.modal-table td:first-child { color: var(--muted); font-weight: bold; width: 40%; white-space: nowrap; }
+.modal-table td:last-child { color: var(--text); }
 
 .model-status { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }
 .model-status.unavailable .status-dot { background: var(--fake); }
