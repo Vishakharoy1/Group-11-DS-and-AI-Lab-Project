@@ -2,93 +2,73 @@
 
 **Project:** Deep Learning-Based Human Face Authenticity Detection
 
-This document tracks the work completed and responsibilities assigned for
-Milestone 3, per the roles recorded in the `Milestone-3-Report.md` team
-declaration.
+This document tracks the work completed and responsibilities assigned for Milestone 3.
 
-## 1. Rohit - Dual-Stream Architecture Development & FFT Forensic Extraction
+## 1. Rohit - ConvNeXt / Dual-Stream Architecture Development & FFT Forensic Extraction Lead
 
 ### Contributions in Milestone 3
 
-- Led model architecture selection (Section 1), evaluating the EfficientNet-B2
-  pre-trained backbone against alternative candidates for the deepfake
-  detection task.
-- Investigated frequency-domain (FFT-based) forensic feature extraction as a
-  complementary signal alongside the spatial CNN backbone during architecture
-  exploration.
-- Documented the architecture justification (Section 2) — why the chosen
-  backbone suits the dataset and problem statement, expected advantages over
-  alternative approaches, and the tradeoffs and key ML findings from this
-  exploration phase.
+- Designed and implemented the Dual-Stream Spatial-Frequency Fusion Network using ConvNeXt-V2 (RGB) and ResNet-18 (FFT spectral) backbones.
+- Developed the 2D-FFT preprocessing pipeline with a 15% radius high-pass filter (HPF) mask for frequency-domain artifact extraction.
+- Built the cross-attention fusion module to combine spatial and spectral feature streams.
+- Curated and trained on the 637,900-image multi-generator candidate dataset spanning 13 generative sources.
+- Conducted staged hyperparameter tuning (grid search over LR scheduling, dropout, label smoothing, and weight decay).
+- Evaluated cross-generator generalization on unseen GAN and diffusion benchmarks (88.7% average accuracy on unseen sets).
+- Prepared architecture diagrams, training metric curves, and FFT forensic visualizations for the consolidated report.
 
----
-
-## 2. Raunak - Spatial Baseline Testing & Notebook Verification
+## 2. Raunak - MobileNetV3-Large Model Development, Training & Testing Lead (Primary Architecture)
 
 ### Contributions in Milestone 3
 
-- Created and justified the candidate baseline dataset used to establish
-  first-pass model performance (Section 3.1).
-- Ran spatial-domain baseline model testing and recorded the documented
-  baseline performance metrics (Section 3.3).
-- Verified the training notebook end-to-end (cell order, reproducibility,
-  outputs) ahead of submission.
+- Developed the MobileNetV3-Large spatial classifier as the team's primary production architecture.
+- Built the FFHQ vs. Stable Diffusion candidate dataset (24,001 images) with stratified 80/10/10 splits.
+- Implemented staged transfer learning: Stage 1 head-only warmup and Stage 2 partial backbone fine-tuning (blocks 12–16).
+- Achieved 99.96% in-domain test accuracy with near-perfect precision and recall on both classes.
+- Conducted out-of-distribution evaluation on unseen ChatGPT and Gemini-generated images (80% accuracy, zero additional fine-tuning).
+- Documented the primary architecture selection rationale, inference throughput (~8.2ms/image), and parameter efficiency (~4.2M params).
+- Prepared architecture diagrams, training curves, confusion matrix, and dataset split visualizations.
 
----
-
-## 3. Vishakha - Data Sourcing, Preprocessing Verification & Validation Checks
-
-### Contributions in Milestone 3
-
-- Sourced and validated the dataset used for staged training and the final
-  1,500-image test set (Section 3.1, Section 4.4).
-- Verified preprocessing consistency (resizing, normalization, augmentation
-  configuration) between the training pipeline and evaluation pipeline
-  (Section 4.2).
-- Ran validation checks confirming no data leakage between train/validation/
-  test splits ahead of the staged training runs (Section 4.3).
-
----
-
-## 4. Aman - Pipeline Optimization, Evaluation Scripting & Dataloader Hardware Integration
+## 3. Vishakha - EfficientNet-B2 Model Development, Video Pipeline & Grad-CAM Explainability Lead
 
 ### Contributions in Milestone 3
 
-- Built and optimized the end-to-end modeling pipeline (Section 5) covering
-  the full data flow from image input through preprocessing, inference, and
-  prediction generation.
-- Wrote the evaluation scripts producing the confusion matrix and
-  classification report on the final 1,500-image test set (Section 4.4).
-- Integrated GPU-aware dataloader configuration to keep training/evaluation
-  throughput efficient on the available hardware.
+- Developed the EfficientNet-B2 video-frame classifier using TensorFlow/Keras with ImageNet-pretrained weights.
+- Built the end-to-end video ingestion pipeline: uniform frame extraction, RetinaFace face detection, and 224×224 cropping.
+- Implemented forensic data augmentations (JPEG compression, screenshot simulation, Gaussian blur/noise) for real-world robustness.
+- Integrated Grad-CAM explainability to produce pixel-localized heatmaps highlighting decision-driving facial regions.
+- Constructed the 9,996-frame candidate dataset from 8,529 FaceForensics++ / Celeb-DF videos.
+- Documented the Keras optimizer-reload bug encountered during Stage-2 fine-tuning and its impact on final metrics.
+- Prepared architecture diagrams, training curves, dataset split charts, and Grad-CAM visualization assets.
 
----
-
-## 5. Somendu - Hyperparameter Search, Experiment Tracking & Diagram Visualization
+## 4. Aman - Pipeline Optimization, Evaluation Scripting & Dataloader Hardware Integration Lead
 
 ### Contributions in Milestone 3
 
-- Ran the hyperparameter search across the evaluated configurations and
-  tracked staged training metric progression (Section 4.1, Section 4.3).
-- Built the interactive Grad-CAM explainability component referenced in the
-  pipeline (Section 5.2).
-- Produced the complete model architecture flowchart (Section 6.1, Mermaid
-  diagram) visualizing the backbone, classification head, and Grad-CAM
-  connections.
+- Optimized end-to-end training and inference pipelines across PyTorch and TensorFlow frameworks.
+- Configured hardware-specific dataloader settings for CUDA (Tesla T4) and MPS (Apple M4 Pro) backends.
+- Implemented evaluation scripting for accuracy, precision, recall, F1-score, and ROC-AUC across all three model branches.
+- Tuned batch sizes, worker counts, pin-memory, and mixed-precision settings for maximum GPU utilization.
+- Supported the unified primary-plus-verification inference pipeline design (Section 5.4 of the consolidated report).
+- Assisted with cross-model performance comparison tables and baseline evaluation documentation.
 
----
+## 5. Somendu - FFT / DCT Frequency Analysis, Explainability Heatmaps & Diagram Visualization Lead
+
+### Contributions in Milestone 3
+
+- Conducted FFT and DCT frequency-domain analysis to support forensic artifact detection across model branches.
+- Prepared explainability heatmap visualizations including Grad-CAM overlays and spectral evidence diagrams.
+- Designed and produced consolidated architecture flowcharts and pipeline visualization diagrams.
+- Supported hyperparameter search experiment tracking and comparison plot generation.
+- Contributed to the visual evidence gallery (Section 6.3) and unified pipeline diagram (Figure 6.1) in the consolidated report.
 
 ## Team Declaration
 
-We certify that all team members have actively contributed to the
-preparation of Milestone 3. Each member has reviewed the contents of the
-document, understands the work presented, and agrees with the submitted
-report.
+We certify that all team members have actively contributed to the preparation of Milestone 3. Each member has reviewed the contents of the document, understands the work presented across all three models, and agrees with the submitted report.
 
 | Team Member | Role | Signature |
 | --- | --- | --- |
-| Rohit | Dual-Stream Architecture Development & FFT Forensic Extraction | Rohit |
-| Raunak | Spatial Baseline Testing & Notebook Verification | Raunak |
-| Vishakha | Data Sourcing, Preprocessing Verification & Validation Checks | Vishakha |
-| Aman | Pipeline Optimization, Evaluation Scripting & Dataloader Hardware Integration | Aman |
-| Somendu | Hyperparameter Search, Experiment Tracking & Diagram Visualization | Somendu |
+| Rohit | ConvNeXt / Dual-Stream Architecture Development & FFT Forensic Extraction Lead | Rohit |
+| Raunak | MobileNetV3-Large Model Development, Training & Testing Lead (Primary Architecture) | Raunak |
+| Vishakha | EfficientNet-B2 Model Development, Video Pipeline & Grad-CAM Explainability Lead | Vishakha |
+| Aman | Pipeline Optimization, Evaluation Scripting & Dataloader Hardware Integration Lead | Aman |
+| Somendu | FFT / DCT Frequency Analysis, Explainability Heatmaps & Diagram Visualization Lead | Somendu |
