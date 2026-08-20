@@ -1,6 +1,8 @@
-# Production Render image: only ship the two deployed checkpoints (~90 MB).
-# Other .pth files stay in the repo for local dev but are excluded from Docker.
-output/mobilenetv3_best.pth
+# Production Render image: ship only the 3 checkpoints the frontend uses
+# (best, noaug, cross_domain - ~112 MB). manipulations.pth is excluded -
+# /robustness isn't called from the UI. best1.pth is an unused duplicate
+# (not a key in config.CHECKPOINTS) and tuned.pth doesn't exist in the
+# repo, so both stay excluded too.
 output/mobilenetv3_best1.pth
 output/mobilenetv3_manipulations.pth
 output/mobilenetv3_tuned.pth
