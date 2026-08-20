@@ -1,5 +1,12 @@
 # Deep Learning-Based Human Face Authenticity Detection
 
+**🔗 [Live Demo (Render)](https://group-11-ds-and-ai-lab-project.onrender.com/)** ·
+**[HF Space Demo](https://huggingface.co/spaces/somendu007/deepfake-detection)** ·
+**[Deployment Guide](docs/READMEdeployment.md)** ·
+**[Developer Guide](docs/DeveloperGuide.md)** ·
+**[User Guide](docs/User%20guide.md)** ·
+**[Final Technical Report](docs/Final-Technical-Report.md)**
+
 Detect authentic vs. AI-generated human faces using **MobileNetV3-Large**
 with a three-stage transfer-learning strategy, Grad-CAM explainability,
 and automated forensic report generation — deployed as a local FastAPI +
@@ -79,7 +86,7 @@ Model, Cross-Domain Model, Grad-CAM, Forensic Report, History). Full
 details — model loading, endpoints (`/predict`, `/robustness`,
 `/compare`, `/report`, `/report/docx`), and troubleshooting — are in
 `webapp/backend/README.md`; a full code/config walkthrough is in
-`DeveloperGuide.md`.
+`docs/DeveloperGuide.md`.
 
 ### Production deployment (Render)
 
@@ -87,7 +94,7 @@ details — model loading, endpoints (`/predict`, `/robustness`,
 
 Built from **`main`** using `render.yaml`, `webapp/backend/Dockerfile`, and
 `webapp/.dockerignore` (ships **`noaug`** + **`cross_domain`** only).
-Guide: **`READMEdeployment.md`**. Full M6 report:
+Guide: **`docs/READMEdeployment.md`**. Full M6 report:
 `doc/Milestone-6/Milestone6-Report.md`.
 
 ### Optional: Hugging Face Gradio demo
@@ -109,7 +116,7 @@ docker build -t face-forensics -f webapp/backend/Dockerfile webapp/
 docker run -p 10000:10000 face-forensics
 ```
 
-See `READMEdeployment.md`. Licenses: `doc/Milestone-6/licenses.md`.
+See `docs/READMEdeployment.md`. Licenses: `doc/Milestone-6/licenses.md`.
 
 ### 4. Train or reproduce a model
 
@@ -137,7 +144,7 @@ The final framework combines:
 A 5-page local web app (`webapp/backend/`, FastAPI + static HTML/JS, no
 build step) for interactively testing the trained checkpoints — see
 `webapp/backend/README.md` for setup/run instructions and the API
-reference, `DeveloperGuide.md` for the full file-by-file implementation
+reference, `docs/DeveloperGuide.md` for the full file-by-file implementation
 walkthrough. What each page actually does:
 
 ![Main Model page — Face Forensics AI Authenticity frontend](Images/main_model.png)
@@ -148,7 +155,7 @@ Upload a face image, click Analyze, get a Real/AI-Generated verdict with
 a confidence score. Powered by **`mobilenetv3_noaug.pth`** — note this is
 a deliberate choice, *not* `mobilenetv3_best.pth` (the checkpoint
 `doc/Milestone-5/Milestone5.md` evaluates in depth); see
-`DeveloperGuide.md` Section 8 for why, and how to repoint it if you want
+`docs/DeveloperGuide.md` Section 8 for why, and how to repoint it if you want
 "Main Model" to serve `best` instead. Shows AI/Real probability, model
 info, and an Analysis ID — then unlocks the Grad-CAM and Forensic Report
 actions for that result.
@@ -206,15 +213,15 @@ project and the local web app:
 
 | Notebook | Produces | Role in project |
 |---|---|---|
-| `final-mobilenet (1).ipynb` | `mobilenetv3_best.pth` (3-stage + CelebA-HD) and `mobilenetv3_noaug.pth` (no-augmentation ablation from the same pipeline) | **Training source** — M5 evaluates `best`; **web app Main Model uses `noaug` by default** (see Web Application §1) |
-| `cross-domain.ipynb` | `mobilenetv3_cross_domain.pth` | **Cross-Domain Model page** — multi-domain synthetic/non-face training |
+| `notebooks/final-mobilenet (1).ipynb` | `mobilenetv3_best.pth` (3-stage + CelebA-HD) and `mobilenetv3_noaug.pth` (no-augmentation ablation from the same pipeline) | **Training source** — M5 evaluates `best`; **web app Main Model uses `noaug` by default** (see Web Application §1) |
+| `notebooks/cross-domain.ipynb` | `mobilenetv3_cross_domain.pth` | **Cross-Domain Model page** — multi-domain synthetic/non-face training |
 
-**Also in repo:** `ds-ai-deepfake-detection (6).ipynb` (earlier end-to-end
-exploration notebook) and `end-to-end-pipeline.ipynb` (pipeline prototype).
+**Also in repo:** `notebooks/ds-ai-deepfake-detection (6).ipynb` (earlier end-to-end
+exploration notebook) and `notebooks/end-to-end-pipeline.ipynb` (pipeline prototype).
 These are supplementary; the authoritative training paths are the two
 notebooks above.
 
-> **Note on `cross-domain.ipynb`'s status:** the checkpoint itself is
+> **Note on `notebooks/cross-domain.ipynb`'s status:** the checkpoint itself is
 > real, trained, and confirmed working (loaded by the app, verified with
 > real predictions). However, the copy of this notebook checked into this
 > repo still only shows output through the dataset-path-verification
@@ -226,7 +233,7 @@ notebooks above.
 > than a verified record of the specific run that produced the deployed
 > checkpoint.
 
-### 1. `final-mobilenet (1).ipynb` — the main face model
+### 1. `notebooks/final-mobilenet (1).ipynb` — the main face model
 
 #### 1.1 Attaching datasets on Kaggle
 
@@ -296,7 +303,7 @@ matrix, per-stage validation accuracy).
 
 #### 1.4 What this notebook does *not* save to disk
 
-Unlike `cross-domain.ipynb` below, this notebook does **not** call
+Unlike `notebooks/cross-domain.ipynb` below, this notebook does **not** call
 `plt.savefig()` anywhere — the confusion matrix and Grad-CAM figures are
 only shown inline (`plt.show()`) during the Kaggle session, not written
 to `/kaggle/working/`. The **only file this notebook saves** is the
@@ -308,7 +315,7 @@ image data even without an explicit save — this is how the confusion
 matrix image in `doc/Milestone-5/images/confusion_matrix_best_model.png`
 was obtained).
 
-### 2. `cross-domain.ipynb` — the general/non-face model
+### 2. `notebooks/cross-domain.ipynb` — the general/non-face model
 
 **Status: the checkpoint is trained and deployed** (see the note in the
 table above) — the instructions below are the intended recipe for
@@ -386,7 +393,7 @@ the full evaluation of `mobilenetv3_best.pth` (Sections 2–9).
 | FFHQ (via `philosopher0808/real-vs-ai-generated-faces-dataset`) | Real faces (Stages 1–2) | 70,000 available, 15,000 sampled |
 | Stable Diffusion Face Dataset | Fake/AI-generated faces | 9,001 |
 | CelebA-HD | Additional real faces (Stage 3 only — fixes shortcut learning) | 8,000 |
-| Nano Banana 2.0 / CIFAKE / CrossDomain / Places365 / Artifact | Cross-domain model training (`cross-domain.ipynb`) | see Training Notebooks §2.1 |
+| Nano Banana 2.0 / CIFAKE / CrossDomain / Places365 / Artifact | Cross-domain model training (`notebooks/cross-domain.ipynb`) | see Training Notebooks §2.1 |
 
 *(Milestone 1's originally proposed benchmark datasets — FaceForensics++,
 Celeb-DF, DFDC, WildDeepfake — were never used; the datasets above are
@@ -396,7 +403,7 @@ what the project actually trained and evaluated on.)*
 
 ## Evaluation Strategy
 
-Actual train/validation/test split used by `final-mobilenet (1).ipynb`
+Actual train/validation/test split used by `notebooks/final-mobilenet (1).ipynb`
 (80:10:10, stratified, `SEED=42`):
 
 | Split | Real | Fake | Total |
@@ -424,34 +431,46 @@ including what was root-caused, what was fixed, and what's still open.
 ```text
 Group-11-DS-and-AI-Lab-Project/
 |
+├── README.md                      # This file - start here
 ├── Dockerfile                     # HF Docker Space / container deploy (port 7860)
-├── final-mobilenet (1).ipynb      # Face model training (best + noaug checkpoints)
-├── cross-domain.ipynb             # Cross-domain model training
-├── ds-ai-deepfake-detection (6).ipynb   # Supplementary exploration notebook
-├── end-to-end-pipeline.ipynb      # Pipeline prototype
-├── README.md                      # This file
+├── render.yaml                    # Render Blueprint (production deploy)
 |
-├── images/
+├── notebooks/                     # All training/exploration notebooks
+│   ├── final-mobilenet (1).ipynb          # Face model training (best + noaug checkpoints)
+│   ├── cross-domain.ipynb                 # Cross-domain model training
+│   ├── ds-ai-deepfake-detection (6).ipynb # Supplementary exploration notebook
+│   └── end-to-end-pipeline.ipynb          # Pipeline prototype
+|
+├── docs/                          # Final, consolidated project deliverables
+│   ├── Final-Technical-Report.md          # Full M1-M6 technical write-up
+│   ├── Final-Contribution-Summary.md      # Per-member contribution summary
+│   ├── Non-technical Report.md            # Plain-language project summary
+│   ├── DeveloperGuide.md                  # Full developer/setup/code reference
+│   ├── READMEdeployment.md                # Simple deployment guide
+│   ├── User guide.md                      # End-user instructions
+│   └── future_work.md                     # Open items / roadmap
+|
+├── doc/                           # Per-milestone submissions (M1 -> M6, historical)
+│   ├── Milestone-1/ .. Milestone-6/
+│   │   ├── *-Report.md
+│   │   ├── licenses.md            # M6 consolidated licensing (Milestone-6/)
+│   │   └── Team-Contribution-Tracker.md
+│   └── Milestone-5/
+│       ├── Milestone5.md          # Full evaluation report
+│       └── images/                # Confusion matrix, ROC/PR curves, Grad-CAM
+|
+├── images/                        # Architecture/pipeline diagrams
 │   └── mobilenetv3_pipeline_v3.png
 |
 ├── Images/                        # M6 UI screenshots + evaluation curves (noaug)
 |
-├── webapp/
-│   ├── backend/                   # FastAPI app + static frontend (README.md inside)
-│   └── output/                    # Checkpoints + training artifacts consumed by the app
+├── outputs/                       # Local verification scripts + their results (see below)
 |
 ├── Test Sample/                   # Manually curated real/fake test images
 |
-├── outputs/                       # Local verification scripts + their results (see below)
-|
-└── doc/
-    ├── Milestone-1/ .. Milestone-6/
-    │   ├── *-Report.md
-    │   ├── licenses.md            # M6 consolidated licensing (Milestone-6/)
-    │   └── Team-Contribution-Tracker.md
-    └── Milestone-5/
-        ├── Milestone5.md          # Full evaluation report (start here)
-        └── images/                # Confusion matrix, ROC/PR curves, Grad-CAM
+└── webapp/
+    ├── backend/                   # FastAPI app + static frontend (README.md inside)
+    └── output/                    # Checkpoints + training artifacts consumed by the app
 ```
 
 ### `outputs/` — local verification scripts and their results
@@ -471,7 +490,7 @@ notebook claims alone:
 > **Note:** an earlier draft of this repo had a `doc/Milestone-5-rohit/`
 > folder — a separate benchmark (Adam-vs-AdamW comparison, confusion
 > matrices, ROC/PR curves) measured on a **different training run** than
-> `final-mobilenet (1).ipynb` (6,401-image test set vs. the real 2,401;
+> `notebooks/final-mobilenet (1).ipynb` (6,401-image test set vs. the real 2,401;
 > an Adam/AdamW ablation that doesn't exist in the actual notebook; Apple
 > MPS GPU numbers vs. the real Tesla T4 environment). `Milestone5.md`
 > never referenced this data. It has been removed from `main` — the
@@ -502,12 +521,12 @@ Milestone 1's original role assignments are in
 ## Documentation
 
 - **Start here:** `doc/Milestone-5/Milestone5.md` — full evaluation report (dataset, metrics, quantitative results, error analysis, robustness, explainability, limitations, deployment readiness)
-- **Full developer/setup/code reference:** `DeveloperGuide.md`
+- **Full developer/setup/code reference:** `docs/DeveloperGuide.md`
 - Training notebooks: this file, "Training Notebooks — Usage Instructions" above
 - Web app quick reference: `webapp/backend/README.md`
 - Team contribution trackers: `doc/Milestone-{1..5}/Team-Contribution-Tracker.md`
 - **Milestone 6 deployment report:** `doc/Milestone-6/Milestone6-Report.md`
-- **Simple deployment guide:** `READMEdeployment.md` (Render from `main`)
+- **Simple deployment guide:** `docs/READMEdeployment.md` (Render from `main`)
 - **Licensing:** `doc/Milestone-6/licenses.md`
 
 ---
@@ -515,7 +534,7 @@ Milestone 1's original role assignments are in
 ## Known Open Items / Opportunities for Improvement
 
 From Milestone 5's Actionable Insights (`doc/Milestone-5/Milestone5.md`,
-Section 8 — written before `cross-domain.ipynb`'s training run
+Section 8 — written before `notebooks/cross-domain.ipynb`'s training run
 completed, so its "complete cross-domain training" item below is now
 done; `Milestone5.md` itself hasn't been re-updated to reflect that):
 

@@ -74,7 +74,7 @@ cd webapp/backend
 pip install -r requirements.txt
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# All checkpoints optional in webapp/output/ — see DeveloperGuide.md
+# All checkpoints optional in webapp/output/ — see ../docs/DeveloperGuide.md
 uvicorn app.main:app --port 8000
 ```
 
@@ -150,8 +150,8 @@ API docs: https://group-11-ds-and-ai-lab-project.onrender.com/docs
 
 ## More detail
 
-- **Developer setup:** `DeveloperGuide.md` §11
-- **User instructions:** `User guide.md`
+- **Developer setup:** `../docs/DeveloperGuide.md` §11
+- **User instructions:** `../docs/User guide.md`
 - **Milestone 6 report:** `doc/Milestone-6/Milestone6-Report.md`
 
 ---

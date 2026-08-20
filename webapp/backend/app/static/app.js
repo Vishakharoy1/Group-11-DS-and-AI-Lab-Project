@@ -71,6 +71,7 @@ function goToPage(pageKey) {
   if (pageKey === "gradcam") renderGradcamPage();
   if (pageKey === "report") renderReportPage();
   if (pageKey === "history") renderHistoryPage();
+  if (pageKey === "benchmark") renderBenchmarkPage();
   if (pageKey === "guide") renderGuidePage();
 }
 
@@ -205,19 +206,38 @@ function fileTypeLabel(file) {
   const t = (file.type || "").split("/")[1];
   return t ? t.toUpperCase() : (file.name.split(".").pop() || "?").toUpperCase();
 }
+const PREVIEW_MAX_DIM = 1280; // longest side, px
+const PREVIEW_JPEG_QUALITY = 0.82;
+
 function readImageDims(file) {
-  // Uses a data: URL (not URL.createObjectURL) so the preview survives
-  // JSON-serializing into localStorage and still works after a page reload -
-  // blob: URLs are invalidated as soon as the page that created them unloads.
-  return new Promise((resolve) => {
+  // Renders a size-capped JPEG data: URL for the preview/history/report
+  // pipeline instead of embedding the raw original file. Uploads in the
+  // 5-10MB range (phone photos are often 3000-4000px) were producing
+  // multi-megabyte base64 strings that stalled the browser decoding/
+  // painting the preview and then blew past localStorage's per-origin
+  // quota when saved to history. A data: URL (not URL.createObjectURL) is
+  // still used so it survives JSON-serializing into localStorage and
+  // still works after a page reload - blob: URLs are invalidated as soon
+  // as the page that created them unloads.
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
-      const url = reader.result;
       const img = new Image();
-      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight, url });
-      img.onerror = () => resolve({ w: 0, h: 0, url });
-      img.src = url;
+      img.onload = () => {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        const longest = Math.max(w, h);
+        const scale = longest > PREVIEW_MAX_DIM ? PREVIEW_MAX_DIM / longest : 1;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(w * scale));
+        canvas.height = Math.max(1, Math.round(h * scale));
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve({ w, h, url: canvas.toDataURL("image/jpeg", PREVIEW_JPEG_QUALITY) });
+      };
+      img.onerror = () => reject(new Error("Could not read this image file."));
+      img.src = reader.result;
     };
+    reader.onerror = () => reject(new Error("Could not read this image file."));
     reader.readAsDataURL(file);
   });
 }
@@ -275,11 +295,26 @@ function renderUploadStage(pageKey, modelKey, modelAvailable) {
   });
 }
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // matches config.MAX_UPLOAD_BYTES server-side
+
+function showUploadError(pageKey, message) {
+  const slot = document.querySelector(`[data-page-body="${pageKey}"] .preview-card`);
+  if (slot) slot.innerHTML = `<div style="color:var(--fake); text-align:center; padding:20px;">${message}</div>`;
+}
+
 async function handleFileSelected(pageKey, modelKey, file, modelAvailable) {
   if (!file.type.startsWith("image/")) return;
-  const dims = await readImageDims(file);
-  pageFileState[pageKey] = { file, previewUrl: dims.url, w: dims.w, h: dims.h };
-  renderPreviewStage(pageKey, modelKey, modelAvailable);
+  if (file.size > MAX_UPLOAD_BYTES) {
+    showUploadError(pageKey, `"${file.name}" is ${formatBytes(file.size)}, over the 10 MB limit. Choose a smaller image.`);
+    return;
+  }
+  try {
+    const dims = await readImageDims(file);
+    pageFileState[pageKey] = { file, previewUrl: dims.url, w: dims.w, h: dims.h };
+    renderPreviewStage(pageKey, modelKey, modelAvailable);
+  } catch (e) {
+    showUploadError(pageKey, "Could not read this image file. Try a different file.");
+  }
 }
 
 function renderPreviewStage(pageKey, modelKey, modelAvailable) {
@@ -1108,6 +1143,122 @@ function renderHistoryPage() {
 }
 
 /* ===================== User Guide page ===================== */
+/* ===================== Real-World Probe (benchmark) page ===================== */
+function renderBenchmarkPage() {
+  const body = document.getElementById("benchmark-body");
+  body.innerHTML = `
+    <div class="page-header">
+      <h1>REAL-WORLD PROBE RESULTS</h1>
+      <p class="page-desc">An independent re-test of the M5 "Real-Latest" cross-domain finding (originally 8.6% accuracy on 70 smartphone photos), extended with a matching AI-generated set. Neither original dataset is preserved in the repo, so both sides use 50-image proxies: real, recent Unsplash photography, and AI-generated faces (Stable Diffusion + StyleGAN2, bitmind/SyntheticFacesHQ).</p>
+    </div>
+
+    <h3 style="margin:22px 0 10px 0; font-size:1rem;">Real Photos (ground truth: Real, N=50)</h3>
+    <div class="history-stats">
+      <div class="history-stat-card">
+        <div class="history-stat-label">BEST.PTH ACCURACY</div>
+        <div class="history-stat-value">42.0%</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">NOAUG ACCURACY (DEPLOYED)</div>
+        <div class="history-stat-value">24.0%</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">META-DETECTOR CORRECT</div>
+        <div class="history-stat-value">70.0%</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">META-DETECTOR WRONG</div>
+        <div class="history-stat-value">0.0%</div>
+      </div>
+    </div>
+
+    <h3 style="margin:22px 0 10px 0; font-size:1rem;">AI-Generated Photos (ground truth: Fake, N=50)</h3>
+    <div class="history-stats">
+      <div class="history-stat-card">
+        <div class="history-stat-label">BEST.PTH ACCURACY</div>
+        <div class="history-stat-value">44.0%</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">NOAUG ACCURACY (DEPLOYED)</div>
+        <div class="history-stat-value">26.0%</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">META-DETECTOR CORRECT</div>
+        <div class="history-stat-value">2.0%</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">META-DETECTOR WRONG</div>
+        <div class="history-stat-value">42.0%</div>
+      </div>
+    </div>
+
+    <div class="guide-card" style="margin:20px 0;">
+      <h4>CNN Model Comparison - Both Test Sets</h4>
+      <p>Both deployed checkpoints run through the same face-crop -&gt; normalize -&gt; forward-pass pipeline used by <code>/predict</code>.</p>
+      <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:10px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border); text-align:left;">
+            <th style="padding:8px 6px;">Checkpoint</th>
+            <th style="padding:8px 6px;">Real Photos (N=50)</th>
+            <th style="padding:8px 6px;">AI-Generated (N=50)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:8px 6px;"><code>mobilenetv3_best.pth</code></td>
+            <td style="padding:8px 6px;">42.0% (21/50 correct, 29 called Fake)</td>
+            <td style="padding:8px 6px;">44.0% (22/50 correct, 28 called Real)</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 6px;"><code>mobilenetv3_noaug.pth</code> (production default)</td>
+            <td style="padding:8px 6px;">24.0% (12/50 correct, 38 called Fake)</td>
+            <td style="padding:8px 6px;">26.0% (13/50 correct, 37 called Real)</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="guide-note">Both checkpoints hover near chance on <em>both</em> test sets - not a one-sided "too trigger-happy" bias, just generally unreliable outside their training distribution. <code>noaug</code> (what's actually deployed) is worse than <code>best</code> on both sets, despite being chosen for its higher fake-recall on the held-out test set.</div>
+    </div>
+
+    <div class="guide-card" style="margin-bottom:20px;">
+      <h4>Meta-Detector (Forensic Scan) - Both Test Sets</h4>
+      <p>The separate EXIF/watermark/spectral/noise forensic scan (<code>meta_detector.py</code>, independent of the CNN), run on the same 100 images.</p>
+      <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:10px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border); text-align:left;">
+            <th style="padding:8px 6px;">Verdict</th>
+            <th style="padding:8px 6px;">Real Photos (N=50)</th>
+            <th style="padding:8px 6px;">AI-Generated (N=50)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:8px 6px;"><span class="badge badge-meta-real">Real / Likely real</span></td>
+            <td style="padding:8px 6px; font-weight:bold;">35 (70.0%) - correct</td>
+            <td style="padding:8px 6px; color:var(--fake);">21 (42.0%) - wrong</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:8px 6px;"><span class="badge badge-meta">Uncertain (mixed evidence)</span></td>
+            <td style="padding:8px 6px;">15 (30.0%)</td>
+            <td style="padding:8px 6px;">28 (56.0%)</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 6px;"><span class="badge badge-meta-fake">Likely/AI generated</span></td>
+            <td style="padding:8px 6px; color:var(--fake);">0 (0.0%) - would be wrong</td>
+            <td style="padding:8px 6px; font-weight:bold;">1 (2.0%) - correct</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="guide-note"><strong>Sharply asymmetric.</strong> On real photos the meta-detector is excellent at not crying wolf - zero confident false positives, worst case "uncertain." But on AI-generated images it's nearly blind - only 1 of 50 correctly flagged, and it never once reached the strongest "AI generated / AI edited" tier. This SyntheticFacesHQ set is curated/high-quality output with no embedded watermarks or suspicious EXIF, so there's little for a metadata-based scan to catch - it's tuned for authenticity-verification, not generation-detection, on this kind of clean synthetic output.</div>
+    </div>
+
+    <div class="guide-card">
+      <h4>What does this mean for the 8.6% figure?</h4>
+      <p>M5's original "Real-Latest" probe (Raunak, 70 smartphone photos, <code>mobilenetv3_best.pth</code>) found <strong>8.6% accuracy</strong> - 6 of 70 correct, a 91.4% false-positive rate. That exact dataset was never committed to the repo, so it can't be re-run precisely. This page's real-photo proxy (professional Unsplash photography rather than raw phone snapshots - a different but related distribution shift) reproduces the same underlying failure: <strong>42.0%</strong> on <code>best</code> and <strong>24.0%</strong> on <code>noaug</code>, both far below in-distribution accuracy (99.63% / 95.98%).</p>
+      <p>There is no preserved pre-CelebA-HD baseline for this specific metric (M5 §4.1: the Stage 1+2 checkpoint was overwritten before that evaluation could run), so it's not possible to state precisely how much CelebA-HD changed real-world performance - only that, post-fix, it remains poor on both real and AI-generated out-of-distribution content. Neither signal alone is reliable here: the CNN is near-chance on both classes, and the meta-detector's strength (never falsely flagging real photos) is offset by near-blindness to this particular kind of clean synthetic output. A production system would need both signals combined, and ideally a wider net of AI-generation fingerprints than EXIF/watermark scanning alone catches.</p>
+    </div>
+  `;
+}
+
 function renderGuidePage() {
   const body = document.getElementById("guide-body");
   body.innerHTML = `

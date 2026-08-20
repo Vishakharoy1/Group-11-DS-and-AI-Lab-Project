@@ -4,7 +4,7 @@ FastAPI backend + static HTML/JS frontend for interactive face
 authenticity testing with trained MobileNetV3-Large checkpoints.
 
 **Production (Render):** https://group-11-ds-and-ai-lab-project.onrender.com  
-Deployed from **`main`** — see **`READMEdeployment.md`**.
+Deployed from **`main`** — see **`../../docs/READMEdeployment.md`**.
 
 ## Setup (local — `main` branch)
 
@@ -70,15 +70,30 @@ Open **http://localhost:8000**
 
 - Render loads **`noaug` + `cross_domain`** only (~310 MB RAM).
 - Default `/predict` model on deploy branch is **`noaug`** (not `best`).
-- RetinaFace is not installed on Render — center-crop fallback; upload
-  face-focused images for best accuracy.
+- **RetinaFace is never installed on Render, for any model.** `retina-face`
+  and `opencv-python` are commented out in `requirements-docker.txt`
+  ("Optional face alignment (not on Render free tier)") because importing
+  TensorFlow alone costs ~292 MB RSS (measured) - more than the ~202 MB of
+  headroom left after the 512 MB free-tier limit and the ~310 MB the two
+  loaded PyTorch models already use. Enabling it would almost certainly
+  OOM-crash the deployment. **Production always uses center-crop
+  fallback** - upload face-focused, reasonably-centered images for best
+  accuracy.
 
-## Known issue: face alignment
+## Face alignment: local vs. production
 
-The app tries RetinaFace face detection before inference, falling back
-to center-crop. On **Windows 11 N**, OpenCV/RetinaFace often fail —
-check `/health` for `"center_crop_fallback"`. Upload pre-cropped face
-images as a workaround. See `DeveloperGuide.md` Section 9.
+Two separate things can cause `/health` to report `"center_crop_fallback"`
+instead of `"retinaface"`, and it's worth knowing which one applies:
+
+1. **On Render (production): always, by design** - see above. This isn't a
+   bug and there's no local workaround for it; it's a deliberate
+   RAM-budget trade-off.
+2. **Locally, on Windows 11 N specifically**: even with `retina-face` and
+   `opencv-python` installed, OpenCV/RetinaFace often fail to load because
+   Windows N editions ship without the media codec pack they depend on.
+   Installing the "Media Feature Pack" for Windows N fixes this, or just
+   accept the fallback for local testing. See `../../docs/DeveloperGuide.md` Section
+   9. Upload pre-cropped face images as a workaround either way.
 
 ## Notes
 

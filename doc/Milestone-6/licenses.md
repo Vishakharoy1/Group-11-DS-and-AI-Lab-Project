@@ -22,9 +22,9 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 |---|---|---|---|
 | **FFHQ (Flickr-Faces-HQ)** | NVIDIA / Kaggle mirrors | [FFHQ License](https://github.com/NVlabs/ffhq-dataset/blob/master/LICENSE.txt) | Real training faces (~15,000 used) |
 | **Stable Diffusion Face Dataset** | Kaggle: `mohannadaymansalah/stable-diffusion-dataaaaaaaaa` | Per dataset page on Kaggle | 9,001 synthetic training faces |
-| **CelebA / CelebA-HD** | MMLab / academic release | Non-commercial research | 8,000 HD real faces (Stage 3 fine-tuning in `final-mobilenet (1).ipynb`) |
+| **CelebA / CelebA-HD** | MMLab / academic release | Non-commercial research | 8,000 HD real faces (Stage 3 fine-tuning in `../../notebooks/final-mobilenet (1).ipynb`) |
 | **Real vs AI Generated Faces** | Kaggle: `philosopher0808/real-vs-ai-generated-faces-dataset` | Per dataset page | FFHQ real images for training notebook |
-| **Cross-domain corpora** | Nano Banana, CIFAKE, Places365, etc. | Per-source terms | `cross-domain.ipynb` training |
+| **Cross-domain corpora** | Nano Banana, CIFAKE, Places365, etc. | Per-source terms | `../../notebooks/cross-domain.ipynb` training |
 
 **Milestone 2 reference:** FFHQ authentic images are governed by **Creative Commons BY-NC-SA 4.0** for non-commercial research use. See `doc/Milestone-2/Milestone-2-Report.md` Section 2 for the original dataset documentation.
 

@@ -13,3 +13,10 @@ __pycache__/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Local verification/test scratch (ad-hoc scripts and throwaway test data,
+# not part of the reproducible pipeline - keep these out of version control)
+*.ORIGINAL_BACKUP.*
+/test_*.jpg
+/test_*.png
+/real_latest_test/

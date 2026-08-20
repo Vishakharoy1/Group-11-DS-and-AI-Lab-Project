@@ -59,7 +59,7 @@ These transformations should be applied to both classes where appropriate so tha
 
 ## 5. Priority 4 : Cross-Domain Training and Evaluation
 
-The existing `cross-domain.ipynb` model should be completed and integrated into the evaluation pipeline.
+The existing `../notebooks/cross-domain.ipynb` model should be completed and integrated into the evaluation pipeline.
 
 This is an important open item because completing it would enable:
 
@@ -208,7 +208,7 @@ The future work should be implemented in the following order:
 
 ### Phase 2 — Establish Reliable Evaluation
 
-- [ ] Complete `cross-domain.ipynb`.
+- [ ] Complete `../notebooks/cross-domain.ipynb`.
 - [ ] Compute ROC-AUC and PR-AUC on the actual held-out test set.
 - [ ] Create a permanent unseen-domain evaluation set.
 - [ ] Evaluate on unseen AI generators.

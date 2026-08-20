@@ -845,6 +845,23 @@ def _meta_dict(m: MetadataReport) -> dict:
     }
 
 
+# Pixel-level forensics below (FFT spectral analysis, ELA re-encode, median
+# filtering, block-wise noise stats) all scale with pixel count. Run
+# uncapped, a >5MB phone photo (often 3000-4000px) turned a single scan into
+# a multi-minute stall - forensic signal (noise/frequency/compression
+# statistics) is a statistical property that survives a resolution cap fine.
+META_ANALYSIS_MAX_DIM = 2000
+
+
+def _cap_resolution(img: Image.Image, max_dim: int = META_ANALYSIS_MAX_DIM) -> Image.Image:
+    longest = max(img.width, img.height)
+    if longest <= max_dim:
+        return img
+    scale = max_dim / longest
+    new_size = (max(1, round(img.width * scale)), max(1, round(img.height * scale)))
+    return img.resize(new_size, Image.Resampling.LANCZOS)
+
+
 def detect_image(path: str, use_cnn: bool = True) -> DetectionReport:
     report = DetectionReport()
 
@@ -855,6 +872,7 @@ def detect_image(path: str, use_cnn: bool = True) -> DetectionReport:
     # ---- pixel-level analysis -------------------------------------------------
     try:
         img = Image.open(path).convert("RGB")
+        img = _cap_resolution(img)
         arr = np.asarray(img)
     except Exception as exc:
         report.warnings.append(f"cannot decode image: {exc}")

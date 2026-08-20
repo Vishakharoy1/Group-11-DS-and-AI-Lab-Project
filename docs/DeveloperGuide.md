@@ -8,7 +8,7 @@ notes that aren't obvious from the code alone.
 
 Everything in this guide describes the **`main`** branch. Production
 Render deployment uses the same branch with a slim Docker build — see
-**`READMEdeployment.md`** and §11 below.
+**`../docs/READMEdeployment.md`** and §11 below.
 
 ---
 
@@ -29,9 +29,9 @@ Two models exist:
 
 | Role | Checkpoint | Training notebook | Status |
 |---|---|---|---|
-| Main Model — Model 1 (default) | `mobilenetv3_noaug.pth` | `final-mobilenet (1).ipynb` (ablation run without the augmentation pipeline) | Trained |
-| Main Model — Model 2 (toggle) | `mobilenetv3_best.pth` | `final-mobilenet (1).ipynb` (3-stage, CelebA-HD corrected) | Trained |
-| Cross-Domain Model | `mobilenetv3_cross_domain.pth` | `cross-domain.ipynb` | Trained |
+| Main Model — Model 1 (default) | `mobilenetv3_noaug.pth` | `../notebooks/final-mobilenet (1).ipynb` (ablation run without the augmentation pipeline) | Trained |
+| Main Model — Model 2 (toggle) | `mobilenetv3_best.pth` | `../notebooks/final-mobilenet (1).ipynb` (3-stage, CelebA-HD corrected) | Trained |
+| Cross-Domain Model | `mobilenetv3_cross_domain.pth` | `../notebooks/cross-domain.ipynb` | Trained |
 
 The Main Model page has a **Model 1 / Model 2 toggle** — Model 1
 (`noaug`) is the default on page load, Model 2 switches live to `best`,
@@ -45,10 +45,10 @@ specifically rather than `best`.
 
 ```text
 Group-11-DS-and-AI-Lab-Project/
-├── final-mobilenet (1).ipynb      # Main face-model training notebook
-├── cross-domain.ipynb             # Cross-domain model training notebook
+├── ../notebooks/final-mobilenet (1).ipynb      # Main face-model training notebook
+├── ../notebooks/cross-domain.ipynb             # Cross-domain model training notebook
 ├── README.md                      # Project overview, quick start
-├── READMEdeployment.md            # Render deployment guide (simple)
+├── ../docs/READMEdeployment.md            # Render deployment guide (simple)
 ├── render.yaml                    # Render Blueprint (production)
 ├── DeveloperGuide.md              # This file
 │
@@ -269,8 +269,8 @@ drifting apart. Summary:
 
 | Notebook | Produces | Status |
 |---|---|---|
-| `final-mobilenet (1).ipynb` | `mobilenetv3_best.pth` (3-stage, CelebA-corrected) | Complete, fully trained |
-| `cross-domain.ipynb` | `mobilenetv3_cross_domain.pth` | Complete, fully trained |
+| `../notebooks/final-mobilenet (1).ipynb` | `mobilenetv3_best.pth` (3-stage, CelebA-corrected) | Complete, fully trained |
+| `../notebooks/cross-domain.ipynb` | `mobilenetv3_cross_domain.pth` | Complete, fully trained |
 
 Both notebooks use the same core recipe: MobileNetV3-Large
 (ImageNet-pretrained) → Stage 1 (frozen backbone, classifier head only)
@@ -279,7 +279,7 @@ Stage 3 (full unfreeze + CelebA-HD real photos) specifically to correct
 a shortcut-learning failure mode — see `doc/Milestone-5/Milestone5.md`
 Section 5 for the full root-cause analysis.
 
-**Key training config** (from `final-mobilenet (1).ipynb`):
+**Key training config** (from `../notebooks/final-mobilenet (1).ipynb`):
 `SEED=42`, `IMG_SIZE=224`, `BATCH_SIZE=128`, `IMAGES_PER_CLASS=15000`,
 80:10:10 stratified train/val/test split. Stage 1: 3 epochs, LR `3e-4`.
 Stage 2: 7 epochs, LR `1e-5`. Stage 3: 3 epochs, LR `5e-6`.
@@ -706,7 +706,7 @@ correctly on those regardless of which face-detection path is active.
 
 `mobilenetv3_best.pth` is ~17 MB (16.24 MB measured), noticeably smaller
 than a typical FP32 MobileNetV3-Large checkpoint with optimizer state
-included — because Stage 3's save (`final-mobilenet (1).ipynb`) omits
+included — because Stage 3's save (`../notebooks/final-mobilenet (1).ipynb`) omits
 `optimizer_state_dict`. This is expected, not a corrupted/partial file.
 
 ### 9.3 Real vs. estimated numbers in the evaluation report
@@ -734,10 +734,10 @@ either way from anything else in this repo.
 
 ## 10. Reproducing Results
 
-1. Train `final-mobilenet (1).ipynb` on Kaggle (attach FFHQ, Stable
+1. Train `../notebooks/final-mobilenet (1).ipynb` on Kaggle (attach FFHQ, Stable
    Diffusion, and CelebA datasets — see root `README.md` for exact
    slugs), download `mobilenetv3_best.pth`.
-2. Train `cross-domain.ipynb` similarly for `mobilenetv3_cross_domain.pth`.
+2. Train `../notebooks/cross-domain.ipynb` similarly for `mobilenetv3_cross_domain.pth`.
 3. Place both (plus `mobilenetv3_noaug.pth`/`mobilenetv3_manipulations.pth`
    if you have them from earlier ablation runs) in `webapp/output/`.
 4. `cd webapp/backend && pip install -r requirements.txt && uvicorn
@@ -775,13 +775,13 @@ Production is deployed from **`main`** via Docker on Render.
 | RetinaFace | ❌ center-crop fallback | Optional |
 | RAM | ~310 MB (512 MB limit) | Depends on loaded checkpoints |
 
-To update production: push to **`main`**. See **`READMEdeployment.md`**.
+To update production: push to **`main`**. See **`../docs/READMEdeployment.md`**.
 
 ---
 
 ## 12. Where to Go Next
 
-- **Deployment (simple)**: `READMEdeployment.md`
+- **Deployment (simple)**: `../docs/READMEdeployment.md`
 - **Full evaluation results**: `doc/Milestone-5/Milestone5.md`
 - **Training notebook cell-by-cell walkthrough**: root `README.md`
 - **Web app quick reference**: `webapp/backend/README.md`

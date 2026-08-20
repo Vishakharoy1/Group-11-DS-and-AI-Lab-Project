@@ -42,8 +42,8 @@ Milestone 6 transforms our deep learning face-authenticity detection project fro
 | Deployed checkpoints | PyTorch `.pth` via Git LFS | Baked into Docker image | **`mobilenetv3_noaug.pth`** (Main), **`mobilenetv3_cross_domain.pth`** (Cross-Domain) |
 | Deepfake Detector (Gradio demo) | Gradio SDK + PyTorch | Hugging Face Spaces | [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) |
 | Full development app | FastAPI + static HTML/JS | Local (`main` branch) | `http://localhost:8000` |
-| Training Notebooks | PyTorch + Kaggle GPU | `main` branch | `final-mobilenet (1).ipynb`, `cross-domain.ipynb` |
-| Simple deploy guide | Markdown | `main` branch | **`READMEdeployment.md`** |
+| Training Notebooks | PyTorch + Kaggle GPU | `main` branch | `../../notebooks/final-mobilenet (1).ipynb`, `../../notebooks/cross-domain.ipynb` |
+| Simple deploy guide | Markdown | `main` branch | **`../../docs/READMEdeployment.md`** |
 
 ## 1.2 Deployment Architecture
 
@@ -78,6 +78,15 @@ flowchart TB
     end
 ```
 
+> **On the live Render deployment, the "Fallback" branch is always taken.**
+> `retina-face`/`opencv-python` are commented out of
+> `requirements-docker.txt` ("not on Render free tier") because importing
+> TensorFlow alone costs ~292 MB RSS (measured) - more than the ~202 MB of
+> headroom left after the 512 MB limit and the ~310 MB the two loaded
+> PyTorch models already use. Production always uses center-crop; real
+> RetinaFace detection only runs where those packages are installed
+> locally. See §B.9/B.10 below.
+
 ## 1.3 How to Run Locally
 
 ```bash
@@ -101,7 +110,7 @@ uvicorn app.main:app --port 8000
 # Open: http://localhost:8000
 ```
 
-**Production deployment (recommended):** [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/) — built from **`main`** via `render.yaml` + `webapp/backend/Dockerfile`. Docker ships **`noaug`** + **`cross_domain`** only (`webapp/.dockerignore` excludes other checkpoints). See **`READMEdeployment.md`**.
+**Production deployment (recommended):** [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/) — built from **`main`** via `render.yaml` + `webapp/backend/Dockerfile`. Docker ships **`noaug`** + **`cross_domain`** only (`webapp/.dockerignore` excludes other checkpoints). See **`../../docs/READMEdeployment.md`**.
 
 **Public Gradio demo (alternative):** [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection)
 
@@ -174,7 +183,7 @@ Standard Grad-CAM on `model.features[-1]` with backward hooks, GAP weighting, je
 |---|---|
 | MobileNetV3-Large over EfficientNet-B2 / Dual-Stream Fusion | Best OOD generalization at 4.2M params vs. 7.8M–40.7M alternatives (Milestone 3 bake-off) |
 | Three-stage transfer learning + CelebA-HD | Counter shortcut learning on HD real smartphone photos |
-| RetinaFace + center-crop fallback | Matches training preprocessing when detection available; degrades gracefully on CPU-only Windows N |
+| RetinaFace + center-crop fallback | Matches training preprocessing when detection available; **always** falls back to center-crop in production (RetinaFace deliberately not installed on Render - 512MB RAM budget), and also degrades gracefully on Windows N locally |
 | Grad-CAM on `features[-1]` | Immediate saliency without retraining; runs on every `/predict` call today |
 | Multiple checkpoint roles | Separates in-domain accuracy, cross-domain probes, manipulation robustness, and ablation |
 | Honest dual reporting | 99.63% in-distribution accuracy coexists with 8.6% Real-Latest probe accuracy |
@@ -230,7 +239,7 @@ Checkpoint saved as `mobilenetv3_best.pth` (~17 MB).
 
 ### B.5 Evaluation Summary
 
-> **Deployed vs. research checkpoints:** The web app exposes two models — **Main Model (`mobilenetv3_noaug.pth`, default)** and **Cross-Domain Model (`mobilenetv3_cross_domain.pth`)**. All M6 ROC/PR/confusion plots in `Images/` are for **`noaug`**, matching the deployed Main Model. The 3-stage **`mobilenetv3_best.pth`** checkpoint (from `final-mobilenet (1).ipynb`) is documented in Milestone 5 for academic comparison (99.63% in-distribution accuracy).
+> **Deployed vs. research checkpoints:** The web app exposes two models — **Main Model (`mobilenetv3_noaug.pth`, default)** and **Cross-Domain Model (`mobilenetv3_cross_domain.pth`)**. All M6 ROC/PR/confusion plots in `Images/` are for **`noaug`**, matching the deployed Main Model. The 3-stage **`mobilenetv3_best.pth`** checkpoint (from `../../notebooks/final-mobilenet (1).ipynb`) is documented in Milestone 5 for academic comparison (99.63% in-distribution accuracy).
 
 #### B.5.1 Primary Deployed Model — `mobilenetv3_noaug.pth` (held-out test set, 2,401 images)
 
@@ -270,7 +279,7 @@ The Main Model page defaults to **`noaug`** (`webapp/backend/app/static/app.js`:
 
 #### B.5.2 Research Checkpoint — `mobilenetv3_best.pth` (3-stage + CelebA-HD, M5 evaluation)
 
-Trained via `final-mobilenet (1).ipynb` (Stage 1 frozen → Stage 2 partial unfreeze → Stage 3 full + CelebA-HD). Documented in depth in `doc/Milestone-5/Milestone5.md` §4.2 — **not the default deployed Main Model**, but the primary academic evaluation target for shortcut-learning analysis.
+Trained via `../../notebooks/final-mobilenet (1).ipynb` (Stage 1 frozen → Stage 2 partial unfreeze → Stage 3 full + CelebA-HD). Documented in depth in `doc/Milestone-5/Milestone5.md` §4.2 — **not the default deployed Main Model**, but the primary academic evaluation target for shortcut-learning analysis.
 
 ```
               precision    recall  f1-score   support
@@ -288,7 +297,7 @@ Trained via `final-mobilenet (1).ipynb` (Stage 1 frozen → Stage 2 partial unfr
 
 #### B.5.3 Cross-Domain Model — `mobilenetv3_cross_domain.pth`
 
-Trained via `cross-domain.ipynb` on multi-domain synthetic corpora. Powers the **Cross-Domain Model** page in the web app. Checkpoint: `webapp/output/mobilenetv3_cross_domain.pth`.
+Trained via `../../notebooks/cross-domain.ipynb` on multi-domain synthetic corpora. Powers the **Cross-Domain Model** page in the web app. Checkpoint: `webapp/output/mobilenetv3_cross_domain.pth`.
 
 #### B.5.4 Domain-Shift Probe — Where Models Fail (Real-Latest)
 
@@ -407,14 +416,14 @@ $$w_{i,j}^k = \text{ReLU}\left(\frac{\partial Y^c}{\partial A_{i,j}^k}\right), \
 | Unsupported file type | HTTP 400 |
 | File > 10 MB | HTTP 400 |
 | No face detected | Center-crop fallback reported in response |
-| RetinaFace unavailable (Windows N) | Automatic center-crop fallback |
+| RetinaFace not installed (**always true on Render** - free-tier RAM budget; also happens locally on Windows N) | Automatic center-crop fallback |
 
 ### B.10 Reproducibility Checklist
 
 - [ ] Python 3.11 venv + `pip install -r webapp/backend/requirements.txt`
 - [ ] CPU PyTorch: `pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu`
 - [ ] Checkpoints in `webapp/output/`
-- [ ] Run `final-mobilenet (1).ipynb` on Kaggle GPU with `SEED=42`
+- [ ] Run `../../notebooks/final-mobilenet (1).ipynb` on Kaggle GPU with `SEED=42`
 - [ ] Expected: ~99.63% test accuracy on 2,401-image held-out set
 - [ ] Start: `uvicorn app.main:app --port 8000`
 
@@ -454,7 +463,7 @@ Open [somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/de
 |---|---|
 | `no_models_loaded` on `/health` | Place `.pth` files in `webapp/output/` and restart |
 | Slow `/predict` (~2–3 s) | Normal — Grad-CAM backward pass dominates |
-| Wrong predictions on full photos | Upload pre-cropped face images if RetinaFace unavailable |
+| Wrong predictions on full photos | Upload pre-cropped face images - RetinaFace is unavailable on Render (always) and on Windows N locally, so center-crop is used |
 | HF Space "Building" | Wait 1–2 min for Docker cold start |
 | Render cold start / slow first load | Free tier may spin down after idle — first request can take 30–60 s |
 
@@ -507,7 +516,7 @@ curl -X POST "http://localhost:8000/predict?model=noaug" \
 | Demographic bias never audited | Medium |
 | GPU latency not directly measured | Low |
 
-See `future_work.md` in the repo root for the full prioritized roadmap.
+See `../../docs/future_work.md` in the repo root for the full prioritized roadmap.
 
 ---
 
@@ -543,13 +552,13 @@ Use this checklist when assembling or updating `doc/Milestone-6/`:
 |---|---|---|
 | 1 | Deployment table + architecture diagram | §1 above; `webapp/backend/` |
 | 2 | Local run instructions | `README.md`, `webapp/backend/README.md` |
-| 3 | Training config (3-stage pipeline) | `final-mobilenet (1).ipynb`, `doc/Milestone-5/Milestone5.md` |
+| 3 | Training config (3-stage pipeline) | `../../notebooks/final-mobilenet (1).ipynb`, `doc/Milestone-5/Milestone5.md` |
 | 4 | Held-out test metrics (**noaug** — deployed) | `Images/*.jpeg` + §B.5.1 |
 | 5 | Held-out test metrics (**best** — M5 research) | M5 §4.2 + `confusion_matrix_best_model.png` |
 | 6 | Cross-domain failure analysis | M5 §5 (Real-Latest 8.6%) |
 | 7 | Grad-CAM (deployed) + Layer-CAM roadmap | `gradcam.py` + §B.6 |
 | 8 | API endpoint documentation | `webapp/backend/app/main.py`, `/docs` Swagger |
-| 9 | Render deploy from `main` + optional HF Gradio | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) + **`READMEdeployment.md`** |
+| 9 | Render deploy from `main` + optional HF Gradio | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) + **`../../docs/READMEdeployment.md`** |
 | 10 | UI screenshots | `Images/main_model.png`, `Grad_Cam.png`, etc. |
 | 11 | Individual contributions | `doc/Milestone-6/Team-Contribution-Tracker.md` |
 | 12 | Licensing & dataset citations | **`doc/Milestone-6/licenses.md`**, M2 report |
@@ -559,14 +568,14 @@ Use this checklist when assembling or updating `doc/Milestone-6/`:
 | Artifact | Location | Purpose |
 |---|---|---|
 | Model checkpoints | `webapp/output/*.pth` | Inference + deployment |
-| Training notebooks | `final-mobilenet (1).ipynb`, `cross-domain.ipynb` | Reproducible training |
+| Training notebooks | `../../notebooks/final-mobilenet (1).ipynb`, `../../notebooks/cross-domain.ipynb` | Reproducible training |
 | Confusion / ROC / PR (**noaug**, deployed) | `Images/*.jpeg` | Main Model M6 evaluation |
 | Confusion matrix (**best**, M5) | `doc/Milestone-5/images/confusion_matrix_best_model.png` | Research checkpoint |
 | Frontend screenshots | `Images/main_model.png`, etc. | User documentation |
 | **Dockerfile** | **`/Dockerfile`** (repo root) | HF Docker Space / container deploy |
 | **Licenses** | **`doc/Milestone-6/licenses.md`** | Consolidated licensing |
 | **Production deploy (Render)** | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) | `main` + `render.yaml` + `webapp/backend/Dockerfile` |
-| **Simple deploy guide** | **`READMEdeployment.md`** | Quick reference on `main` |
+| **Simple deploy guide** | **`../../docs/READMEdeployment.md`** | Quick reference on `main` |
 | Gradio demo | HF Space `somendu007/deepfake-detection` | Alternative public demo |
 
 ## External Links to Record

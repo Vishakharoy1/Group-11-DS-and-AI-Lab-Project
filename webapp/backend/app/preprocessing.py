@@ -25,6 +25,19 @@ except ImportError:
         "for real face alignment."
     )
 
+# retinaface.detect_faces() rebuilds its TF model from scratch on every call
+# when model=None (see its source: `if model is None: model = build_model()`)
+# - roughly a 13-15s tax per request on this stack, independent of image
+# size, and the single biggest contributor to requests looking hung. Build
+# once at import time and pass it explicitly on every call.
+_RETINA_MODEL = None
+if RETINA_AVAILABLE:
+    try:
+        _RETINA_MODEL = RetinaFace.build_model()
+    except Exception:
+        logger.exception("Failed to pre-build RetinaFace model - falling back to per-call rebuild.")
+        _RETINA_MODEL = None
+
 try:
     import cv2
 
@@ -35,6 +48,13 @@ except ImportError:
 
 FACE_PADDING = 0.20
 
+# RetinaFace cost scales with pixel count, but the model only ever sees a
+# 224x224 crop - detecting on a multi-megapixel original (common for phone
+# photos >5MB) burns CPU for no accuracy gain and was slow enough on Render's
+# free-tier CPU to look like preprocessing had hung. Cap the longest side
+# before detection; the crop below is still done in this downscaled space.
+MAX_DETECTION_DIM = 1600
+
 val_transform = transforms.Compose(
     [
         transforms.Resize((config.IMG_SIZE, config.IMG_SIZE)),
@@ -42,6 +62,15 @@ val_transform = transforms.Compose(
         transforms.Normalize(mean=config.IMAGENET_MEAN, std=config.IMAGENET_STD),
     ]
 )
+
+
+def _downscale_for_detection(image_pil: Image.Image, max_dim: int = MAX_DETECTION_DIM) -> Image.Image:
+    longest = max(image_pil.width, image_pil.height)
+    if longest <= max_dim:
+        return image_pil
+    scale = max_dim / longest
+    new_size = (max(1, round(image_pil.width * scale)), max(1, round(image_pil.height * scale)))
+    return image_pil.resize(new_size, Image.Resampling.LANCZOS)
 
 
 def center_crop(image_pil: Image.Image) -> Image.Image:
@@ -58,13 +87,14 @@ def crop_and_align_face(image_pil: Image.Image, padding: float = FACE_PADDING) -
     """Detect the largest face with RetinaFace, pad, crop, resize.
     Returns (cropped_image, method) where method is "retinaface" or
     "center_crop_fallback" so callers/UI can show which path was used."""
+    image_pil = _downscale_for_detection(image_pil)
     if RETINA_AVAILABLE:
         try:
             if CV2_AVAILABLE:
                 img_bgr = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
-                faces = RetinaFace.detect_faces(img_bgr)
+                faces = RetinaFace.detect_faces(img_bgr, model=_RETINA_MODEL)
             else:
-                faces = RetinaFace.detect_faces(np.array(image_pil))
+                faces = RetinaFace.detect_faces(np.array(image_pil), model=_RETINA_MODEL)
 
             if isinstance(faces, dict) and len(faces) > 0:
                 largest_face = max(

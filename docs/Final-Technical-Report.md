@@ -174,15 +174,15 @@ can load all available files from `webapp/output/`.
 
 | Checkpoint | Role | Training Source | Production (Render) |
 |---|---|---|---|
-| `mobilenetv3_noaug.pth` | Main Model default — no-augmentation baseline | `final-mobilenet (1).ipynb` | ✅ Deployed |
-| `mobilenetv3_cross_domain.pth` | Cross-domain (non-face, multi-domain) evaluation | `cross-domain.ipynb` | ✅ Deployed |
-| `mobilenetv3_best.pth` | 3-stage CelebA-HD corrected model (Model 2 toggle) | `final-mobilenet (1).ipynb` | ❌ Not deployed (RAM) |
+| `mobilenetv3_noaug.pth` | Main Model default — no-augmentation baseline | `../notebooks/final-mobilenet (1).ipynb` | ✅ Deployed |
+| `mobilenetv3_cross_domain.pth` | Cross-domain (non-face, multi-domain) evaluation | `../notebooks/cross-domain.ipynb` | ✅ Deployed |
+| `mobilenetv3_best.pth` | 3-stage CelebA-HD corrected model (Model 2 toggle) | `../notebooks/final-mobilenet (1).ipynb` | ❌ Not deployed (RAM) |
 | `mobilenetv3_manipulations.pth` | Manipulation robustness testing | Specialised training run | ❌ Not deployed (RAM) |
 | `mobilenetv3_tuned.pth` | Hyperparameter sweep comparison | Hyperparameter experiment | ❌ Not deployed (RAM) |
 
 Production URL: **https://group-11-ds-and-ai-lab-project.onrender.com**  
 Deployed from Git branch **`main`** via Docker on Render free tier
-(512 MB RAM; 2-model image via `webapp/.dockerignore`). See `READMEdeployment.md`.
+(512 MB RAM; 2-model image via `webapp/.dockerignore`). See `../docs/READMEdeployment.md`.
 
 ### 4.3 API Endpoints
 
@@ -661,7 +661,7 @@ The model classified every FFHQ-like image correctly but misclassified the vast 
 
 1. **Multi-source dataset expansion** (M4): Nano Banana 2.0 dataset added to expose the model to a different generator family.
 2. **CelebA-HD addition** (M5): Modern real photographs added specifically for Stage 3 fine-tuning.
-3. **Cross-domain model** (`cross-domain.ipynb`): A separate checkpoint trained on non-face, multi-domain data (Nano Banana, CIFAKE, CrossDomain, Places365, Artefact) for broader generalisation.
+3. **Cross-domain model** (`../notebooks/cross-domain.ipynb`): A separate checkpoint trained on non-face, multi-domain data (Nano Banana, CIFAKE, CrossDomain, Places365, Artefact) for broader generalisation.
 4. **Decision-threshold recalibration identified** (M5): The deployed app uses a plain argmax (50% threshold), but raising the threshold to require higher confidence before predicting "Fake" is a no-retraining lever to improve real-world precision.
 
 ### 10.4 Challenge 4: EfficientNet-B2 Optimizer-Reload Bug
@@ -812,7 +812,7 @@ The production Docker image deliberately excludes `mobilenetv3_best.pth`,
 `mobilenetv3_manipulations.pth`, and RetinaFace/TensorFlow to stay
 within Render's **512 MB RAM** limit (~310 MB with two models loaded).
 
-Full deployment instructions: **`READMEdeployment.md`**.
+Full deployment instructions: **`../docs/READMEdeployment.md`**.
 
 ---
 
@@ -977,7 +977,7 @@ Several issues in this project (RetinaFace channel-order mismatch, Keras optimiz
 2. **Expand the Real class**: Incorporate photographs from diverse modern cameras, lighting conditions, and capture eras beyond FFHQ and CelebA.
 3. **Hard-negative mining**: Fold the misclassified Real-Latest images back into future fine-tuning stages.
 4. **Frequency-domain analysis as shortcut-learning countermeasure**: Revisit FFT/DCT features — not as a full architecture change, but specifically to help the model distinguish HDR/sharpening artefacts (which have identifiable frequency signatures) from genuine synthesis artefacts.
-5. **Complete and integrate the cross-domain model**: Finish `cross-domain.ipynb` training and integrate it as a proper secondary verification path.
+5. **Complete and integrate the cross-domain model**: Finish `../notebooks/cross-domain.ipynb` training and integrate it as a proper secondary verification path.
 6. **Video support**: Extend the system to detect deepfake videos by integrating temporal information across consecutive frames.
 7. **INT8 quantisation**: Measure accuracy trade-off empirically and deploy if acceptable for edge use cases.
 
