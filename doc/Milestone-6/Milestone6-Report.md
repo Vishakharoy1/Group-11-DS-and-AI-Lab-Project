@@ -345,6 +345,8 @@ overlay = Image.blend(display_img, heatmap_img, alpha=0.45)
 
 **Latency impact:** MobileNetV3 forward pass ≈ **15.8 ms** (CPU); Grad-CAM backward pass ≈ **2.0 s** — explainability dominated end-to-end `/predict` latency (~2–3 s total) locally. This was the motivation for the on-demand split described in B.7/B.10.
 
+**Reading the overlay:** the heatmap always explains whichever class was predicted, never a fixed "fakeness" target — on a Real prediction, red regions are the pixels that most supported "real"; on a Fake prediction, they're the pixels that most supported "fake." Since the model was trained only as a binary classifier (no pixel-level manipulation masks), it has no concept of "the fake region" to localize — Grad-CAM shows model attention, not forgery evidence. A confident-looking, sharp heatmap can just as easily accompany a wrong prediction as a correct one (see B.6.2's shortcut-learning cases below).
+
 #### B.6.2 Diagnosed Limitations (Research Review)
 
 | Limitation | Effect on Deepfake Detection |

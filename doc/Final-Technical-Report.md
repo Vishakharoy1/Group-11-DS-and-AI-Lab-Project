@@ -742,6 +742,15 @@ The model classified every FFHQ-like image correctly but misclassified the vast 
 6. Upsamples the heatmap to 224×224 using bilinear interpolation
 7. Overlays the heatmap on the original image using the JET colourmap with configurable alpha blending (default 0.45)
 
+### 11.1a How to Interpret the Overlay
+
+Grad-CAM always explains **whichever class the model actually predicted** — the gradients are computed from `logits[predicted_class].backward()` (`gradcam.py`), never from a fixed "fakeness" target. This has a direct consequence for reading the heatmap:
+
+- **On a Real prediction**: red/orange regions are the pixels that most increased the model's *"this looks real"* score. A good sign is when this concentrates on the central face (eyes, nose bridge, mouth) rather than background or lighting artifacts — see the correct-prediction example below. It is not proof the highlighted skin/texture is "authentically real" in any forensic sense, only that the model's decision leaned on that region.
+- **On a Fake prediction**: red/orange regions are the pixels that most increased the *"this looks AI-generated"* score. Ideally these land on blending seams or generation artifacts; in practice (see the shortcut-learning findings in §10.1) they can just as easily land on unrelated cues the model learned as a shortcut.
+
+**Grad-CAM is not a forgery localizer.** It was never trained with pixel-level manipulation masks — the model is a binary image classifier, nothing more — so it has no notion of "the fake part of the image" to point at. A sharp, confident-looking heatmap and a wrong prediction are fully compatible with each other (§11.2's failure-case example demonstrates exactly this: a real photo misclassified as fake, with a heatmap that looks just as crisp and legible as a correct one). Treat the overlay as a window into what the model looked at, not a verdict on what's actually manipulated.
+
 ### 11.2 Verification Results
 
 **Correct predictions**: Grad-CAM heatmaps concentrate on the central face — eyes, nose bridge, and mouth area — rather than the background or image border. No shortcut cues (corner watermarks, uniform background patches) are visibly dominant.
