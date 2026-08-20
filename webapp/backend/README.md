@@ -4,7 +4,7 @@ FastAPI backend + static HTML/JS frontend for interactive face
 authenticity testing with trained MobileNetV3-Large checkpoints.
 
 **Production (Render):** https://group-11-ds-and-ai-lab-project.onrender.com  
-Deployed from **`main`** — see **`../../docs/READMEdeployment.md`**.
+Deployed from **`main`** — see **`../../doc/READMEdeployment.md`**.
 
 ## Setup (local — `main` branch)
 
@@ -92,7 +92,7 @@ instead of `"retinaface"`, and it's worth knowing which one applies:
    `opencv-python` installed, OpenCV/RetinaFace often fail to load because
    Windows N editions ship without the media codec pack they depend on.
    Installing the "Media Feature Pack" for Windows N fixes this, or just
-   accept the fallback for local testing. See `../../docs/DeveloperGuide.md` Section
+   accept the fallback for local testing. See `../../doc/DeveloperGuide.md` Section
    9. Upload pre-cropped face images as a workaround either way.
 
 ## Notes

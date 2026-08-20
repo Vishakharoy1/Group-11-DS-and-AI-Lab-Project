@@ -43,7 +43,7 @@ Milestone 6 transforms our deep learning face-authenticity detection project fro
 | Deepfake Detector (Gradio demo) | Gradio SDK + PyTorch | Hugging Face Spaces | [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) |
 | Full development app | FastAPI + static HTML/JS | Local (`main` branch) | `http://localhost:8000` |
 | Training Notebooks | PyTorch + Kaggle GPU | `main` branch | `../../notebooks/final-mobilenet (1).ipynb`, `../../notebooks/cross-domain.ipynb` |
-| Simple deploy guide | Markdown | `main` branch | **`../../docs/READMEdeployment.md`** |
+| Simple deploy guide | Markdown | `main` branch | **`../../doc/READMEdeployment.md`** |
 
 ## 1.2 Deployment Architecture
 
@@ -110,7 +110,7 @@ uvicorn app.main:app --port 8000
 # Open: http://localhost:8000
 ```
 
-**Production deployment (recommended):** [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/) — built from **`main`** via `render.yaml` + `webapp/backend/Dockerfile`. Docker ships **`noaug`** + **`cross_domain`** only (`webapp/.dockerignore` excludes other checkpoints). See **`../../docs/READMEdeployment.md`**.
+**Production deployment (recommended):** [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/) — built from **`main`** via `render.yaml` + `webapp/backend/Dockerfile`. Docker ships **`noaug`** + **`cross_domain`** only (`webapp/.dockerignore` excludes other checkpoints). See **`../../doc/READMEdeployment.md`**.
 
 **Public Gradio demo (alternative):** [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection)
 
@@ -516,7 +516,7 @@ curl -X POST "http://localhost:8000/predict?model=noaug" \
 | Demographic bias never audited | Medium |
 | GPU latency not directly measured | Low |
 
-See `../../docs/future_work.md` in the repo root for the full prioritized roadmap.
+See `../../doc/future_work.md` in the repo root for the full prioritized roadmap.
 
 ---
 
@@ -558,7 +558,7 @@ Use this checklist when assembling or updating `doc/Milestone-6/`:
 | 6 | Cross-domain failure analysis | M5 §5 (Real-Latest 8.6%) |
 | 7 | Grad-CAM (deployed) + Layer-CAM roadmap | `gradcam.py` + §B.6 |
 | 8 | API endpoint documentation | `webapp/backend/app/main.py`, `/docs` Swagger |
-| 9 | Render deploy from `main` + optional HF Gradio | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) + **`../../docs/READMEdeployment.md`** |
+| 9 | Render deploy from `main` + optional HF Gradio | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) + **`../../doc/READMEdeployment.md`** |
 | 10 | UI screenshots | `Images/main_model.png`, `Grad_Cam.png`, etc. |
 | 11 | Individual contributions | `doc/Milestone-6/Team-Contribution-Tracker.md` |
 | 12 | Licensing & dataset citations | **`doc/Milestone-6/licenses.md`**, M2 report |
@@ -575,7 +575,7 @@ Use this checklist when assembling or updating `doc/Milestone-6/`:
 | **Dockerfile** | **`/Dockerfile`** (repo root) | HF Docker Space / container deploy |
 | **Licenses** | **`doc/Milestone-6/licenses.md`** | Consolidated licensing |
 | **Production deploy (Render)** | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) | `main` + `render.yaml` + `webapp/backend/Dockerfile` |
-| **Simple deploy guide** | **`../../docs/READMEdeployment.md`** | Quick reference on `main` |
+| **Simple deploy guide** | **`../../doc/READMEdeployment.md`** | Quick reference on `main` |
 | Gradio demo | HF Space `somendu007/deepfake-detection` | Alternative public demo |
 
 ## External Links to Record

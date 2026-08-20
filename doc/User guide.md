@@ -95,7 +95,7 @@ starts — this is normal. Refresh if the page seems stuck.
 The live site includes **Main Model** and **Cross-Domain Model** pages.
 Advanced pages (Manipulation Robustness, Model Comparison) require extra
 model files and are only available when running the app locally — see
-`../docs/READMEdeployment.md`.
+`../doc/READMEdeployment.md`.
 
 ### 4.2 Navigating the application
 

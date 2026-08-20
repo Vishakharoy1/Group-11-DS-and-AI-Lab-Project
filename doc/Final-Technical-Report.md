@@ -182,7 +182,7 @@ can load all available files from `webapp/output/`.
 
 Production URL: **https://group-11-ds-and-ai-lab-project.onrender.com**  
 Deployed from Git branch **`main`** via Docker on Render free tier
-(512 MB RAM; 2-model image via `webapp/.dockerignore`). See `../docs/READMEdeployment.md`.
+(512 MB RAM; 2-model image via `webapp/.dockerignore`). See `../doc/READMEdeployment.md`.
 
 ### 4.3 API Endpoints
 
@@ -812,7 +812,7 @@ The production Docker image deliberately excludes `mobilenetv3_best.pth`,
 `mobilenetv3_manipulations.pth`, and RetinaFace/TensorFlow to stay
 within Render's **512 MB RAM** limit (~310 MB with two models loaded).
 
-Full deployment instructions: **`../docs/READMEdeployment.md`**.
+Full deployment instructions: **`../doc/READMEdeployment.md`**.
 
 ---
 

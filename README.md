@@ -2,10 +2,10 @@
 
 **🔗 [Live Demo (Render)](https://group-11-ds-and-ai-lab-project.onrender.com/)** ·
 **[HF Space Demo](https://huggingface.co/spaces/somendu007/deepfake-detection)** ·
-**[Deployment Guide](docs/READMEdeployment.md)** ·
-**[Developer Guide](docs/DeveloperGuide.md)** ·
-**[User Guide](docs/User%20guide.md)** ·
-**[Final Technical Report](docs/Final-Technical-Report.md)**
+**[Deployment Guide](doc/READMEdeployment.md)** ·
+**[Developer Guide](doc/DeveloperGuide.md)** ·
+**[User Guide](doc/User%20guide.md)** ·
+**[Final Technical Report](doc/Final-Technical-Report.md)**
 
 Detect authentic vs. AI-generated human faces using **MobileNetV3-Large**
 with a three-stage transfer-learning strategy, Grad-CAM explainability,
@@ -86,7 +86,7 @@ Model, Cross-Domain Model, Grad-CAM, Forensic Report, History). Full
 details — model loading, endpoints (`/predict`, `/robustness`,
 `/compare`, `/report`, `/report/docx`), and troubleshooting — are in
 `webapp/backend/README.md`; a full code/config walkthrough is in
-`docs/DeveloperGuide.md`.
+`doc/DeveloperGuide.md`.
 
 ### Production deployment (Render)
 
@@ -94,7 +94,7 @@ details — model loading, endpoints (`/predict`, `/robustness`,
 
 Built from **`main`** using `render.yaml`, `webapp/backend/Dockerfile`, and
 `webapp/.dockerignore` (ships **`noaug`** + **`cross_domain`** only).
-Guide: **`docs/READMEdeployment.md`**. Full M6 report:
+Guide: **`doc/READMEdeployment.md`**. Full M6 report:
 `doc/Milestone-6/Milestone6-Report.md`.
 
 ### Optional: Hugging Face Gradio demo
@@ -116,7 +116,7 @@ docker build -t face-forensics -f webapp/backend/Dockerfile webapp/
 docker run -p 10000:10000 face-forensics
 ```
 
-See `docs/READMEdeployment.md`. Licenses: `doc/Milestone-6/licenses.md`.
+See `doc/READMEdeployment.md`. Licenses: `doc/Milestone-6/licenses.md`.
 
 ### 4. Train or reproduce a model
 
@@ -144,7 +144,7 @@ The final framework combines:
 A 5-page local web app (`webapp/backend/`, FastAPI + static HTML/JS, no
 build step) for interactively testing the trained checkpoints — see
 `webapp/backend/README.md` for setup/run instructions and the API
-reference, `docs/DeveloperGuide.md` for the full file-by-file implementation
+reference, `doc/DeveloperGuide.md` for the full file-by-file implementation
 walkthrough. What each page actually does:
 
 ![Main Model page — Face Forensics AI Authenticity frontend](Images/main_model.png)
@@ -155,7 +155,7 @@ Upload a face image, click Analyze, get a Real/AI-Generated verdict with
 a confidence score. Powered by **`mobilenetv3_noaug.pth`** — note this is
 a deliberate choice, *not* `mobilenetv3_best.pth` (the checkpoint
 `doc/Milestone-5/Milestone5.md` evaluates in depth); see
-`docs/DeveloperGuide.md` Section 8 for why, and how to repoint it if you want
+`doc/DeveloperGuide.md` Section 8 for why, and how to repoint it if you want
 "Main Model" to serve `best` instead. Shows AI/Real probability, model
 info, and an Analysis ID — then unlocks the Grad-CAM and Forensic Report
 actions for that result.
@@ -441,17 +441,15 @@ Group-11-DS-and-AI-Lab-Project/
 │   ├── ds-ai-deepfake-detection (6).ipynb # Supplementary exploration notebook
 │   └── end-to-end-pipeline.ipynb          # Pipeline prototype
 |
-├── docs/                          # Final, consolidated project deliverables
+├── doc/                            # All project documentation
 │   ├── Final-Technical-Report.md          # Full M1-M6 technical write-up
 │   ├── Final-Contribution-Summary.md      # Per-member contribution summary
 │   ├── Non-technical Report.md            # Plain-language project summary
 │   ├── DeveloperGuide.md                  # Full developer/setup/code reference
 │   ├── READMEdeployment.md                # Simple deployment guide
 │   ├── User guide.md                      # End-user instructions
-│   └── future_work.md                     # Open items / roadmap
-|
-├── doc/                           # Per-milestone submissions (M1 -> M6, historical)
-│   ├── Milestone-1/ .. Milestone-6/
+│   ├── future_work.md                     # Open items / roadmap
+│   ├── Milestone-1/ .. Milestone-6/       # Per-milestone submissions (historical)
 │   │   ├── *-Report.md
 │   │   ├── licenses.md            # M6 consolidated licensing (Milestone-6/)
 │   │   └── Team-Contribution-Tracker.md
@@ -521,12 +519,12 @@ Milestone 1's original role assignments are in
 ## Documentation
 
 - **Start here:** `doc/Milestone-5/Milestone5.md` — full evaluation report (dataset, metrics, quantitative results, error analysis, robustness, explainability, limitations, deployment readiness)
-- **Full developer/setup/code reference:** `docs/DeveloperGuide.md`
+- **Full developer/setup/code reference:** `doc/DeveloperGuide.md`
 - Training notebooks: this file, "Training Notebooks — Usage Instructions" above
 - Web app quick reference: `webapp/backend/README.md`
 - Team contribution trackers: `doc/Milestone-{1..5}/Team-Contribution-Tracker.md`
 - **Milestone 6 deployment report:** `doc/Milestone-6/Milestone6-Report.md`
-- **Simple deployment guide:** `docs/READMEdeployment.md` (Render from `main`)
+- **Simple deployment guide:** `doc/READMEdeployment.md` (Render from `main`)
 - **Licensing:** `doc/Milestone-6/licenses.md`
 
 ---

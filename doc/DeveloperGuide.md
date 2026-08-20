@@ -8,7 +8,7 @@ notes that aren't obvious from the code alone.
 
 Everything in this guide describes the **`main`** branch. Production
 Render deployment uses the same branch with a slim Docker build — see
-**`../docs/READMEdeployment.md`** and §11 below.
+**`../doc/READMEdeployment.md`** and §11 below.
 
 ---
 
@@ -48,7 +48,7 @@ Group-11-DS-and-AI-Lab-Project/
 ├── ../notebooks/final-mobilenet (1).ipynb      # Main face-model training notebook
 ├── ../notebooks/cross-domain.ipynb             # Cross-domain model training notebook
 ├── README.md                      # Project overview, quick start
-├── ../docs/READMEdeployment.md            # Render deployment guide (simple)
+├── ../doc/READMEdeployment.md            # Render deployment guide (simple)
 ├── render.yaml                    # Render Blueprint (production)
 ├── DeveloperGuide.md              # This file
 │
@@ -775,13 +775,13 @@ Production is deployed from **`main`** via Docker on Render.
 | RetinaFace | ❌ center-crop fallback | Optional |
 | RAM | ~310 MB (512 MB limit) | Depends on loaded checkpoints |
 
-To update production: push to **`main`**. See **`../docs/READMEdeployment.md`**.
+To update production: push to **`main`**. See **`../doc/READMEdeployment.md`**.
 
 ---
 
 ## 12. Where to Go Next
 
-- **Deployment (simple)**: `../docs/READMEdeployment.md`
+- **Deployment (simple)**: `../doc/READMEdeployment.md`
 - **Full evaluation results**: `doc/Milestone-5/Milestone5.md`
 - **Training notebook cell-by-cell walkthrough**: root `README.md`
 - **Web app quick reference**: `webapp/backend/README.md`

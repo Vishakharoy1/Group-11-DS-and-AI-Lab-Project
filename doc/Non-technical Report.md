@@ -68,7 +68,7 @@ The application is available online at:
 
 Users can open this link in a web browser and begin uploading images immediately. No software installation is required. The hosted version includes the **Main Model** and **Cross-Domain Model** for everyday analysis.
 
-Developers who need the full feature set (including additional model comparison tools) can run the application locally — instructions are in `../docs/READMEdeployment.md` and `../docs/DeveloperGuide.md`.
+Developers who need the full feature set (including additional model comparison tools) can run the application locally — instructions are in `../doc/READMEdeployment.md` and `../doc/DeveloperGuide.md`.
 
 ---
 
