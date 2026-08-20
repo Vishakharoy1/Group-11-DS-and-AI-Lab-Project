@@ -64,7 +64,7 @@ The two options allow the user to perform authenticity analysis through the same
 
 The application is available online at:
 
-**https://group-11-ds-and-ai-lab-project.onrender.com**
+**https://face-forensics.onrender.com**
 
 Users can open this link in a web browser and begin uploading images immediately. No software installation is required. The hosted version includes the **Main Model** and **Cross-Domain Model** for everyday analysis.
 

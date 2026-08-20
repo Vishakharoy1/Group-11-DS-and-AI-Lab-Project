@@ -756,7 +756,7 @@ Production is deployed from **`main`** via Docker on Render.
 
 | Item | Value |
 |---|---|
-| **Live URL** | https://group-11-ds-and-ai-lab-project.onrender.com |
+| **Live URL** | https://face-forensics.onrender.com |
 | **Branch** | `main` (auto-deploy on push) |
 | **Build** | `webapp/backend/Dockerfile`, context `webapp/` |
 | **Config** | `render.yaml` (repo root) |

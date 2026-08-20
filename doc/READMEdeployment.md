@@ -2,7 +2,7 @@
 
 Simple guide for running and deploying the **Face Forensics** web app.
 
-**Live app (no install):** [https://group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com)
+**Live app (no install):** [https://face-forensics.onrender.com](https://face-forensics.onrender.com)
 
 ---
 
@@ -32,7 +32,7 @@ GitHub (main branch)
 | Item | Details |
 |---|---|
 | **Platform** | [Render](https://render.com) — free-tier web service |
-| **URL** | https://group-11-ds-and-ai-lab-project.onrender.com |
+| **URL** | https://face-forensics.onrender.com |
 | **Source branch** | `main` |
 | **Models in container** | `mobilenetv3_noaug.pth` + `mobilenetv3_cross_domain.pth` |
 | **Why only 2 models?** | Render free tier = **512 MB RAM**. Extra checkpoints cause OOM. |
@@ -54,7 +54,7 @@ GitHub (main branch)
 
 ## Use the live app
 
-1. Open [https://group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com)
+1. Open [https://face-forensics.onrender.com](https://face-forensics.onrender.com)
 2. Wait on first load if the service was idle (cold start)
 3. Upload a face image → **Analyze Image**
 
@@ -128,12 +128,12 @@ git push origin main
 ## Verify
 
 ```bash
-curl https://group-11-ds-and-ai-lab-project.onrender.com/health
+curl https://face-forensics.onrender.com/health
 ```
 
 Expected: `"status":"ok"`, `"loaded_models"` includes `noaug` and `cross_domain`.
 
-API docs: https://group-11-ds-and-ai-lab-project.onrender.com/docs
+API docs: https://face-forensics.onrender.com/docs
 
 ---
 

@@ -72,7 +72,7 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 
 | Service | Usage | Terms |
 |---|---|---|
-| **Render** | **Production web app** at [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com) — FastAPI + Docker deploy from `main` | [render.com/terms](https://render.com/terms) |
+| **Render** | **Production web app** at [face-forensics.onrender.com](https://face-forensics.onrender.com) — FastAPI + Docker deploy from `main` | [render.com/terms](https://render.com/terms) |
 | Google Colab / Kaggle GPU | Model training | Platform-specific ToS |
 | Hugging Face Hub / Spaces | Optional Gradio demo at [somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) (not the primary live deployment) | [huggingface.co/terms-of-service](https://huggingface.co/terms-of-service) |
 | OpenAI / Gemini | Not used in deployed app | N/A for core deployment |

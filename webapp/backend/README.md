@@ -3,7 +3,7 @@
 FastAPI backend + static HTML/JS frontend for interactive face
 authenticity testing with trained MobileNetV3-Large checkpoints.
 
-**Production (Render):** https://group-11-ds-and-ai-lab-project.onrender.com  
+**Production (Render):** https://face-forensics.onrender.com  
 Deployed from **`main`** — see **`../../doc/READMEdeployment.md`**.
 
 ## Setup (local — `main` branch)

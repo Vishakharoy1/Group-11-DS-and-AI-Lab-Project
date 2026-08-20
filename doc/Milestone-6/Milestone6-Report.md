@@ -38,7 +38,7 @@ Milestone 6 transforms our deep learning face-authenticity detection project fro
 
 | Component | Technology | Platform | Access |
 |---|---|---|---|
-| **Production Web Application** | FastAPI + Docker + Uvicorn | **Render** (branch **`main`**) | **[group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/)** |
+| **Production Web Application** | FastAPI + Docker + Uvicorn | **Render** (branch **`main`**) | **[face-forensics.onrender.com](https://face-forensics.onrender.com/)** |
 | Deployed checkpoints | PyTorch `.pth` via Git LFS | Baked into Docker image | **`mobilenetv3_noaug.pth`** (Main), **`mobilenetv3_cross_domain.pth`** (Cross-Domain) |
 | Deepfake Detector (Gradio demo) | Gradio SDK + PyTorch | Hugging Face Spaces | [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection) |
 | Full development app | FastAPI + static HTML/JS | Local (`main` branch) | `http://localhost:8000` |
@@ -110,7 +110,7 @@ uvicorn app.main:app --port 8000
 # Open: http://localhost:8000
 ```
 
-**Production deployment (recommended):** [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/) — built from **`main`** via `render.yaml` + `webapp/backend/Dockerfile`. Docker ships **`noaug`** + **`cross_domain`** only (`webapp/.dockerignore` excludes other checkpoints). See **`../../doc/READMEdeployment.md`**.
+**Production deployment (recommended):** [https://face-forensics.onrender.com/](https://face-forensics.onrender.com/) — built from **`main`** via `render.yaml` + `webapp/backend/Dockerfile`. Docker ships **`best`**, **`noaug`**, and **`cross_domain`** (`webapp/.dockerignore` excludes only the unused `manipulations`/`best1`/`tuned` checkpoints). See **`../../doc/READMEdeployment.md`**.
 
 **Public Gradio demo (alternative):** [huggingface.co/spaces/somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/deepfake-detection)
 
@@ -388,7 +388,7 @@ $$w_{i,j}^k = \text{ReLU}\left(\frac{\partial Y^c}{\partial A_{i,j}^k}\right), \
 
 ### B.7 Deployment Details
 
-**Production URL (Render):** [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/)
+**Production URL (Render):** [https://face-forensics.onrender.com/](https://face-forensics.onrender.com/)
 
 | Endpoint | Method | Description |
 |---|---|---|
@@ -399,7 +399,7 @@ $$w_{i,j}^k = \text{ReLU}\left(\frac{\partial Y^c}{\partial A_{i,j}^k}\right), \
 | `/report` | POST | Printable HTML forensic report |
 | `/api/training-results` | GET | Pre-computed CSV/PNG evaluation artifacts |
 
-**Swagger UI:** `http://localhost:8000/docs` (local) · `https://group-11-ds-and-ai-lab-project.onrender.com/docs` (Render)
+**Swagger UI:** `http://localhost:8000/docs` (local) · `https://face-forensics.onrender.com/docs` (Render)
 
 ### B.8 System Design Considerations
 
@@ -440,7 +440,7 @@ Upload a portrait photograph and receive:
 
 ### C.2 How to Launch
 
-**Production (Render):** Open [https://group-11-ds-and-ai-lab-project.onrender.com/](https://group-11-ds-and-ai-lab-project.onrender.com/) in any browser — upload a face image on the Main Model or Cross-Domain Model page and click Analyze.
+**Production (Render):** Open [https://face-forensics.onrender.com/](https://face-forensics.onrender.com/) in any browser — upload a face image on the Main Model or Cross-Domain Model page and click Analyze.
 
 **Local development:** See §1.3. Open `http://localhost:8000` — navigate via sidebar: Main Model, Cross-Domain, Manipulation Robustness, Model Comparison, Training Results, Forensic Report.
 
@@ -558,7 +558,7 @@ Use this checklist when assembling or updating `doc/Milestone-6/`:
 | 6 | Cross-domain failure analysis | M5 §5 (Real-Latest 8.6%) |
 | 7 | Grad-CAM (deployed) + Layer-CAM roadmap | `gradcam.py` + §B.6 |
 | 8 | API endpoint documentation | `webapp/backend/app/main.py`, `/docs` Swagger |
-| 9 | Render deploy from `main` + optional HF Gradio | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) + **`../../doc/READMEdeployment.md`** |
+| 9 | Render deploy from `main` + optional HF Gradio | [face-forensics.onrender.com](https://face-forensics.onrender.com/) + **`../../doc/READMEdeployment.md`** |
 | 10 | UI screenshots | `Images/main_model.png`, `Grad_Cam.png`, etc. |
 | 11 | Individual contributions | `doc/Milestone-6/Team-Contribution-Tracker.md` |
 | 12 | Licensing & dataset citations | **`doc/Milestone-6/licenses.md`**, M2 report |
@@ -574,14 +574,14 @@ Use this checklist when assembling or updating `doc/Milestone-6/`:
 | Frontend screenshots | `Images/main_model.png`, etc. | User documentation |
 | **Dockerfile** | **`/Dockerfile`** (repo root) | HF Docker Space / container deploy |
 | **Licenses** | **`doc/Milestone-6/licenses.md`** | Consolidated licensing |
-| **Production deploy (Render)** | [group-11-ds-and-ai-lab-project.onrender.com](https://group-11-ds-and-ai-lab-project.onrender.com/) | `main` + `render.yaml` + `webapp/backend/Dockerfile` |
+| **Production deploy (Render)** | [face-forensics.onrender.com](https://face-forensics.onrender.com/) | `main` + `render.yaml` + `webapp/backend/Dockerfile` |
 | **Simple deploy guide** | **`../../doc/READMEdeployment.md`** | Quick reference on `main` |
 | Gradio demo | HF Space `somendu007/deepfake-detection` | Alternative public demo |
 
 ## External Links to Record
 
 - GitHub: `https://github.com/Vishakharoy1/Group-11-DS-and-AI-Lab-Project`
-- **Production deployment (Render):** `https://group-11-ds-and-ai-lab-project.onrender.com/`
+- **Production deployment (Render):** `https://face-forensics.onrender.com/`
 - Hugging Face Space: `https://huggingface.co/spaces/somendu007/deepfake-detection`
 - Hugging Face model (if published): team member Hub profile
 

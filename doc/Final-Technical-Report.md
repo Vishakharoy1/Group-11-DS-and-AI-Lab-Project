@@ -180,7 +180,7 @@ can load all available files from `webapp/output/`.
 | `mobilenetv3_manipulations.pth` | Manipulation robustness testing | Specialised training run | ❌ Not deployed (RAM) |
 | `mobilenetv3_tuned.pth` | Hyperparameter sweep comparison | Hyperparameter experiment | ❌ Not deployed (RAM) |
 
-Production URL: **https://group-11-ds-and-ai-lab-project.onrender.com**  
+Production URL: **https://face-forensics.onrender.com**  
 Deployed from Git branch **`main`** via Docker on Render free tier
 (512 MB RAM; 2-model image via `webapp/.dockerignore`). See `../doc/READMEdeployment.md`.
 
@@ -798,7 +798,7 @@ webapp/backend/
 | Component | Configuration |
 |---|---|
 | **Platform** | Render — free-tier web service |
-| **Live URL** | https://group-11-ds-and-ai-lab-project.onrender.com |
+| **Live URL** | https://face-forensics.onrender.com |
 | **Source branch** | **`main`** |
 | **Build** | Docker — `webapp/backend/Dockerfile`, context `./webapp` |
 | **Infrastructure** | `render.yaml` (Render Blueprint) |

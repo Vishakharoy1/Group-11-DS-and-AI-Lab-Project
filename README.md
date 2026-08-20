@@ -1,6 +1,6 @@
 # Deep Learning-Based Human Face Authenticity Detection
 
-**🔗 [Live Demo (Render)](https://group-11-ds-and-ai-lab-project.onrender.com/)** ·
+**🔗 [Live Demo (Render)](https://face-forensics.onrender.com/)** ·
 **[HF Space Demo](https://huggingface.co/spaces/somendu007/deepfake-detection)** ·
 **[Deployment Guide](doc/READMEdeployment.md)** ·
 **[Developer Guide](doc/DeveloperGuide.md)** ·
@@ -90,7 +90,7 @@ details — model loading, endpoints (`/predict`, `/robustness`,
 
 ### Production deployment (Render)
 
-**Live app:** https://group-11-ds-and-ai-lab-project.onrender.com
+**Live app:** https://face-forensics.onrender.com
 
 Built from **`main`** using `render.yaml`, `webapp/backend/Dockerfile`, and
 `webapp/.dockerignore` (ships **`noaug`** + **`cross_domain`** only).

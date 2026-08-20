@@ -86,7 +86,7 @@ A new user can perform an image analysis without needing to interact directly wi
 
 Open the deployed app in any web browser:
 
-**https://group-11-ds-and-ai-lab-project.onrender.com**
+**https://face-forensics.onrender.com**
 
 No installation is required. On the free hosting tier, the first visit
 after a period of inactivity may take **30–60 seconds** while the server
