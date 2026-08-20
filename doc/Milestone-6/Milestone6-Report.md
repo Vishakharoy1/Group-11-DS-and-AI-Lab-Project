@@ -343,7 +343,7 @@ overlay = Image.blend(display_img, heatmap_img, alpha=0.45)
 
 ![Grad-CAM overlay — web application output](../../Images/Grad_Cam.png)
 
-**Latency impact:** MobileNetV3 forward pass ≈ **15.8 ms** (CPU); Grad-CAM backward pass ≈ **2.0 s** — explainability dominates end-to-end `/predict` latency (~2–3 s total).
+**Latency impact:** MobileNetV3 forward pass ≈ **15.8 ms** (CPU); Grad-CAM backward pass ≈ **2.0 s** — explainability dominated end-to-end `/predict` latency (~2–3 s total) locally. This was the motivation for the on-demand split described in B.7/B.10.
 
 #### B.6.2 Diagnosed Limitations (Research Review)
 
@@ -384,7 +384,7 @@ $$w_{i,j}^k = \text{ReLU}\left(\frac{\partial Y^c}{\partial A_{i,j}^k}\right), \
 | Layer-CAM element-wise weighting | 📋 Researched & documented; not yet in `gradcam.py` |
 | Multi-layer fusion (11 + -1) | 📋 Researched & documented |
 | Turbo colormap + adaptive alpha | 📋 Researched & documented |
-| On-demand Grad-CAM (latency fix) | 📋 Planned — separate UI trigger |
+| On-demand Grad-CAM (latency fix) | ✅ **Shipped** (M6) — see B.7/B.10 for the split and measured Render numbers |
 
 ### B.7 Deployment Details
 
@@ -393,13 +393,28 @@ $$w_{i,j}^k = \text{ReLU}\left(\frac{\partial Y^c}{\partial A_{i,j}^k}\right), \
 | Endpoint | Method | Description |
 |---|---|---|
 | `/health` | GET | Loaded models + face alignment method |
-| `/predict?model=noaug` | POST | Classification + Grad-CAM + JSON response (default `noaug`) |
+| `/predict?model=noaug` | POST | Classification-only (forward pass) JSON response (default `noaug`) — no Grad-CAM |
+| `/gradcam?model=noaug` | POST | Grad-CAM heatmap + overlay for the same image — called only when the user opens the Grad-CAM page or generates a report |
 | `/robustness` | POST | 11 manipulation modes via `manipulations` checkpoint |
 | `/compare?mode=augmentation` | POST | Side-by-side `best` vs `noaug` |
 | `/report` | POST | Printable HTML forensic report |
 | `/api/training-results` | GET | Pre-computed CSV/PNG evaluation artifacts |
 
 **Swagger UI:** `http://localhost:8000/docs` (local) · `https://face-forensics.onrender.com/docs` (Render)
+
+### B.7a On-Demand Grad-CAM (Latency Fix, M6)
+
+`/predict` previously ran the full Grad-CAM pipeline (forward pass + backward pass + heatmap render) on every call, even though the UI already treats Analyze and Grad-CAM as separate steps on separate pages — most users never open the Grad-CAM page, so that work was wasted on every analysis. `/predict` now does a plain forward-pass prediction only; Grad-CAM moved to the new `/gradcam` endpoint above, called on-demand when the user clicks **Run Grad-CAM** (or **Generate Forensic Report**, which also embeds the overlay).
+
+**Measured on the live Render deployment** (free-tier CPU, service warm — excludes the ~30-60s cold-start Render adds after idle, see B.9):
+
+| Step | Time |
+|---|---|
+| Analyze (`/predict` only) | **33.3 s** |
+| Run Grad-CAM (`/gradcam`, on demand) | **22.2 s** |
+| Combined, if both are used | ~55.5 s |
+
+Previously every Analyze click paid the full ~55s regardless of whether Grad-CAM was ever viewed. Splitting the two cuts the common case (verdict only) by roughly **40%**.
 
 ### B.8 System Design Considerations
 
@@ -462,7 +477,7 @@ Open [somendu007/deepfake-detection](https://huggingface.co/spaces/somendu007/de
 | Problem | Solution |
 |---|---|
 | `no_models_loaded` on `/health` | Place `.pth` files in `webapp/output/` and restart |
-| Slow `/predict` (~2–3 s) | Normal — Grad-CAM backward pass dominates |
+| Slow `/predict` locally (~2–3 s) | Normal on CPU — dominated by the MobileNetV3 forward pass + face detection; Grad-CAM is no longer part of `/predict` (see B.7a), it runs separately on `/gradcam` |
 | Wrong predictions on full photos | Upload pre-cropped face images - RetinaFace is unavailable on Render (always) and on Windows N locally, so center-crop is used |
 | HF Space "Building" | Wait 1–2 min for Docker cold start |
 | Render cold start / slow first load | Free tier may spin down after idle — first request can take 30–60 s |
@@ -511,7 +526,7 @@ curl -X POST "http://localhost:8000/predict?model=noaug" \
 | Limitation | Severity |
 |---|---|
 | Real-Latest probe collapse (8.6%) | **High** |
-| Grad-CAM latency on every `/predict` | Medium |
+| ~~Grad-CAM latency on every `/predict`~~ | ~~Medium~~ — Fixed M6, see B.7a |
 | Layer-CAM (researched, not yet coded in `gradcam.py`) | Medium |
 | Demographic bias never audited | Medium |
 | GPU latency not directly measured | Low |
