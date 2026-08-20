@@ -506,14 +506,14 @@ function renderResultCard(pageKey, resultArea) {
       </div>
     </div>
     <div class="action-row">
-      <button class="btn" id="view-gradcam-btn">&#8857; Run Grad-CAM</button>
-      <button class="btn btn-primary" id="generate-report-btn">&#128196; Generate Forensic Report</button>
+      <button class="btn" id="view-gradcam-btn-${pageKey}">&#8857; Run Grad-CAM</button>
+      <button class="btn btn-primary" id="generate-report-btn-${pageKey}">&#128196; Generate Forensic Report</button>
     </div>
     ${metaPanelHtml(a)}
   `;
 
-  document.getElementById("view-gradcam-btn").addEventListener("click", () => goToPage("gradcam"));
-  document.getElementById("generate-report-btn").addEventListener("click", () => goToPage("report"));
+  resultArea.querySelector(`#view-gradcam-btn-${pageKey}`).addEventListener("click", () => goToPage("gradcam"));
+  resultArea.querySelector(`#generate-report-btn-${pageKey}`).addEventListener("click", () => goToPage("report"));
 }
 
 function metaVerdictClass(verdict) {
