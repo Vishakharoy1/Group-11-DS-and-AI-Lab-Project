@@ -208,6 +208,12 @@ function fileTypeLabel(file) {
 }
 const PREVIEW_MAX_DIM = 1280; // longest side, px
 const PREVIEW_JPEG_QUALITY = 0.82;
+const UPLOAD_MAX_DIM = 1600; // matches preprocessing.py's MAX_DETECTION_DIM -
+// the server downscales to this same cap before face detection anyway, and
+// the model only ever sees a 224x224 crop, so resizing here loses nothing
+// but cuts upload payload size and server-side decode time for large
+// photos (this is what actually gets sent to /predict, not just the preview).
+const UPLOAD_JPEG_QUALITY = 0.9;
 
 function readImageDims(file) {
   // Renders a size-capped JPEG data: URL for the preview/history/report
@@ -219,6 +225,13 @@ function readImageDims(file) {
   // still used so it survives JSON-serializing into localStorage and
   // still works after a page reload - blob: URLs are invalidated as soon
   // as the page that created them unloads.
+  //
+  // Also produces `uploadBlob`: the actual payload sent to /predict,
+  // downscaled to UPLOAD_MAX_DIM. A >4-6MB phone photo previously went to
+  // the server untouched, which combined with Render's 512MB free-tier RAM
+  // caused request timeouts/crashes during preprocessing. If the original
+  // is already <= UPLOAD_MAX_DIM, the original file is uploaded unchanged
+  // (no needless re-encode).
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -227,12 +240,28 @@ function readImageDims(file) {
         const w = img.naturalWidth;
         const h = img.naturalHeight;
         const longest = Math.max(w, h);
-        const scale = longest > PREVIEW_MAX_DIM ? PREVIEW_MAX_DIM / longest : 1;
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(w * scale));
-        canvas.height = Math.max(1, Math.round(h * scale));
-        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve({ w, h, url: canvas.toDataURL("image/jpeg", PREVIEW_JPEG_QUALITY) });
+
+        const previewScale = longest > PREVIEW_MAX_DIM ? PREVIEW_MAX_DIM / longest : 1;
+        const previewCanvas = document.createElement("canvas");
+        previewCanvas.width = Math.max(1, Math.round(w * previewScale));
+        previewCanvas.height = Math.max(1, Math.round(h * previewScale));
+        previewCanvas.getContext("2d").drawImage(img, 0, 0, previewCanvas.width, previewCanvas.height);
+        const url = previewCanvas.toDataURL("image/jpeg", PREVIEW_JPEG_QUALITY);
+
+        if (longest <= UPLOAD_MAX_DIM) {
+          resolve({ w, h, url, uploadBlob: file });
+          return;
+        }
+        const uploadScale = UPLOAD_MAX_DIM / longest;
+        const uploadCanvas = document.createElement("canvas");
+        uploadCanvas.width = Math.max(1, Math.round(w * uploadScale));
+        uploadCanvas.height = Math.max(1, Math.round(h * uploadScale));
+        uploadCanvas.getContext("2d").drawImage(img, 0, 0, uploadCanvas.width, uploadCanvas.height);
+        uploadCanvas.toBlob(
+          (blob) => resolve({ w, h, url, uploadBlob: blob || file }),
+          "image/jpeg",
+          UPLOAD_JPEG_QUALITY
+        );
       };
       img.onerror = () => reject(new Error("Could not read this image file."));
       img.src = reader.result;
@@ -310,7 +339,7 @@ async function handleFileSelected(pageKey, modelKey, file, modelAvailable) {
   }
   try {
     const dims = await readImageDims(file);
-    pageFileState[pageKey] = { file, previewUrl: dims.url, w: dims.w, h: dims.h };
+    pageFileState[pageKey] = { file, previewUrl: dims.url, w: dims.w, h: dims.h, uploadBlob: dims.uploadBlob };
     renderPreviewStage(pageKey, modelKey, modelAvailable);
   } catch (e) {
     showUploadError(pageKey, "Could not read this image file. Try a different file.");
@@ -386,9 +415,9 @@ async function runAnalysis(pageKey, modelKey) {
     </div>
   `;
 
-  const { file, previewUrl, w, h } = pageFileState[pageKey];
+  const { file, previewUrl, w, h, uploadBlob } = pageFileState[pageKey];
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", uploadBlob || file, file.name);
 
   try {
     const res = await fetch(`/predict?model=${modelKey}`, { method: "POST", body: formData });
