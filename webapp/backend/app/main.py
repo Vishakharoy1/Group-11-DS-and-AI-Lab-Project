@@ -134,14 +134,17 @@ async def predict(model: str = "noaug", file: UploadFile = File(...)):
 
 
 @app.post("/gradcam", response_model=GradcamResponse)
-async def gradcam_endpoint(model: str = "noaug", file: UploadFile = File(...)):
-    """Runs Grad-CAM on demand - called only when the user opens the
-    Grad-CAM page, not on every /predict call."""
+async def gradcam_endpoint(model: str = "noaug", cam_method: str = "gradcam", file: UploadFile = File(...)):
+    """Runs Grad-CAM (default) or Layer-CAM on demand - called only when
+    the user opens the Grad-CAM page, not on every /predict call.
+    cam_method: "gradcam" or "layercam"."""
     model_obj = _require_model(model)
     image, _data = await _load_upload_image(file)
 
     cropped, method = preprocessing.crop_and_align_face(image)
-    result = gradcam.gradcam_overlay(model_obj, cropped, preprocessing.val_transform, registry.device)
+    result = gradcam.gradcam_overlay(
+        model_obj, cropped, preprocessing.val_transform, registry.device, method=cam_method
+    )
 
     return GradcamResponse(
         prediction=PredictionResult(**result["prediction"]),

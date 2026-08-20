@@ -380,9 +380,9 @@ $$w_{i,j}^k = \text{ReLU}\left(\frac{\partial Y^c}{\partial A_{i,j}^k}\right), \
 
 | Feature | Status |
 |---|---|
-| Grad-CAM on `features[-1]` (jet, α=0.45) | ✅ **Deployed** in `gradcam.py` |
-| Layer-CAM element-wise weighting | 📋 Researched & documented; not yet in `gradcam.py` |
-| Multi-layer fusion (11 + -1) | 📋 Researched & documented |
+| Grad-CAM on `features[-1]` (jet, α=0.45) | ✅ **Deployed** in `gradcam.py`, default explainability method |
+| Layer-CAM element-wise weighting (single layer, `features[-1]`) | ✅ **Implemented** in `gradcam.py` (M6) — `gradcam_overlay(..., method="layercam")`, not yet exposed in the UI (backend-only, opt-in via `/gradcam?cam_method=layercam`) |
+| Multi-layer fusion (6 + 11 + -1) | 📋 Researched & documented; not yet implemented — single-layer `features[-1]` limits Layer-CAM's spatial-detail advantage, which is more pronounced on shallower layers |
 | Turbo colormap + adaptive alpha | 📋 Researched & documented |
 | On-demand Grad-CAM (latency fix) | ✅ **Shipped** (M6) — see B.7/B.10 for the split and measured Render numbers |
 

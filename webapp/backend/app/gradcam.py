@@ -15,7 +15,11 @@ from . import config
 _JET_CMAP = matplotlib.colormaps["jet"]
 
 
-class GradCAM:
+class _CAMBase:
+    """Shared forward/backward/interpolate/normalize plumbing. Subclasses
+    only need to implement _weights() - the one line that actually
+    differs between Grad-CAM and Layer-CAM."""
+
     def __init__(self, model, target_layer):
         self.model = model
         self.activations = None
@@ -28,6 +32,9 @@ class GradCAM:
 
     def _save_gradients(self, gradients):
         self.gradients = gradients
+
+    def _weights(self):
+        raise NotImplementedError
 
     def __call__(self, input_tensor, class_idx=None):
         was_training = self.model.training
@@ -42,7 +49,7 @@ class GradCAM:
             class_idx = logits.argmax(dim=1).item()
 
         logits[0, class_idx].backward()
-        weights = self.gradients.mean(dim=(2, 3), keepdim=True)
+        weights = self._weights()
         heatmap = (weights * self.activations).sum(dim=1, keepdim=True)
         heatmap = torch.relu(heatmap)
         heatmap = F.interpolate(
@@ -61,19 +68,43 @@ class GradCAM:
         self.forward_handle.remove()
 
 
+class GradCAM(_CAMBase):
+    """Classic Grad-CAM (Selvaraju et al., 2017): one weight per channel,
+    global-average-pooled from the gradients."""
+
+    def _weights(self):
+        return self.gradients.mean(dim=(2, 3), keepdim=True)
+
+
+class LayerCAM(_CAMBase):
+    """Layer-CAM (Jiang et al., 2021): one weight per *pixel*, no spatial
+    pooling - preserves fine-grained spatial detail that Grad-CAM's GAP
+    step washes out, at the cost of a noisier-looking heatmap on shallow
+    layers. w_ij = ReLU(dY/dA_ij), no channel-wise averaging."""
+
+    def _weights(self):
+        return torch.relu(self.gradients)
+
+
 def _pil_to_b64(image: Image.Image) -> str:
     buf = io.BytesIO()
     image.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
-def gradcam_overlay(model, image: Image.Image, transform, device, alpha: float = 0.45):
-    """Run Grad-CAM on one model/image.
+_CAM_CLASSES = {"gradcam": GradCAM, "layercam": LayerCAM}
+
+
+def gradcam_overlay(model, image: Image.Image, transform, device, alpha: float = 0.45, method: str = "gradcam"):
+    """Run Grad-CAM or Layer-CAM on one model/image.
+
+    method: "gradcam" (default, unchanged behaviour) or "layercam".
 
     Returns dict: {prediction: {label, real_pct, fake_pct},
                     heatmap_b64, overlay_b64}
     """
-    gc = GradCAM(model, model.features[-1])
+    cam_cls = _CAM_CLASSES.get(method, GradCAM)
+    gc = cam_cls(model, model.features[-1])
     try:
         x = transform(image).unsqueeze(0).to(device)
         heatmap, explained_class, probabilities = gc(x, None)
