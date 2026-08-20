@@ -86,6 +86,78 @@ class LayerCAM(_CAMBase):
         return torch.relu(self.gradients)
 
 
+class MultiLayerCAM:
+    """Layer-CAM fusion across multiple layers (e.g. features[11] +
+    features[-1], matching the HF Space's claimed - but not actually
+    implemented - target layers). Each layer's heatmap is computed
+    independently with Layer-CAM's per-pixel weighting, min-max
+    normalized on its own, THEN combined - combining unnormalized
+    heatmaps would let whichever layer has larger gradient magnitude
+    silently dominate regardless of which is more informative."""
+
+    def __init__(self, model, target_layers, combine: str = "max"):
+        self.model = model
+        self.target_layers = target_layers
+        self.combine = combine
+        self.activations = {}
+        self.gradients = {}
+        self.handles = [layer.register_forward_hook(self._make_save_fn(layer)) for layer in target_layers]
+
+    def _make_save_fn(self, layer):
+        def _save_activations(module, inputs, output):
+            self.activations[layer] = output
+            output.register_hook(self._make_grad_fn(layer))
+        return _save_activations
+
+    def _make_grad_fn(self, layer):
+        def _save_gradients(gradients):
+            self.gradients[layer] = gradients
+        return _save_gradients
+
+    def __call__(self, input_tensor, class_idx=None):
+        was_training = self.model.training
+        self.model.eval()
+        self.model.zero_grad(set_to_none=True)
+        input_tensor = input_tensor.requires_grad_(True)
+
+        logits = self.model(input_tensor)
+        probabilities = torch.softmax(logits, dim=1).detach().cpu()
+
+        if class_idx is None:
+            class_idx = logits.argmax(dim=1).item()
+
+        # One backward pass triggers every registered hook - not one pass
+        # per layer, so fusion costs about the same latency as single-layer.
+        logits[0, class_idx].backward()
+
+        per_layer_maps = []
+        for layer in self.target_layers:
+            weights = torch.relu(self.gradients[layer])
+            heatmap = (weights * self.activations[layer]).sum(dim=1, keepdim=True)
+            heatmap = torch.relu(heatmap)
+            heatmap = F.interpolate(
+                heatmap, size=input_tensor.shape[-2:], mode="bilinear", align_corners=False
+            )[0, 0]
+            heatmap = heatmap - heatmap.min()
+            heatmap = heatmap / (heatmap.max() + 1e-8)
+            per_layer_maps.append(heatmap)
+
+        stacked = torch.stack(per_layer_maps)
+        fused = stacked.amax(dim=0) if self.combine == "max" else stacked.mean(dim=0)
+
+        fused = fused - fused.min()
+        fused = fused / (fused.max() + 1e-8)
+
+        if was_training:
+            self.model.train()
+
+        return fused.detach().cpu().numpy(), int(class_idx), probabilities
+
+    def close(self):
+        for h in self.handles:
+            h.remove()
+
+
 def _pil_to_b64(image: Image.Image) -> str:
     buf = io.BytesIO()
     image.save(buf, format="PNG")
@@ -96,15 +168,21 @@ _CAM_CLASSES = {"gradcam": GradCAM, "layercam": LayerCAM}
 
 
 def gradcam_overlay(model, image: Image.Image, transform, device, alpha: float = 0.45, method: str = "gradcam"):
-    """Run Grad-CAM or Layer-CAM on one model/image.
+    """Run Grad-CAM, Layer-CAM, or fused multi-layer Layer-CAM on one
+    model/image.
 
-    method: "gradcam" (default, unchanged behaviour) or "layercam".
+    method: "gradcam" (default, unchanged behaviour), "layercam"
+    (single-layer, features[-1]), or "layercam_fused" (features[11] +
+    features[-1], element-wise max combine).
 
     Returns dict: {prediction: {label, real_pct, fake_pct},
                     heatmap_b64, overlay_b64}
     """
-    cam_cls = _CAM_CLASSES.get(method, GradCAM)
-    gc = cam_cls(model, model.features[-1])
+    if method == "layercam_fused":
+        gc = MultiLayerCAM(model, [model.features[11], model.features[-1]], combine="max")
+    else:
+        cam_cls = _CAM_CLASSES.get(method, GradCAM)
+        gc = cam_cls(model, model.features[-1])
     try:
         x = transform(image).unsqueeze(0).to(device)
         heatmap, explained_class, probabilities = gc(x, None)

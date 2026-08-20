@@ -684,6 +684,7 @@ function metaPanelHtml(a) {
 
 /* ===================== Grad-CAM page ===================== */
 let gradcamMode = "overlay";
+let gradcamMethod = "gradcam"; // "gradcam" | "layercam" | "layercam_fused" - experimental, compares CAM variants
 let gradcamIntensity = 65;
 
 function emptyStateHtml(title, sub) {
@@ -746,9 +747,54 @@ async function renderGradcamPage() {
   renderGradcamVisualization(body);
 }
 
+const CAM_METHOD_LABELS = {
+  gradcam: "Grad-CAM",
+  layercam: "Layer-CAM",
+  layercam_fused: "Layer-CAM (Fused)",
+};
+
+function currentCamResult(a) {
+  if (gradcamMethod === "gradcam") return { heatmap: a.heatmapB64, overlay: a.overlayB64 };
+  const cached = a.camCache && a.camCache[gradcamMethod];
+  return cached || { heatmap: a.heatmapB64, overlay: a.overlayB64 };
+}
+
+async function switchCamMethod(method, body) {
+  const a = activeAnalysis;
+  gradcamMethod = method;
+  a.camCache = a.camCache || {};
+
+  if (method !== "gradcam" && !a.camCache[method]) {
+    body.innerHTML = `
+      <div class="card analyzing-card">
+        <div class="spinner-ring"></div>
+        <div class="analyzing-title">COMPUTING ${CAM_METHOD_LABELS[method].toUpperCase()}</div>
+        <div class="analyzing-sub">Running the alternate explainability method…</div>
+      </div>
+    `;
+    try {
+      const formData = new FormData();
+      formData.append("file", await resolveUploadBlob(a), a.filename);
+      const res = await fetch(`/gradcam?model=${a.modelKey}&cam_method=${method}`, { method: "POST", body: formData });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        throw new Error(detail.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      a.camCache[method] = { heatmap: data.gradcam_heatmap, overlay: data.gradcam_overlay };
+    } catch (e) {
+      body.innerHTML = `<p style="color:var(--fake); padding:16px;">${CAM_METHOD_LABELS[method]} failed: ${e.message}</p>`;
+      return;
+    }
+  }
+
+  renderGradcamVisualization(body);
+}
+
 function renderGradcamVisualization(body) {
   const a = activeAnalysis;
   const isReal = a.label === "Real";
+  const cam = currentCamResult(a);
 
   body.innerHTML = `
     <div class="gradcam-meta-bar">
@@ -758,16 +804,25 @@ function renderGradcamVisualization(body) {
       <div class="gradcam-meta-item"><div class="k">CONFIDENCE</div><div class="v">${(isReal ? a.realPct : a.fakePct).toFixed(2)}%</div></div>
     </div>
 
+    <div class="gradcam-controls" style="margin-bottom:12px;">
+      <div class="mode-toggle" id="cam-method-toggle">
+        <button class="mode-btn" data-method="gradcam">Grad-CAM</button>
+        <button class="mode-btn" data-method="layercam">Layer-CAM</button>
+        <button class="mode-btn" data-method="layercam_fused">Layer-CAM (Fused)</button>
+      </div>
+    </div>
+    <p style="font-size:0.78rem; color:var(--muted); margin:-6px 0 14px 0;">Experimental — compares different explainability methods on the same prediction. Not a forgery localizer; see note below.</p>
+
     <div class="gradcam-images">
       <div class="gradcam-panel">
         <div class="gradcam-panel-title">ORIGINAL IMAGE</div>
         <img src="${a.previewUrl}" alt="original" />
       </div>
       <div class="gradcam-panel">
-        <div class="gradcam-panel-title">GRAD-CAM <span id="gradcam-mode-label">OVERLAY</span></div>
+        <div class="gradcam-panel-title">${CAM_METHOD_LABELS[gradcamMethod].toUpperCase()} <span id="gradcam-mode-label">OVERLAY</span></div>
         <div style="position:relative;">
           <img id="gradcam-base-img" src="${a.previewUrl}" alt="base" style="display:block;" />
-          <img id="gradcam-heat-img" src="data:image/png;base64,${a.heatmapB64}" alt="heatmap"
+          <img id="gradcam-heat-img" src="data:image/png;base64,${cam.heatmap}" alt="heatmap"
                style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:${gradcamIntensity / 100};" />
         </div>
       </div>
@@ -799,8 +854,16 @@ function renderGradcamVisualization(body) {
     </div>
   `;
 
+  document.querySelectorAll("#cam-method-toggle .mode-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.method === gradcamMethod);
+    btn.addEventListener("click", () => {
+      if (btn.dataset.method === gradcamMethod) return;
+      switchCamMethod(btn.dataset.method, body);
+    });
+  });
+
   applyGradcamMode(gradcamMode);
-  document.querySelectorAll(".mode-btn").forEach((btn) => {
+  document.querySelectorAll("#mode-toggle .mode-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.mode === gradcamMode);
     btn.addEventListener("click", () => { gradcamMode = btn.dataset.mode; applyGradcamMode(gradcamMode); });
   });
@@ -815,12 +878,13 @@ function renderGradcamVisualization(body) {
 }
 
 function applyGradcamMode(mode) {
-  document.querySelectorAll(".mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
+  document.querySelectorAll("#mode-toggle .mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
   const label = document.getElementById("gradcam-mode-label");
   const base = document.getElementById("gradcam-base-img");
   const heat = document.getElementById("gradcam-heat-img");
   const intensityRow = document.getElementById("intensity-row");
   if (!base || !heat) return;
+  const cam = currentCamResult(activeAnalysis);
 
   if (mode === "original") {
     label.textContent = "ORIGINAL";
@@ -829,7 +893,7 @@ function applyGradcamMode(mode) {
     intensityRow.style.visibility = "hidden";
   } else if (mode === "heatmap") {
     label.textContent = "HEATMAP";
-    base.src = `data:image/png;base64,${activeAnalysis.heatmapB64}`;
+    base.src = `data:image/png;base64,${cam.heatmap}`;
     heat.style.opacity = 0;
     intensityRow.style.visibility = "hidden";
   } else {
@@ -841,10 +905,10 @@ function applyGradcamMode(mode) {
 }
 
 function downloadGradcamVisualization() {
-  const heat = document.getElementById("gradcam-heat-img");
+  const cam = currentCamResult(activeAnalysis);
   const link = document.createElement("a");
-  link.href = gradcamMode === "heatmap" ? `data:image/png;base64,${activeAnalysis.heatmapB64}` : `data:image/png;base64,${activeAnalysis.overlayB64}`;
-  link.download = `${activeAnalysis.analysisId}_gradcam_${gradcamMode}.png`;
+  link.href = gradcamMode === "heatmap" ? `data:image/png;base64,${cam.heatmap}` : `data:image/png;base64,${cam.overlay}`;
+  link.download = `${activeAnalysis.analysisId}_${gradcamMethod}_${gradcamMode}.png`;
   link.click();
 }
 
