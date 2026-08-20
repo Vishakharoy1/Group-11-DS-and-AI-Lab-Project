@@ -279,6 +279,68 @@ function nowString() {
 /* ===================== Upload stage (Main + Cross-Domain pages share this) ===================== */
 const pageFileState = {}; // pageKey -> { file, previewUrl, w, h }
 
+// Sample gallery: pre-loaded real/fake images so evaluators can try the
+// model without needing their own test images. Files live in
+// static/samples/<category>/<n>.jpg (see webapp/backend/prepare_samples.py).
+const SAMPLE_SETS = {
+  main: { real: { category: "main-real", count: 10 }, fake: { category: "main-fake", count: 10 } },
+  crossdomain: { real: { category: "cross-real", count: 10 }, fake: { category: "cross-fake", count: 9 } },
+};
+
+function sampleGalleryHtml(pageKey) {
+  const set = SAMPLE_SETS[pageKey];
+  if (!set) return "";
+  const thumb = (category, n) =>
+    `<button type="button" class="sample-thumb" data-sample-category="${category}" data-sample-n="${n}" title="Sample ${n}">
+      <img src="samples/${category}/${n}.jpg" alt="${category} sample ${n}" loading="lazy" />
+    </button>`;
+  const realThumbs = Array.from({ length: set.real.count }, (_, i) => thumb(set.real.category, i + 1)).join("");
+  const fakeThumbs = Array.from({ length: set.fake.count }, (_, i) => thumb(set.fake.category, i + 1)).join("");
+
+  return `
+    <div class="sample-gallery">
+      <button type="button" class="sample-gallery-toggle" id="sample-toggle-${pageKey}">
+        &#9656; Try a sample image
+      </button>
+      <div class="sample-gallery-body" id="sample-body-${pageKey}" hidden>
+        <div class="sample-gallery-label">Real (${set.real.count})</div>
+        <div class="sample-thumb-row">${realThumbs}</div>
+        <div class="sample-gallery-label">AI-Generated / Fake (${set.fake.count})</div>
+        <div class="sample-thumb-row">${fakeThumbs}</div>
+      </div>
+    </div>
+  `;
+}
+
+function wireSampleGallery(pageKey, modelKey, modelAvailable) {
+  const toggle = document.getElementById(`sample-toggle-${pageKey}`);
+  const body = document.getElementById(`sample-body-${pageKey}`);
+  if (!toggle || !body) return;
+
+  toggle.addEventListener("click", () => {
+    const isHidden = body.hasAttribute("hidden");
+    if (isHidden) body.removeAttribute("hidden"); else body.setAttribute("hidden", "");
+    toggle.innerHTML = (isHidden ? "&#9662; Try a sample image" : "&#9656; Try a sample image");
+  });
+
+  body.querySelectorAll(".sample-thumb").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const category = btn.dataset.sampleCategory;
+      const n = btn.dataset.sampleN;
+      body.querySelectorAll(".sample-thumb").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      try {
+        const res = await fetch(`samples/${category}/${n}.jpg`);
+        const blob = await res.blob();
+        const file = new File([blob], `${category}-${n}.jpg`, { type: "image/jpeg" });
+        handleFileSelected(pageKey, modelKey, file, modelAvailable);
+      } catch (e) {
+        showUploadError(pageKey, "Could not load the sample image. Try again or upload your own.");
+      }
+    });
+  });
+}
+
 function renderUploadStage(pageKey, modelKey, modelAvailable) {
   const container = document.querySelector(`[data-page-body="${pageKey}"]`);
   if (!container) return;
@@ -306,6 +368,7 @@ function renderUploadStage(pageKey, modelKey, modelAvailable) {
         Upload an image to begin analysis.
       </div>
     </div>
+    ${sampleGalleryHtml(pageKey)}
   `;
 
   const dropzone = document.getElementById(`dropzone-${pageKey}`);
@@ -322,6 +385,8 @@ function renderUploadStage(pageKey, modelKey, modelAvailable) {
   fileInput.addEventListener("change", () => {
     if (fileInput.files.length) handleFileSelected(pageKey, modelKey, fileInput.files[0], modelAvailable);
   });
+
+  wireSampleGallery(pageKey, modelKey, modelAvailable);
 }
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // matches config.MAX_UPLOAD_BYTES server-side
