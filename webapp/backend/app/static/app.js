@@ -132,7 +132,7 @@ const MODEL_DETAILS = {
   },
   best: {
     heading: "Model 2 — Research / Best Model",
-    subheading: "mobilenetv3_best.pth · Local research checkpoint",
+    subheading: "mobilenetv3_best.pth · Deployed, opt-in via this toggle",
     rows: [
       ["Checkpoint", "mobilenetv3_best.pth"],
       ["Architecture", "MobileNetV3-Large (same backbone/head as Model 1)"],
@@ -141,7 +141,7 @@ const MODEL_DETAILS = {
       ["Held-out test accuracy", "99.63% (2,401 images)"],
       ["Fake recall", "99.89% (1 missed fake)"],
       ["Real false alarms", "8 real images flagged fake"],
-      ["Deployment role", "Research/comparison checkpoint — local only, excluded from the production Docker build. Higher accuracy than Model 1, but not used as the default because it occasionally misses a fake."],
+      ["Deployment role", "Research/comparison checkpoint — deployed on Render alongside Model 1, selectable via this toggle. Higher overall accuracy than Model 1, but not the default because it occasionally misses a fake (Model 1 misses zero)."],
     ],
   },
 };
