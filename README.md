@@ -1,11 +1,12 @@
 # Deep Learning-Based Human Face Authenticity Detection
 
-**🔗 [Live Demo (Render)](https://face-forensics.onrender.com/)** ·
-**[HF Space Demo](https://huggingface.co/spaces/somendu007/deepfake-detection)** ·
-**[Deployment Guide](doc/READMEdeployment.md)** ·
-**[Developer Guide](doc/DeveloperGuide.md)** ·
-**[User Guide](doc/User%20guide.md)** ·
-**[Final Technical Report](doc/Final-Technical-Report.md)**
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen?style=flat-square&logo=render&logoColor=white)](https://face-forensics.onrender.com/)
+[![HF Space](https://img.shields.io/badge/HF-Space-yellow?style=flat-square&logo=huggingface&logoColor=white)](https://huggingface.co/spaces/somendu007/deepfake-detection)
+[![Docker](https://img.shields.io/badge/docker-build_spec-2496ED?style=flat-square&logo=docker&logoColor=white)](webapp/backend/Dockerfile)
+[![Deployment Guide](https://img.shields.io/badge/docs-deployment-blue?style=flat-square)](doc/READMEdeployment.md)
+[![Developer Guide](https://img.shields.io/badge/docs-developer-blue?style=flat-square)](doc/DeveloperGuide.md)
+[![User Guide](https://img.shields.io/badge/docs-user-blue?style=flat-square)](doc/User%20guide.md)
+[![Final Report](https://img.shields.io/badge/report-final_technical-orange?style=flat-square)](doc/Final-Technical-Report.md)
 
 Detect authentic vs. AI-generated human faces using **MobileNetV3-Large**
 with a three-stage transfer-learning strategy, Grad-CAM explainability,
