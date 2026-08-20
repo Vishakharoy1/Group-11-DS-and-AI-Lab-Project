@@ -442,8 +442,9 @@ async function runAnalysis(pageKey, modelKey) {
       label: p.label,
       realPct: p.real_pct,
       fakePct: p.fake_pct,
-      heatmapB64: data.gradcam_heatmap,
-      overlayB64: data.gradcam_overlay,
+      heatmapB64: null,
+      overlayB64: null,
+      uploadBlob: uploadBlob || file,
       faceAlignmentUsed: data.face_alignment_used,
       meta: data.meta_detector || null,
       generatedAt: nowString(),
@@ -505,7 +506,7 @@ function renderResultCard(pageKey, resultArea) {
       </div>
     </div>
     <div class="action-row">
-      <button class="btn" id="view-gradcam-btn">&#8857; View Grad-CAM</button>
+      <button class="btn" id="view-gradcam-btn">&#8857; Run Grad-CAM</button>
       <button class="btn btn-primary" id="generate-report-btn">&#128196; Generate Forensic Report</button>
     </div>
     ${metaPanelHtml(a)}
@@ -602,7 +603,17 @@ function emptyStateHtml(title, sub) {
   `;
 }
 
-function renderGradcamPage() {
+// history entries are JSON-persisted to localStorage, which can't hold a
+// real Blob (a.uploadBlob survives only within the current page session) -
+// on a reopened history entry from a previous session, fall back to
+// re-deriving the upload bytes from the already-persisted preview data URL.
+async function resolveUploadBlob(a) {
+  if (a.uploadBlob instanceof Blob) return a.uploadBlob;
+  const res = await fetch(a.previewUrl);
+  return res.blob();
+}
+
+async function renderGradcamPage() {
   const body = document.getElementById("gradcam-body");
   if (!activeAnalysis) {
     body.innerHTML = emptyStateHtml(
@@ -611,6 +622,37 @@ function renderGradcamPage() {
     );
     return;
   }
+  const a = activeAnalysis;
+
+  if (!a.heatmapB64) {
+    body.innerHTML = `
+      <div class="card analyzing-card">
+        <div class="spinner-ring"></div>
+        <div class="analyzing-title">RUNNING GRAD-CAM</div>
+        <div class="analyzing-sub">Computing the model attention heatmap…</div>
+      </div>
+    `;
+    try {
+      const formData = new FormData();
+      formData.append("file", await resolveUploadBlob(a), a.filename);
+      const res = await fetch(`/gradcam?model=${a.modelKey}`, { method: "POST", body: formData });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        throw new Error(detail.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      a.heatmapB64 = data.gradcam_heatmap;
+      a.overlayB64 = data.gradcam_overlay;
+    } catch (e) {
+      body.innerHTML = `<p style="color:var(--fake); padding:16px;">Grad-CAM failed: ${e.message}</p>`;
+      return;
+    }
+  }
+
+  renderGradcamVisualization(body);
+}
+
+function renderGradcamVisualization(body) {
   const a = activeAnalysis;
   const isReal = a.label === "Real";
 
@@ -716,7 +758,7 @@ function downloadGradcamVisualization() {
 const INFERENCE_STEPS_APPLIED = ["Face Detection", "Image Resize", "Normalization", "Tensor Conversion"];
 const TRAINING_AUGMENTATIONS = ["Random Resized Crop", "Random Horizontal Flip", "Color Jitter", "Channel Shift", "Gaussian Blur", "JPEG Compression", "Gaussian Noise"];
 
-function renderReportPage() {
+async function renderReportPage() {
   const body = document.getElementById("report-body");
   if (!activeAnalysis) {
     body.innerHTML = emptyStateHtml(
@@ -726,6 +768,31 @@ function renderReportPage() {
     return;
   }
   const a = activeAnalysis;
+
+  if (!a.overlayB64) {
+    body.innerHTML = `
+      <div class="card analyzing-card">
+        <div class="spinner-ring"></div>
+        <div class="analyzing-title">PREPARING REPORT</div>
+        <div class="analyzing-sub">Computing the Grad-CAM explainability panel…</div>
+      </div>
+    `;
+    try {
+      const formData = new FormData();
+      formData.append("file", await resolveUploadBlob(a), a.filename);
+      const res = await fetch(`/gradcam?model=${a.modelKey}`, { method: "POST", body: formData });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        throw new Error(detail.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      a.heatmapB64 = data.gradcam_heatmap;
+      a.overlayB64 = data.gradcam_overlay;
+    } catch (e) {
+      body.innerHTML = `<p style="color:var(--fake); padding:16px;">Report generation failed: ${e.message}</p>`;
+      return;
+    }
+  }
   const isReal = a.label === "Real";
   const verdictText = isReal ? "REAL / AUTHENTIC" : "AI GENERATED";
   const confidence = isReal ? a.realPct : a.fakePct;

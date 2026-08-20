@@ -22,6 +22,7 @@ from .model import ModelRegistry
 from .schemas import (
     CompareResponse,
     DocxReportRequest,
+    GradcamResponse,
     HealthResponse,
     MetaDetectorResponse,
     PredictionResult,
@@ -112,20 +113,41 @@ def health():
 async def predict(model: str = "noaug", file: UploadFile = File(...)):
     """model: which loaded checkpoint to run - "noaug" (default/main),
     "best", "cross_domain", or "tuned", whichever are actually loaded.
-    Defaults to "noaug"."""
+    Defaults to "noaug".
+
+    Plain forward-pass prediction only - no Grad-CAM (that's a separate,
+    on-demand /gradcam call from the Grad-CAM page, since the backward
+    pass + heatmap rendering roughly doubles the request time and most
+    analyses never open that page)."""
     model_obj = _require_model(model)
     image, data = await _load_upload_image(file)
 
     cropped, method = preprocessing.crop_and_align_face(image)
-    result = gradcam.gradcam_overlay(model_obj, cropped, preprocessing.val_transform, registry.device)
+    label, real_pct, fake_pct = _predict_pct(model_obj, cropped, preprocessing.val_transform)
     meta = _run_meta_detector(data, os.path.splitext(file.filename or "")[1])
 
     return PredictResponse(
+        prediction=PredictionResult(label=label, real_pct=round(real_pct, 2), fake_pct=round(fake_pct, 2)),
+        face_alignment_used=method,
+        meta_detector=MetaDetectorResponse(**meta),
+    )
+
+
+@app.post("/gradcam", response_model=GradcamResponse)
+async def gradcam_endpoint(model: str = "noaug", file: UploadFile = File(...)):
+    """Runs Grad-CAM on demand - called only when the user opens the
+    Grad-CAM page, not on every /predict call."""
+    model_obj = _require_model(model)
+    image, _data = await _load_upload_image(file)
+
+    cropped, method = preprocessing.crop_and_align_face(image)
+    result = gradcam.gradcam_overlay(model_obj, cropped, preprocessing.val_transform, registry.device)
+
+    return GradcamResponse(
         prediction=PredictionResult(**result["prediction"]),
         gradcam_heatmap=result["heatmap_b64"],
         gradcam_overlay=result["overlay_b64"],
         face_alignment_used=method,
-        meta_detector=MetaDetectorResponse(**meta),
     )
 
 

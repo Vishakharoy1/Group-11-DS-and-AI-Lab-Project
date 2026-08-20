@@ -29,10 +29,15 @@ class MetaDetectorResponse(BaseModel):
 
 class PredictResponse(BaseModel):
     prediction: PredictionResult
+    face_alignment_used: str
+    meta_detector: MetaDetectorResponse
+
+
+class GradcamResponse(BaseModel):
+    prediction: PredictionResult
     gradcam_heatmap: str  # base64 PNG
     gradcam_overlay: str  # base64 PNG
     face_alignment_used: str
-    meta_detector: MetaDetectorResponse
 
 
 class RobustnessRow(BaseModel):
