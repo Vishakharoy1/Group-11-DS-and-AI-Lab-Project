@@ -491,6 +491,10 @@ async function runAnalysis(pageKey, modelKey) {
   const resultArea = document.getElementById(`result-area-${pageKey}`);
   const analyzeBtn = document.getElementById(`analyze-btn-${pageKey}`);
   if (analyzeBtn) analyzeBtn.disabled = true;
+  // Captured NOW, synchronously, before any await - if we read this after
+  // the fetch resolves instead, a toggle switch mid-flight (Model 1 -> 2)
+  // would read Model 2's label and mislabel Model 1's result.
+  const modelLabel = document.getElementById(`page-${pageKey}`).dataset.modelLabel;
 
   resultArea.innerHTML = `
     <div class="card analyzing-card">
@@ -521,8 +525,7 @@ async function runAnalysis(pageKey, modelKey) {
     const data = await res.json();
     const p = data.prediction;
 
-    const modelLabel = document.getElementById(`page-${pageKey}`).dataset.modelLabel;
-    activeAnalysis = {
+    const result = {
       analysisId: nextAnalysisId(),
       modelKey, modelLabel, modelVersion: "v1.0",
       pageKey,
@@ -543,20 +546,34 @@ async function runAnalysis(pageKey, modelKey) {
       generatedAt: nowString(),
     };
 
-    pageResults[stateKey(pageKey, modelKey)] = activeAnalysis;
-    addToHistory({ ...activeAnalysis, status: "completed" });
-    renderResultCard(pageKey, resultArea);
+    // Always save the result, even if the user has since switched away from
+    // this model - renderStageForModel() will pick it up next time they
+    // switch back. Only touch the shared result-area DOM (and activeAnalysis)
+    // if this model is still the one actually on screen; otherwise those
+    // elements may have already been replaced by the model switched to.
+    pageResults[stateKey(pageKey, modelKey)] = result;
+    addToHistory({ ...result, status: "completed" });
+    if (document.getElementById(`page-${pageKey}`).dataset.modelKey === modelKey) {
+      activeAnalysis = result;
+      renderResultCard(pageKey, resultArea);
+    }
   } catch (e) {
-    resultArea.innerHTML = `<p style="color:var(--fake);">Analysis failed: ${e.message}</p>`;
     addToHistory({
-      analysisId: nextAnalysisId(), modelKey,
-      modelLabel: document.getElementById(`page-${pageKey}`).dataset.modelLabel,
+      analysisId: nextAnalysisId(), modelKey, modelLabel,
       filename: file.name, resolution: `${w} × ${h}`, previewUrl,
       status: "failed", errorMessage: e.message, generatedAt: nowString(),
     });
+    if (document.getElementById(`page-${pageKey}`).dataset.modelKey === modelKey) {
+      resultArea.innerHTML = `<p style="color:var(--fake);">Analysis failed: ${e.message}</p>`;
+    }
   } finally {
-    container.dataset.locked = "";
-    if (analyzeBtn) analyzeBtn.disabled = false;
+    // Don't clear the lock/button state for a model that's no longer being
+    // displayed - it would incorrectly unlock whatever model the user has
+    // since switched to (which has its own lock state from its own click).
+    if (document.getElementById(`page-${pageKey}`).dataset.modelKey === modelKey) {
+      container.dataset.locked = "";
+      if (analyzeBtn) analyzeBtn.disabled = false;
+    }
   }
 }
 
