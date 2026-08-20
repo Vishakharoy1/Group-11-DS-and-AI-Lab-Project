@@ -106,8 +106,7 @@ function initMainModelToggle() {
       pageMain.dataset.modelLabel = modelLabel;
 
       const body = document.querySelector('[data-page-body="main"]');
-      if (body) body.dataset.locked = ""; // force a fresh upload stage even mid-analysis
-      delete pageFileState["main"]; // switching models clears any selected/analyzed image
+      if (body) body.dataset.locked = ""; // allow re-render even if a previous analysis is mid-flight
 
       updateModelStatus("main", modelKey, "status-main");
     });
@@ -193,7 +192,7 @@ function updateModelStatus(pageKey, modelKey, statusElId) {
     el.innerHTML = `<span class="status-dot"></span> Model not loaded on server yet — checkpoint unavailable`;
     el.classList.add("unavailable");
   }
-  renderUploadStage(pageKey, modelKey, available);
+  renderStageForModel(pageKey, modelKey, available);
 }
 
 /* ===================== Format helpers ===================== */
@@ -277,7 +276,15 @@ function nowString() {
 }
 
 /* ===================== Upload stage (Main + Cross-Domain pages share this) ===================== */
-const pageFileState = {}; // pageKey -> { file, previewUrl, w, h }
+// Keyed by "pageKey:modelKey" (not just pageKey) so the Main page's Model
+// 1/Model 2 toggle keeps each model's uploaded image/result independent -
+// switching the toggle used to wipe whatever was there, even switching
+// back to a model you'd already analyzed on.
+function stateKey(pageKey, modelKey) {
+  return `${pageKey}:${modelKey}`;
+}
+const pageFileState = {}; // stateKey -> { file, previewUrl, w, h, uploadBlob }
+const pageResults = {}; // stateKey -> completed analysis record (same shape as activeAnalysis)
 
 // Sample gallery: pre-loaded real/fake images so evaluators can try the
 // model without needing their own test images. Files live in
@@ -339,6 +346,26 @@ function wireSampleGallery(pageKey, modelKey, modelAvailable) {
       }
     });
   });
+}
+
+// Dispatches to the right stage for this (page, model) pair - restores a
+// previously-completed result or in-progress upload for this model
+// instead of always resetting to a blank dropzone.
+function renderStageForModel(pageKey, modelKey, modelAvailable) {
+  const container = document.querySelector(`[data-page-body="${pageKey}"]`);
+  if (container && container.dataset.locked === "1") return;
+
+  const key = stateKey(pageKey, modelKey);
+  if (!pageFileState[key]) {
+    renderUploadStage(pageKey, modelKey, modelAvailable);
+    return;
+  }
+  renderPreviewStage(pageKey, modelKey, modelAvailable);
+  if (pageResults[key]) {
+    activeAnalysis = pageResults[key];
+    const resultArea = document.getElementById(`result-area-${pageKey}`);
+    if (resultArea) renderResultCard(pageKey, resultArea);
+  }
 }
 
 function renderUploadStage(pageKey, modelKey, modelAvailable) {
@@ -404,7 +431,8 @@ async function handleFileSelected(pageKey, modelKey, file, modelAvailable) {
   }
   try {
     const dims = await readImageDims(file);
-    pageFileState[pageKey] = { file, previewUrl: dims.url, w: dims.w, h: dims.h, uploadBlob: dims.uploadBlob };
+    pageFileState[stateKey(pageKey, modelKey)] = { file, previewUrl: dims.url, w: dims.w, h: dims.h, uploadBlob: dims.uploadBlob };
+    delete pageResults[stateKey(pageKey, modelKey)]; // a fresh upload invalidates any earlier result for this model
     renderPreviewStage(pageKey, modelKey, modelAvailable);
   } catch (e) {
     showUploadError(pageKey, "Could not read this image file. Try a different file.");
@@ -413,7 +441,7 @@ async function handleFileSelected(pageKey, modelKey, file, modelAvailable) {
 
 function renderPreviewStage(pageKey, modelKey, modelAvailable) {
   const container = document.querySelector(`[data-page-body="${pageKey}"]`);
-  const { file, previewUrl, w, h } = pageFileState[pageKey];
+  const { file, previewUrl, w, h } = pageFileState[stateKey(pageKey, modelKey)];
 
   container.innerHTML = `
     <div class="upload-grid">
@@ -480,7 +508,7 @@ async function runAnalysis(pageKey, modelKey) {
     </div>
   `;
 
-  const { file, previewUrl, w, h, uploadBlob } = pageFileState[pageKey];
+  const { file, previewUrl, w, h, uploadBlob } = pageFileState[stateKey(pageKey, modelKey)];
   const formData = new FormData();
   formData.append("file", uploadBlob || file, file.name);
 
@@ -515,6 +543,7 @@ async function runAnalysis(pageKey, modelKey) {
       generatedAt: nowString(),
     };
 
+    pageResults[stateKey(pageKey, modelKey)] = activeAnalysis;
     addToHistory({ ...activeAnalysis, status: "completed" });
     renderResultCard(pageKey, resultArea);
   } catch (e) {
