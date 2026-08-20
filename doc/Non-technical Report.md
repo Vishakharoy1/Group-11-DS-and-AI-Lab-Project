@@ -95,7 +95,12 @@ This gives the user additional information about the model's prediction.
 ## 6. Main Features
 
 ### 6.1 Main Model
-The Main Model is the primary model available in the application.
+The Main Model is the primary model available in the application. The Main Model page offers a choice between two versions of the model, selected with a **Model 1 / Model 2** toggle:
+
+- **Model 1 (default, no-augmentation)** — the version used for everyday analysis. Measured at **95.98% accuracy** on the 2,401-image held-out test set.
+- **Model 2 (research/best)** — a more heavily-tuned 3-stage version used for academic comparison. Measured at **99.63% accuracy** on the same test set, but not the one selected by default.
+
+Both are the same underlying MobileNetV3-Large architecture, trained slightly differently — Model 1 favours catching every AI-generated image (100% fake recall) even at the cost of a few more false alarms on real photos, while Model 2 is more balanced overall but was tuned on a smaller, more curated dataset. Either can be selected from the toggle; the application defaults to Model 1.
 
 Users can upload an image using:
 - **Drag and drop**, or

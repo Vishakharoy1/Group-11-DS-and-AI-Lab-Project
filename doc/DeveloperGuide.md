@@ -748,6 +748,10 @@ either way from anything else in this repo.
    report, confusion matrix, per-stage accuracy) in
    `doc/Milestone-5/Milestone5.md` Section 4.
 
+   Note this is the **Model 2 (research)** checkpoint, not what the app
+   defaults to. The deployed default, **Model 1** (`mobilenetv3_noaug.pth`),
+   scores **95.98%** on the same held-out set — see Section 11 below.
+
 ---
 
 ## 11. Production Deployment (Render)
@@ -761,17 +765,17 @@ Production is deployed from **`main`** via Docker on Render.
 | **Build** | `webapp/backend/Dockerfile`, context `webapp/` |
 | **Config** | `render.yaml` (repo root) |
 | **Port** | 10000 |
-| **Models in production image** | `mobilenetv3_noaug.pth`, `mobilenetv3_cross_domain.pth` |
-| **Docker slimming** | `webapp/.dockerignore` excludes other `.pth` files from the image |
+| **Models in production image** | `mobilenetv3_noaug.pth` (95.98%), `mobilenetv3_best.pth` (99.63%), `mobilenetv3_cross_domain.pth` |
+| **Docker slimming** | `webapp/.dockerignore` excludes `manipulations`/`tuned`/`best1` — the 3 checkpoints above are the ones the frontend actually uses |
 
 ### Production vs full local dev
 
 | Feature | Production (Render Docker) | Local (`uvicorn`, all checkpoints) |
 |---|---|---|
-| Main Model default | `noaug` | `noaug` (Model 2 toggle → `cross_domain`) |
+| Main Model default | Model 1 = `noaug` (95.98%); Model 2 toggle → `best` (99.63%) | Same |
 | Cross-Domain page | ✅ | ✅ if checkpoint present |
-| Manipulation Robustness | ❌ not in image | ✅ if `manipulations.pth` present |
-| Model Comparison | ❌ not in image | ✅ if `best`/`tuned` present |
+| Manipulation Robustness | ❌ not in image (`manipulations.pth` excluded) | ✅ if `manipulations.pth` present |
+| Model Comparison (`/compare`) | ✅ `augmentation` mode (best vs. noaug) · ❌ `hparams` mode (needs `tuned`, excluded) | ✅ both, if `tuned` present |
 | RetinaFace | ❌ center-crop fallback | Optional |
 | RAM | ~310 MB (512 MB limit) | Depends on loaded checkpoints |
 

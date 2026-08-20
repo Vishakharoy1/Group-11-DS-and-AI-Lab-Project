@@ -169,16 +169,19 @@ To establish a fair comparison baseline, the project adopted **DeepfakeBench** �
 ### 4.2 Model Checkpoint Registry
 
 The system supports multiple checkpoints managed by a `ModelRegistry`.
-**Production (Render)** loads only two; **local development (`main`)**
-can load all available files from `webapp/output/`.
+**Production (Render)** loads the 3 checkpoints the frontend actually
+uses; **local development (`main`)** can load all available files from
+`webapp/output/`.
 
-| Checkpoint | Role | Training Source | Production (Render) |
-|---|---|---|---|
-| `mobilenetv3_noaug.pth` | Main Model default — no-augmentation baseline | `../notebooks/final-mobilenet (1).ipynb` | ✅ Deployed |
-| `mobilenetv3_cross_domain.pth` | Cross-domain (non-face, multi-domain) evaluation | `../notebooks/cross-domain.ipynb` | ✅ Deployed |
-| `mobilenetv3_best.pth` | 3-stage CelebA-HD corrected model (Model 2 toggle) | `../notebooks/final-mobilenet (1).ipynb` | ❌ Not deployed (RAM) |
-| `mobilenetv3_manipulations.pth` | Manipulation robustness testing | Specialised training run | ❌ Not deployed (RAM) |
-| `mobilenetv3_tuned.pth` | Hyperparameter sweep comparison | Hyperparameter experiment | ❌ Not deployed (RAM) |
+| Checkpoint | Role | Held-out Test Accuracy | Training Source | Production (Render) |
+|---|---|---|---|---|
+| `mobilenetv3_noaug.pth` | Main Model default (Model 1) — no-augmentation baseline | **95.98%** | `../notebooks/final-mobilenet (1).ipynb` | ✅ Deployed |
+| `mobilenetv3_best.pth` | 3-stage CelebA-HD corrected model (Model 2 toggle) | **99.63%** | `../notebooks/final-mobilenet (1).ipynb` | ✅ Deployed |
+| `mobilenetv3_cross_domain.pth` | Cross-domain (non-face, multi-domain) evaluation | — | `../notebooks/cross-domain.ipynb` | ✅ Deployed |
+| `mobilenetv3_manipulations.pth` | Manipulation robustness testing | — | Specialised training run | ❌ Not deployed (unused — `/robustness` isn't called from the UI) |
+| `mobilenetv3_tuned.pth` | Hyperparameter sweep comparison | — | Hyperparameter experiment | ❌ Not deployed (unused — `/compare?mode=hparams` isn't called from the UI) |
+
+**Model 1 vs. Model 2 trade-off**: Model 1 (`noaug`, deployed default) favours recall — it catches 100% of fake images in the held-out set at the cost of more false alarms on real photos. Model 2 (`best`) is the more heavily-tuned research checkpoint, higher overall accuracy but trained on a smaller, more curated slice of data. Both are available in production via the Model 1/Model 2 toggle on the Main Model page.
 
 Production URL: **https://face-forensics.onrender.com**  
 Deployed from Git branch **`main`** via Docker on Render free tier
