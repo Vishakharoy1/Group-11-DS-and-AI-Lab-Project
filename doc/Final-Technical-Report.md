@@ -398,6 +398,8 @@ Modified Classification Head:
 Softmax → P(Real), P(Fake)
 ```
 
+![MobileNetV3-Large architecture — layer-by-layer breakdown](../Images/mobilenetv3_architecture_v2.png)
+
 | Component | Total Params | Trainable (Stage 1) | Trainable (Stage 2) | Trainable (Stage 3) |
 |---|---:|---:|---:|---:|
 | Backbone | ~2.97M | 0 (frozen) | ~1.21M (blocks 12–16) | ~2.97M (all) |
@@ -417,6 +419,8 @@ Softmax → P(Real), P(Fake)
 ### 8.1 Three-Stage Transfer Learning
 
 The training strategy evolved across milestones. Originally two-stage (M3–M4), it was extended to three stages in M5 to address the shortcut-learning failure mode:
+
+![Three-stage transfer learning pipeline — preprocessing through Stage 3 fine-tuning](../Images/mobilenetv3_pipeline_v3.png)
 
 #### Stage 1: Feature Extraction (Frozen Backbone)
 
@@ -567,6 +571,14 @@ weighted avg     0.9963    0.9963    0.9963      2401
 | **Macro F1** | 99.60% |
 
 **Confusion matrix**: Only 9 of 2,401 test images were misclassified — 8 Real images predicted Fake, 1 Fake image predicted Real.
+
+![Confusion matrix — mobilenetv3_best.pth, 2,401-image held-out test set](Milestone-5/images/confusion_matrix_best_model.png)
+
+For comparison, the **deployed default (Model 1, `noaug`)** scores 95.98% on the same held-out set — favouring recall (100% fake caught) over the research checkpoint's slightly higher overall accuracy. Its full ROC and precision-recall curves:
+
+![ROC curve — mobilenetv3_noaug.pth (deployed default), full 2,401-image test set](../Images/Roc_curve.jpeg)
+
+![Precision-recall curve — mobilenetv3_noaug.pth (deployed default), full 2,401-image test set](../Images/Precision_recal_curve.jpeg)
 
 ### 9.2 Training Dynamics
 
@@ -734,7 +746,11 @@ The model classified every FFHQ-like image correctly but misclassified the vast 
 
 **Correct predictions**: Grad-CAM heatmaps concentrate on the central face — eyes, nose bridge, and mouth area — rather than the background or image border. No shortcut cues (corner watermarks, uniform background patches) are visibly dominant.
 
+![Grad-CAM, correct prediction — fake image correctly classified, attention on face region](Milestone-5/images/somendu_gradcam_correct_fake.png)
+
 **Failure cases (false positives — real photos predicted as fake)**: Heatmaps concentrate on skin-texture/sharpness regions rather than forgery-typical blending seams, consistent with the model reacting to modern camera post-processing (HDR, sharpening, saturation) rather than genuine forgery evidence.
+
+![Grad-CAM, failure case — real photo misclassified as fake, attention drawn to sunglasses reflection and nose highlight rather than a forgery cue](Milestone-5/images/somendu_gradcam_failure_real.png)
 
 **Failure cases (false negatives — fake images predicted as real)**: Markedly rarer than false positives. The model's practical weak point is false alarms on real images, not missed fakes.
 
@@ -744,6 +760,8 @@ The system generates comprehensive forensic reports in two formats:
 
 1. **HTML report** (via `/report` endpoint): Standalone, printable document containing input image, prediction result, confidence scores, Grad-CAM overlay, and model information.
 2. **Word document** (via `/report/docx` endpoint): Downloadable `.docx` file with embedded images and structured analysis, built using the `python-docx` library.
+
+![Forensic analysis report — case information, image information, model information, and preprocessing pipeline sections](../Images/Forensic_Analysis.png)
 
 ---
 
@@ -771,6 +789,10 @@ The web application provides a 5-page interface:
 3. **Grad-CAM Explainability**: Dedicated visualisation page with detailed heatmap analysis.
 4. **Forensic Report**: Full forensic analysis with HTML rendering and `.docx` export.
 5. **History**: Session-based prediction history.
+
+![Main Model page — analysis result with confidence score and probability breakdown](../Images/main_model1.png)
+
+![Cross-Domain Model page — non-face/multi-domain authenticity analysis](../Images/cross_domain.png)
 
 ### 12.3 Backend Architecture
 
