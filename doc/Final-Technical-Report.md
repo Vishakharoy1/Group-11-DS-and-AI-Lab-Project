@@ -599,9 +599,12 @@ The model classified every FFHQ-like image correctly but misclassified the vast 
 |---|---|---|
 | CPU (Intel i7-7700) | 15.53 ms | 64.4 images/sec |
 | GPU (Tesla T4, estimated) | ~7–8 ms | ~125–140 images/sec |
-| Full `/predict` request (CPU, with Grad-CAM) | ~2,200 ms | — |
+| `/predict` request, CPU (M6: forward pass only) | ~2,200 ms locally · 33.3 s on Render | — |
+| `/gradcam` request, CPU (on-demand, M6) | ~2,200 ms locally · 22.2 s on Render | — |
 
-**Critical finding**: The model itself is not the deployment bottleneck. The ~140× gap between the raw forward pass (15.5 ms) and the full `/predict` request (~2.2 s) comes from Grad-CAM (a full backward pass plus matplotlib heatmap rendering), not the classifier.
+**Critical finding**: The model itself is not the deployment bottleneck. The ~140× gap between the raw forward pass (15.5 ms) and a single `/predict` or `/gradcam` request (~2.2 s locally) comes from face detection/preprocessing plus (for `/gradcam`) a full backward pass and heatmap rendering, not the classifier.
+
+**M6 update**: `/predict` originally ran Grad-CAM on every call regardless of whether the user ever viewed it, roughly doubling every analysis. It was split into a forward-pass-only `/predict` and a separate, on-demand `/gradcam` (triggered only by the **Run Grad-CAM** button or report generation) — see `doc/Milestone-6/Milestone6-Report.md` §B.7a for the full write-up and the measured live-Render numbers above.
 
 ### 9.6 Comparison Against M4 Baseline
 
