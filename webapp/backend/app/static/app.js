@@ -63,6 +63,25 @@ function initNav() {
   });
 }
 
+// Mobile-width nav: sidebar-nav becomes a dropdown toggled by a hamburger
+// button instead of the always-visible vertical list desktop gets.
+function initMobileNav() {
+  const toggle = document.getElementById("sidebar-menu-toggle");
+  const sidebar = document.getElementById("sidebar");
+  if (!toggle || !sidebar) return;
+
+  function setOpen(open) {
+    sidebar.classList.toggle("nav-open", open);
+    toggle.setAttribute("aria-expanded", String(open));
+  }
+
+  toggle.addEventListener("click", () => setOpen(!sidebar.classList.contains("nav-open")));
+  document.querySelectorAll(".nav-item").forEach((btn) => btn.addEventListener("click", () => setOpen(false)));
+  document.addEventListener("click", (e) => {
+    if (sidebar.classList.contains("nav-open") && !sidebar.contains(e.target)) setOpen(false);
+  });
+}
+
 function goToPage(pageKey) {
   document.querySelectorAll(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.page === pageKey));
   document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
@@ -1630,6 +1649,7 @@ function renderGuidePage() {
 /* ===================== Init ===================== */
 initTheme();
 initNav();
+initMobileNav();
 initMainModelToggle();
 initModelDetailsModal();
 loadPersistedHistory();
